@@ -136,7 +136,7 @@ inputs/
 - Reasoning/thinking tokens are counted and billed as output. Cached input is normalised before pricing.
 
 **Pricing** (no hand-kept table)
-1. Provider-reported cost if present (OpenRouter `usage.cost`).
+1. Provider-reported cost if present: OpenRouter `usage.cost + cost_details.upstream_inference_cost` (on BYOK, `usage.cost` alone is only OpenRouter's fee; see §4).
 2. Else pydantic **`genai-prices`** with `UpdatePrices` on, bundled prices as offline fallback.
 3. Else unknown. An unpriced model is **refused** unless `--allow-unpriced`, in which case only the token cap applies and the summary warns.
 - Every call records `cost_source: provider | genai-prices@<version> | unknown`.
@@ -208,12 +208,15 @@ python run_piece.py --type tech-thread --topic "reentrancy"
 
 **Cut order if behind**: Cloudflare adapter -> `--resume` flag (checkpointer stays) -> advisor. Nothing the brief requires is on this list.
 
-## 4. To verify on Day 1
+## 4. Verified against the real APIs (2026-10-14)
 
-- OpenRouter `usage.cost` for BYOK calls (does it show only the 5% fee?).
-- LangChain: Anthropic cache tokens normalised into `usage_metadata`; usage available with `with_structured_output(include_raw=True)`.
-- Gemini: whether `candidatesTokenCount` already includes `thoughtsTokenCount`.
-- `genai-prices` API surface (`calc_price`, `UpdatePrices`) against the installed version.
+| # | Question | Finding | How verified | Design consequence |
+|---|---|---|---|---|
+| 1 | What is OpenRouter `usage.cost` on a BYOK call? | `usage.cost` is "the total amount charged to your account", so on BYOK it is OpenRouter's fee only. The provider's real cost is in `usage.cost_details.upstream_inference_cost` (filled only for BYOK). `is_byok` is not in the completion response; it is in `GET /api/v1/generation`. Usage is now always returned; `usage: {include: true}` is deprecated. Fee: 5% after $25k/month of list-price inference. Key limit hit = **403** with `limit_source: "openrouter_key_limit"`; **402** = out of credits. | Official docs: [usage accounting](https://openrouter.ai/docs/use-cases/usage-accounting), [BYOK](https://openrouter.ai/docs/guides/overview/auth/byok), [errors](https://openrouter.ai/docs/api-reference/errors). No live call (no OpenRouter key in this shell). | Provider cost = `usage.cost + (cost_details.upstream_inference_cost or 0)`. Map 403 `key_limit` and 402 to a non-retryable `budget_exhausted`-style failure, not a transient retry. |
+| 2 | Does LangChain normalise Anthropic cache tokens? | Yes. `langchain_anthropic._create_usage_metadata` adds `cache_read` + `cache_creation` back into `input_tokens`, so `input_tokens` is the true total (OpenAI convention). 5m/1h cache writes are kept as `ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` in `input_token_details`. Anthropic thinking tokens are inside `output_tokens` but are **not** broken out as `output_token_details.reasoning`. | Read installed source: `langchain_anthropic` 1.4.0, `langchain_core` 1.6.0. | Treat `usage_metadata.input_tokens` as total input for every provider. Don't rely on `output_token_details.reasoning` existing; it's for display only. |
+| 3 | Is usage available with structured output? | Yes, with `with_structured_output(schema, include_raw=True)` the runnable returns `{"raw": AIMessage, "parsed": ..., "parsing_error": ...}`; usage is on `raw.usage_metadata`. | `langchain_core` 1.6.0 docstring. | The model wrapper always uses `include_raw=True`, records usage from `raw`, and treats `parsing_error` as a failed call (billed). |
+| 4 | Does Gemini `candidatesTokenCount` include thoughts? | **No.** Live call to `gemini-2.5-flash` with `thinkingBudget: 512`: prompt 13 + candidates 34 + thoughts 510 = total 557. `langchain_google_genai` 4.2.1 already sets `output_tokens = candidates + thoughts`. Note: the model spent 510 of a 512 thinking budget on a one-line answer. | Live REST call with `GEMINI_API_KEY`; read installed source. | Use LangChain's `output_tokens` as is. Thinking eats budget fast, which confirms `reasoning_effort: none/low` as the default for everyone but the reviewer. |
+| 5 | `genai-prices` API surface | v0.1.11. `calc_price(Usage(input_tokens=, output_tokens=, cache_read_tokens=, cache_write_tokens=), model_ref, provider_id=...)` returns `.total_price` (Decimal) and `.model`. Knows `google`, `anthropic`, `openai` and `openrouter` model ids (e.g. `google/gemini-2.5-flash`). **Unknown model raises `LookupError`.** `UpdatePrices(update_interval=3600, url=<raw GitHub main>)` fetches live data. | Installed in a scratch venv and called. | Unknown model -> `LookupError` -> refuse unless `--allow-unpriced` (as designed). `UpdatePrices` reads from GitHub `main`, so a fetch failure falls back to bundled prices and is logged. |
 
 ## 5. Growth paths (for ARCHITECTURE.md)
 
