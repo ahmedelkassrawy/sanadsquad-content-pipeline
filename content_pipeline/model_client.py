@@ -64,6 +64,19 @@ class LangChainTransport:
         if provider == "google_genai":
             options.pop("max_tokens")
             options["max_output_tokens"] = max_tokens
+            options.pop("reasoning_effort", None)
+            if name.startswith("gemini-2.5-"):
+                minimum = 128 if "pro" in name else 512 if "lite" in name else 0
+                if self.reasoning_effort == "none":
+                    budget = 128 if "pro" in name else 0
+                else:
+                    target = {"low":256,"medium":768,"high":1536}[self.reasoning_effort]
+                    budget = max(minimum, min(target, max_tokens // 4))
+                if budget >= max_tokens:
+                    raise ValueError("output cap too small for configured thinking")
+                options["thinking_budget"] = budget
+            elif name.startswith(("gemini-3", "gemini-4")):
+                options["reasoning_effort"] = self.reasoning_effort if self.reasoning_effort != "none" else "minimal" if "flash" in name else "low"
         chat = init_chat_model(name, model_provider=provider, **options)
         # Tool structured output retains raw usage before LangChain parses it;
         # native SDK parsing can raise on length or bad JSON before returning usage.
