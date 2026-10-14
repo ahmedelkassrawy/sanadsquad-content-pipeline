@@ -198,6 +198,37 @@ async def test_same_run_ownership_refuses_before_ledger_recovery(tmp_path):
     assert (await run_pipeline(ROOT,resume=output,model_factory=models.factory,search_factory=search_factory)).shipped==1
 
 
+async def test_concurrent_public_resume_is_rejected_while_owner_dispatches(tmp_path):
+    models=DeliveryModels()
+    output=tmp_path/"run"
+    with pytest.raises(RuntimeError,match="interrupted"):
+        await run_pipeline(ROOT,one_slot(),output,model_factory=models.factory,search_factory=search_factory,interrupt_after=["focused_research"])
+    entered=asyncio.Event()
+    release=asyncio.Event()
+    def factory(name,slot_id,context):
+        client=models.factory(name,slot_id,context)
+        original=client.transport
+        async def transport(messages,schema,max_tokens):
+            if schema.__name__=="Draft":
+                entered.set()
+                await release.wait()
+            return await original(messages,schema,max_tokens)
+        client.transport=transport
+        return client
+    owner=asyncio.create_task(run_pipeline(ROOT,resume=output,model_factory=factory,search_factory=search_factory))
+    try:
+        await asyncio.wait_for(entered.wait(),10)
+        before=(output/"ledger.json").read_bytes()
+        def forbidden(*args): pytest.fail("contending resume initialized provider")
+        with pytest.raises(ValueError,match="owned"):
+            await run_pipeline(ROOT,resume=output,model_factory=forbidden,search_factory=forbidden)
+        assert (output/"ledger.json").read_bytes()==before
+    finally:
+        release.set()
+        summary=await owner
+    assert summary.shipped==1 and summary.uncertain_tokens==0
+
+
 @pytest.mark.parametrize("stage,schema",[("review_report","ReviewAssessment"),("visuals","VisualOutput"),("advisor","AdvisorOutput")])
 async def test_resume_after_saved_stage_trail_keeps_result_and_artifacts_consistent(tmp_path,stage,schema):
     from content_pipeline.pipeline import Pipeline
