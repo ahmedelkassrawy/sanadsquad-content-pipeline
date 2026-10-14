@@ -41,8 +41,8 @@ def parse_sets(slots,values):
 
 
 def validate_inputs(root,slots,settings=None):
-    if not slots or len({slot.slot_id for slot in slots})!=len(slots):
-        raise ValueError("plan needs unique slots")
+    if not slots or len({slot.slot_id.casefold() for slot in slots})!=len(slots):
+        raise ValueError("plan needs case-insensitive unique slots")
     from PIL import ImageColor
     rules,_=load_brand(root/"inputs/brand-voice.md")
     if len(rules.palette)<3: raise ValueError("brand palette needs three colors")
