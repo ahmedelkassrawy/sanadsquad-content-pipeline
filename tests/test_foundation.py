@@ -70,14 +70,14 @@ def test_folder_only_post_type(tmp_path):
 
 
 def test_normalization_keeps_original_and_numbers_before_review():
-    result = validate_thread(draft("  “State”   before calls. #audit #security  "))
-    assert result.original.tweets[0].text == "  “State”   before calls. #audit #security  "
+    result = validate_thread(draft("  â€œStateâ€‌   before calls. #audit #security  "))
+    assert result.original.tweets[0].text == "  â€œStateâ€‌   before calls. #audit #security  "
     assert [t.text for t in result.normalized.tweets] == [f'{i}/5 "State" before calls.' for i in range(1,6)]
     assert result.fixes[:3] == ["tweet_1:whitespace","tweet_1:curly_quotes","tweet_1:trailing_hashtags"]
     assert result.accepted is True
 
 
-@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("State—calls.","banned_character:—"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("界"*139,"length"),("a"*277,"length")])
+@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("Stateâ€”calls.","banned_character:â€”"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("ç•Œ"*139,"length"),("a"*277,"length")])
 def test_brand_and_weighted_length_rejections(text,error):
     result=validate_thread(draft(text))
     assert result.accepted is False
@@ -107,7 +107,7 @@ def test_citation_acceptance_guard():
 def test_kb_alias_and_batch_assignment():
     kb=KnowledgeBase(ROOT/"inputs/kb.json")
     assert kb.search("recursive call")[0]["id"] == "KB-01"
-    assert kb.source("KB-01").evidence_text == "External calls can reenter before state is finalized.\nRoot cause: State updates after untrusted calls allow repeated execution."
+    assert kb.source("KB-01").evidence_text == "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency."
     slots=load_plan(ROOT,ROOT/"inputs/plan.json")
     slots[0].topic_id="KB-01"
     assigned,warnings=assign_topics(ROOT,slots,{"thread_2":"KB-01","thread_3":"KB-01","marketing_1":"ANGLE-service","marketing_2":"ANGLE-service"},kb)
