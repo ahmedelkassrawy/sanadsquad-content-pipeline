@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 import httpx
 from langchain_core.messages import AIMessage
+from langchain_anthropic import ChatAnthropic
 from langchain_openai import ChatOpenAI
 
 from content_pipeline.ledger import Ledger
@@ -254,6 +255,72 @@ async def test_same_id_different_arguments_are_distinct_occurrences(tmp_path):
     _, [record], _ = await _call(tmp_path, raw)
 
     assert record["output_tokens"] == math.ceil((len(first) + len(second)) / 3.5)
+
+
+@pytest.mark.parametrize("missing_usage", [True, False])
+async def test_anthropic_tool_use_input_mirrors_are_counted_once(tmp_path, monkeypatch, missing_usage):
+    import httpx2
+
+    arguments = _draft()
+    blocks = [
+        {"type": "tool_use", "id": call_id, "name": "Draft", "input": arguments}
+        for call_id in ("call-a", "call-b")
+    ]
+
+    def handler(request):
+        return httpx2.Response(200, json={
+            "id": "msg_offline", "type": "message", "role": "assistant",
+            "model": "claude-3-5-sonnet-20241022", "content": blocks,
+            "stop_reason": "tool_use", "stop_sequence": None,
+            "usage": {
+                "input_tokens": 0 if not missing_usage else 1,
+                "output_tokens": 0 if not missing_usage else 1,
+            },
+        })
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as http:
+        import langchain_anthropic.chat_models as anthropic_models
+
+        monkeypatch.setattr(anthropic_models, "_get_default_async_httpx_client", lambda **kwargs: http)
+
+        observed = []
+
+        class AdapterTransport:
+            def prepare(self, schema, max_tokens):
+                runnable = ChatAnthropic(
+                    model_name="claude-3-5-sonnet-20241022", api_key="synthetic-offline",
+                    max_tokens_to_sample=max_tokens, max_retries=0,
+                ).with_structured_output(schema, method="function_calling", include_raw=True)
+
+                class MissingUsage:
+                    async def ainvoke(self, messages):
+                        result = await runnable.ainvoke(messages)
+                        raw = result["raw"]
+                        if missing_usage:
+                            raw = raw.model_copy(update={"usage_metadata": None})
+                        observed.append((raw.content, raw.tool_calls, raw.invalid_tool_calls))
+                        return {**result, "raw": raw}
+
+                return MissingUsage()
+
+        ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
+        usage_path = tmp_path / "usage.jsonl"
+        prices = FixedPrices()
+        client = ModelClient(
+            "anthropic:claude-3-5-sonnet-20241022", ledger, usage_path,
+            AdapterTransport(), prices,
+        )
+        await client.call(Draft, [{"role": "user", "content": "write"}], "s", "writer", 1, 100)
+
+    record = json.loads(usage_path.read_text())
+    assert record["status"] == "confirmed"
+    expected_output = math.ceil(len(json.dumps(
+        observed[0][0], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )) / 3.5)
+    assert record["estimated"] is missing_usage
+    assert record["output_tokens"] == (expected_output if missing_usage else 0)
+    assert ledger.totals()["tokens"] == record["input_tokens"] + record["output_tokens"]
+    assert prices.quotes[-1][:2] == (record["input_tokens"], record["output_tokens"])
 
 
 async def test_id_union_across_mirrored_views_preserves_distinct_calls(tmp_path):

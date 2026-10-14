@@ -86,7 +86,11 @@ def _visible_output(raw, parsed):
     def arguments_of(call):
         if isinstance(call, dict):
             function = call.get("function") or {}
-            arguments = call.get("args", function.get("arguments"))
+            arguments = call.get("args")
+            if arguments is None and call.get("type") == "tool_use":
+                arguments = call.get("input")
+            if arguments is None:
+                arguments = function.get("arguments")
         else:
             function = getattr(call, "function", None)
             arguments = getattr(call, "args", None)
