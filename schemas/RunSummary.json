@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "ExternalUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "search_calls": {
+          "default": 0,
+          "title": "Search Calls",
+          "type": "integer"
+        },
+        "tavily_calls": {
+          "default": 0,
+          "title": "Tavily Calls",
+          "type": "integer"
+        },
+        "ddgs_calls": {
+          "default": 0,
+          "title": "Ddgs Calls",
+          "type": "integer"
+        },
+        "fetch_calls": {
+          "default": 0,
+          "title": "Fetch Calls",
+          "type": "integer"
+        },
+        "tavily_credits": {
+          "default": 0,
+          "title": "Tavily Credits",
+          "type": "number"
+        },
+        "tavily_credits_estimated": {
+          "default": false,
+          "title": "Tavily Credits Estimated",
+          "type": "boolean"
+        },
+        "image_calls": {
+          "default": 0,
+          "title": "Image Calls",
+          "type": "integer"
+        },
+        "cloudflare_neurons": {
+          "default": 0,
+          "title": "Cloudflare Neurons",
+          "type": "integer"
+        },
+        "pillow_cards": {
+          "default": 0,
+          "title": "Pillow Cards",
+          "type": "integer"
+        }
+      },
+      "title": "ExternalUsage",
+      "type": "object"
+    },
+    "SlotOutcome": {
+      "enum": [
+        "shipped",
+        "dropped_quality",
+        "failed_research",
+        "failed_api",
+        "failed_budget",
+        "failed_output"
+      ],
+      "title": "SlotOutcome",
+      "type": "string"
+    },
+    "TerminalSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "$ref": "#/$defs/SlotOutcome"
+        },
+        "attempts": {
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "topic_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Topic Id"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "outcome",
+        "attempts",
+        "topic_id",
+        "reasons"
+      ],
+      "title": "TerminalSlot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "slots": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TerminalSlot"
+      },
+      "title": "Slots",
+      "type": "object"
+    },
+    "shipped": {
+      "title": "Shipped",
+      "type": "integer"
+    },
+    "confirmed_tokens": {
+      "title": "Confirmed Tokens",
+      "type": "integer"
+    },
+    "uncertain_tokens": {
+      "title": "Uncertain Tokens",
+      "type": "integer"
+    },
+    "confirmed_cost_usd": {
+      "title": "Confirmed Cost Usd",
+      "type": "number"
+    },
+    "uncertain_cost_usd": {
+      "title": "Uncertain Cost Usd",
+      "type": "number"
+    },
+    "unpriced": {
+      "title": "Unpriced",
+      "type": "boolean"
+    },
+    "external_usage": {
+      "$ref": "#/$defs/ExternalUsage"
+    },
+    "cost_scope": {
+      "default": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+      "title": "Cost Scope",
+      "type": "string"
+    },
+    "advisor": {
+      "const": "not_enabled",
+      "default": "not_enabled",
+      "title": "Advisor",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "slot_id",
+    "attempt",
+    "run_id",
+    "slots",
+    "shipped",
+    "confirmed_tokens",
+    "uncertain_tokens",
+    "confirmed_cost_usd",
+    "uncertain_cost_usd",
+    "unpriced",
+    "external_usage"
+  ],
+  "title": "RunSummary",
+  "type": "object"
+}

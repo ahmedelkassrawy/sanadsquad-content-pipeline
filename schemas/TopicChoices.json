@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "assignments": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Assignments",
+      "type": "object"
+    }
+  },
+  "required": [
+    "slot_id",
+    "attempt",
+    "assignments"
+  ],
+  "title": "TopicChoices",
+  "type": "object"
+}

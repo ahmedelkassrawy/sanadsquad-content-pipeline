@@ -111,6 +111,9 @@ class ImageResult(Contract):
 
 class UsageRecord(Contract):
     call_id: str
+    slot_id: str | None = None
+    node: str | None = None
+    attempt: int | None = None
     model: str
     input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)

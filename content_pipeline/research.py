@@ -130,6 +130,10 @@ class WebSearch:
         self.evidence_limit = evidence_limit
         self.calls = 0
         self.tavily_credits = 0
+        self.tavily_calls = 0
+        self.ddgs_calls = 0
+        self.fetch_calls = 0
+        self.tavily_credits_estimated = False
 
     def search(self, query: str):
         if self.calls >= 4:
@@ -138,13 +142,20 @@ class WebSearch:
         hits = []
         provider = "ddgs"
         if self.tavily:
+            self.tavily_calls += 1
             try:
-                self.tavily_credits += 1
-                hits = self.tavily.search(query=query, include_raw_content=True, max_results=5).get("results", [])
+                response = self.tavily.search(query=query, include_raw_content=True, include_usage=True, max_results=5)
+                credits = (response.get("usage") or {}).get("credits")
+                self.tavily_credits += credits if credits is not None else 1
+                self.tavily_credits_estimated |= credits is None
+                hits = response.get("results", [])
                 provider = "tavily"
             except Exception:
+                self.tavily_credits += 1
+                self.tavily_credits_estimated = True
                 hits = []
         if not hits and self.ddgs:
+            self.ddgs_calls += 1
             provider = "ddgs"
             hits = list(self.ddgs.text(query, max_results=5))
         records = []
@@ -160,6 +171,7 @@ class WebSearch:
             status = "ok"
             evidence = raw
             if not evidence:
+                self.fetch_calls += 1
                 try:
                     evidence = self.fetch(url)
                     if not evidence:

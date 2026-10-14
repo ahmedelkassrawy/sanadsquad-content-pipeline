@@ -1,0 +1,222 @@
+from typing import Literal
+from pydantic import Field, model_validator
+from .models import Contract, Draft, ImageResult, ImageSpec, PostType, ResearchPack, ResolvedSlot, Review, SlotOutcome, SourceRecord
+
+
+class ResearchRequest(Contract):
+    slot: ResolvedSlot
+    attempt: int = 1
+    hints: str
+
+
+class ResearchAction(Contract):
+    slot_id: str
+    attempt: int
+    action: Literal["search_kb", "web_search", "finish"]
+    query: str = ""
+    source_ids: list[str] = Field(default_factory=list)
+    topic_id: str | None = None
+
+
+class ResearchTurn(Contract):
+    request: ResearchRequest
+    evidence: list[SourceRecord]
+    searches_remaining: int
+
+
+class TopicChoiceRequest(Contract):
+    slot_id: str = "_batch"
+    attempt: int = 1
+    choices: dict[str, list[str]]
+    exclude: list[str]
+
+
+class TopicChoices(Contract):
+    slot_id: str
+    attempt: int
+    assignments: dict[str, str]
+
+
+class WriteRequest(Contract):
+    slot_id: str
+    attempt: int = Field(ge=1, le=2)
+    research: ResearchPack
+    post_type: PostType
+    feedback: list[str]
+
+
+class Rubric(Contract):
+    criteria: list[str] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def unique(self):
+        if len(self.criteria) != len(set(self.criteria)):
+            raise ValueError("duplicate rubric criteria")
+        return self
+
+
+class ReviewRequest(Contract):
+    slot_id: str
+    attempt: int
+    draft: Draft
+    research: ResearchPack
+    post_type: PostType
+    rubric: Rubric
+
+
+class ReviewAssessment(Contract):
+    slot_id: str
+    attempt: int
+    scores: dict[str, float]
+    reasons: dict[str, str]
+    hard_fail: dict[str, bool]
+
+
+class VisualRequest(Contract):
+    slot_id: str
+    attempt: int
+    draft: Draft
+    research: ResearchPack
+    post_type: PostType
+    severity: str | None = None
+
+
+class VisualOutput(Contract):
+    slot_id: str
+    attempt: int
+    spec: ImageSpec
+
+
+class AuditTweet(Contract):
+    # Rejected normalized candidates can be empty; accepted Draft stays strict.
+    text: str
+    source_ids: list[str]
+
+
+class DraftAudit(Contract):
+    original: Draft
+    normalized: list[AuditTweet]
+    fixes: list[str]
+    violations: list[str]
+    accepted: bool
+
+    def approved(self):
+        if not self.accepted:
+            raise ValueError("draft has not passed validation")
+        return Draft(slot_id=self.original.slot_id,attempt=self.original.attempt,tweets=[tweet.model_dump() for tweet in self.normalized])
+
+
+class SlotState(Contract):
+    slot: ResolvedSlot
+    attempt: int = Field(default=0, ge=0, le=2)
+    pack: ResearchPack | None = None
+    draft: Draft | None = None
+    audit: DraftAudit | None = None
+    review: Review | None = None
+    image: ImageResult | None = None
+    outcome: SlotOutcome | None = None
+    reasons: list[str] = Field(default_factory=list)
+    feedback: list[str] = Field(default_factory=list)
+
+
+class Trace(Contract):
+    record_id: str
+    slot_id: str
+    attempt: int
+
+
+class ResearchRecord(Trace):
+    pack: ResearchPack | None = None
+    evidence: list[SourceRecord]
+    action: str
+    query: str = ""
+    failure: str | None = None
+
+
+class DraftRecord(Trace):
+    audit: DraftAudit | None = None
+    failure: str | None = None
+
+
+class ReviewRecord(Trace):
+    review: Review | None = None
+    failure: str | None = None
+
+
+class VisualRecord(Trace):
+    spec: ImageSpec
+    result: ImageResult
+
+
+class FinalPiece(Trace):
+    topic_id: str
+    topic_name: str
+    draft: Draft
+    image: ImageResult
+
+
+class ExportPost(Trace):
+    type: str
+    topic_id: str
+    topic_name: str
+    tweets: list[str]
+    image: str
+
+
+class ResolvedPlan(Trace):
+    slots: list[ResolvedSlot]
+    warnings: list[str]
+
+
+class ExternalUsage(Contract):
+    search_calls: int = 0
+    tavily_calls: int = 0
+    ddgs_calls: int = 0
+    fetch_calls: int = 0
+    tavily_credits: float = 0
+    tavily_credits_estimated: bool = False
+    image_calls: int = 0
+    cloudflare_neurons: int = 0
+    pillow_cards: int = 0
+
+
+class TerminalSlot(Contract):
+    outcome: SlotOutcome
+    attempts: int
+    topic_id: str | None
+    reasons: list[str]
+
+
+class RunSummary(Trace):
+    run_id: str
+    slots: dict[str, TerminalSlot]
+    shipped: int
+    confirmed_tokens: int
+    uncertain_tokens: int
+    confirmed_cost_usd: float
+    uncertain_cost_usd: float
+    unpriced: bool
+    external_usage: ExternalUsage
+    cost_scope: str = "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."
+    advisor: Literal["not_enabled"] = "not_enabled"
+
+
+class Estimate(Contract):
+    slots: int
+    worst_case_tokens: int
+    worst_case_cost_usd: float | None
+    token_budget: int
+    cost_budget_usd: float
+    warnings: list[str]
+
+
+class LedgerEntry(Contract):
+    tokens: int = Field(ge=0)
+    cost_usd: float | None
+    status: Literal["reserved", "dispatched", "released", "confirmed", "uncertain"]
+
+
+class WeekSnapshot(Contract):
+    slots: dict[str, SlotState]
+    warnings: list[str]
+    summary: RunSummary | None = None

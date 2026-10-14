@@ -1,0 +1,1 @@
+Choose one existing topic id for every supplied slot from its choices, excluding the supplied used/history ids. Keep choices distinct across slots. Return slot_id _batch and attempt 1. Do not invent ids. Code repairs missing or duplicate choices without another selection call. This choice is a topic, not evidence.

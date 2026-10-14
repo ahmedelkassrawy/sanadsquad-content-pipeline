@@ -1,0 +1,348 @@
+{
+  "$defs": {
+    "Draft": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "attempt": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "tweets": {
+          "items": {
+            "$ref": "#/$defs/Tweet"
+          },
+          "minItems": 1,
+          "title": "Tweets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "tweets"
+      ],
+      "title": "Draft",
+      "type": "object"
+    },
+    "PostType": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "writer": {
+          "title": "Writer",
+          "type": "string"
+        },
+        "rubric": {
+          "title": "Rubric",
+          "type": "string"
+        },
+        "units": {
+          "$ref": "#/$defs/Units"
+        },
+        "numbering": {
+          "title": "Numbering",
+          "type": "boolean"
+        },
+        "research": {
+          "$ref": "#/$defs/ResearchConfig"
+        },
+        "review": {
+          "$ref": "#/$defs/ReviewConfig"
+        },
+        "visual": {
+          "$ref": "#/$defs/VisualConfig"
+        }
+      },
+      "required": [
+        "name",
+        "writer",
+        "rubric",
+        "units",
+        "numbering",
+        "research",
+        "review",
+        "visual"
+      ],
+      "title": "PostType",
+      "type": "object"
+    },
+    "ResearchConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "hints": {
+          "title": "Hints",
+          "type": "string"
+        },
+        "topic_source": {
+          "enum": [
+            "kb",
+            "angles"
+          ],
+          "title": "Topic Source",
+          "type": "string"
+        },
+        "angles": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angles"
+        }
+      },
+      "required": [
+        "hints",
+        "topic_source"
+      ],
+      "title": "ResearchConfig",
+      "type": "object"
+    },
+    "ResearchPack": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "topic_id": {
+          "title": "Topic Id",
+          "type": "string"
+        },
+        "topic_name": {
+          "title": "Topic Name",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRecord"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "topic_id",
+        "topic_name",
+        "sources"
+      ],
+      "title": "ResearchPack",
+      "type": "object"
+    },
+    "ReviewConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "pass_avg": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Pass Avg",
+          "type": "number"
+        },
+        "hard_fail": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hard Fail",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pass_avg",
+        "hard_fail"
+      ],
+      "title": "ReviewConfig",
+      "type": "object"
+    },
+    "Rubric": {
+      "additionalProperties": false,
+      "properties": {
+        "criteria": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "criteria"
+      ],
+      "title": "Rubric",
+      "type": "object"
+    },
+    "SourceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "kb",
+            "stat",
+            "web"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "evidence_text": {
+          "title": "Evidence Text",
+          "type": "string"
+        },
+        "status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "snippet_only",
+            "fetch_failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "title",
+        "evidence_text"
+      ],
+      "title": "SourceRecord",
+      "type": "object"
+    },
+    "Tweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Tweet",
+      "type": "object"
+    },
+    "Units": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "minimum": 1,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "minimum": 1,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "Units",
+      "type": "object"
+    },
+    "VisualConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "template": {
+          "title": "Template",
+          "type": "string"
+        },
+        "severity_badge": {
+          "enum": [
+            "auto",
+            "never"
+          ],
+          "title": "Severity Badge",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template",
+        "severity_badge"
+      ],
+      "title": "VisualConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "draft": {
+      "$ref": "#/$defs/Draft"
+    },
+    "research": {
+      "$ref": "#/$defs/ResearchPack"
+    },
+    "post_type": {
+      "$ref": "#/$defs/PostType"
+    },
+    "rubric": {
+      "$ref": "#/$defs/Rubric"
+    }
+  },
+  "required": [
+    "slot_id",
+    "attempt",
+    "draft",
+    "research",
+    "post_type",
+    "rubric"
+  ],
+  "title": "ReviewRequest",
+  "type": "object"
+}
