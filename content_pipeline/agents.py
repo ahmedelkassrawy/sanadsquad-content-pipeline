@@ -88,7 +88,7 @@ class ResearchAgent(Agent):
     async def __call__(self,request: ResearchRequest) -> ResearchPack:
         slot=request.slot
         spec=load_type(self.root,slot.type)
-        if slot.topic_id and slot.topic_id.startswith("KB-") and not slot.focus:
+        if slot.topic_id and spec.research.topic_source=="kb" and not slot.focus:
             source=self.kb.source(slot.topic_id)
             return ResearchPack(slot_id=slot.slot_id,topic_id=source.source_id,topic_name=source.title,sources=[source])
         if slot.topic_id and spec.research.topic_source=="angles" and not slot.focus:
