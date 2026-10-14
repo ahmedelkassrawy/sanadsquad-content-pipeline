@@ -1,0 +1,1 @@
+Research only. Up to four search steps. Tavily raw page evidence first, then ddgs and fetched extracted page text. Failed fetches are retained but cannot be cited. Search costs are counted separately from LLM USD.

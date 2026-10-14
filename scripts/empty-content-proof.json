@@ -1,0 +1,41 @@
+{
+  "base": "773a036be8165d79efc17049b1596ee9eaf09fd2",
+  "red": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-S",
+      "-c",
+      "import sys; sys.path[:0]=['C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\sanadsquad-empty-red-dn5x_npp', 'D:\\\\me\\\\SanadSquad-day1\\\\.venv\\\\Lib\\\\site-packages']; import content_pipeline,pytest; assert content_pipeline.__file__.startswith('C:\\\\Users\\\\Dell\\\\AppData\\\\Local\\\\Temp\\\\sanadsquad-empty-red-dn5x_npp'), content_pipeline.__file__; raise SystemExit(pytest.main(sys.argv[1:]))",
+      "-q",
+      "tests/test_empty_content.py",
+      "--tb=short"
+    ],
+    "cwd": "C:\\Users\\Dell\\AppData\\Local\\Temp\\sanadsquad-empty-red-dn5x_npp",
+    "exit": 1,
+    "output": "FFFF.                                                                    [100%]\n================================== FAILURES ===================================\n___________ test_all_blank_thread_cannot_be_validated_by_numbering ____________\ntests\\test_empty_content.py:18: in test_all_blank_thread_cannot_be_validated_by_numbering\n    assert result.accepted is False\nE   AssertionError: assert True is False\nE    +  where True = ValidationResult(original=Draft(slot_id='slot', attempt=1, tweets=[Tweet(text=' ', source_ids=['KB-01']), Tweet(text='... 'tweet_2:whitespace', 'tweet_3:whitespace', 'tweet_4:whitespace', 'tweet_5:whitespace'], violations=[], accepted=True).accepted\n____________ test_one_blank_unit_rejects_otherwise_nonempty_thread ____________\ntests\\test_empty_content.py:28: in test_one_blank_unit_rejects_otherwise_nonempty_thread\n    assert result.accepted is False\nE   AssertionError: assert True is False\nE    +  where True = ValidationResult(original=Draft(slot_id='slot', attempt=1, tweets=[Tweet(text='State before calls.', source_ids=['KB-0...t(text='5/5 Review the evidence.', source_ids=['KB-01'])]), fixes=['tweet_3:whitespace'], violations=[], accepted=True).accepted\n_ test_hashtag_only_units_become_empty_and_fail_before_numbering[tech-thread-5] _\ntests\\test_empty_content.py:39: in test_hashtag_only_units_become_empty_and_fail_before_numbering\n    assert result.violations == [f\"tweet_{i}:invalid_text\" for i in range(1,count+1)]\nE   AssertionError: assert ['tweet_1:has...et_5:hashtag'] == ['tweet_1:inv...invalid_text']\nE     \nE     At index 0 diff: 'tweet_1:hashtag' != 'tweet_1:invalid_text'\nE     Use -v to get more diff\n_ test_hashtag_only_units_become_empty_and_fail_before_numbering[marketing-post-1] _\ntests\\test_empty_content.py:39: in test_hashtag_only_units_become_empty_and_fail_before_numbering\n    assert result.violations == [f\"tweet_{i}:invalid_text\" for i in range(1,count+1)]\nE   AssertionError: assert ['tweet_1:hashtag'] == ['tweet_1:invalid_text']\nE     \nE     At index 0 diff: 'tweet_1:hashtag' != 'tweet_1:invalid_text'\nE     Use -v to get more diff\n============================== warnings summary ===============================\nD:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_empty_content.py::test_all_blank_thread_cannot_be_validated_by_numbering\nFAILED tests/test_empty_content.py::test_one_blank_unit_rejects_otherwise_nonempty_thread\nFAILED tests/test_empty_content.py::test_hashtag_only_units_become_empty_and_fail_before_numbering[tech-thread-5]\nFAILED tests/test_empty_content.py::test_hashtag_only_units_become_empty_and_fail_before_numbering[marketing-post-1]\n4 failed, 1 passed, 1 warning in 0.91s\n"
+  },
+  "head": "b3a16ac8d281adc6ed0c8fa005220cfd5ab2735a",
+  "green": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-m",
+      "pytest",
+      "-q",
+      "tests/test_empty_content.py"
+    ],
+    "cwd": "D:\\me\\SanadSquad-day1",
+    "exit": 0,
+    "output": ".....                                                                    [100%]\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n5 passed, 1 warning in 0.48s\n"
+  },
+  "full_suite": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-m",
+      "pytest",
+      "-q"
+    ],
+    "cwd": "D:\\me\\SanadSquad-day1",
+    "exit": 0,
+    "output": "........................................................................ [ 98%]\n.                                                                        [100%]\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n73 passed, 1 warning in 9.15s\n"
+  }
+}
