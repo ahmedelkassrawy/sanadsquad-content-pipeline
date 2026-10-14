@@ -375,10 +375,11 @@ class Pipeline:
     async def write(self,raw):
         state=lane_state(raw)
         state.attempt+=1
+        previous_draft=state.draft
         state.draft=None
         state.audit=None
         state.review=None
-        request=WriteRequest(slot_id=state.slot.slot_id,attempt=state.attempt,research=state.pack,post_type=load_type(self.root,state.slot.type),feedback=state.feedback)
+        request=WriteRequest(slot_id=state.slot.slot_id,attempt=state.attempt,research=state.pack,post_type=load_type(self.root,state.slot.type),feedback=state.feedback,max_tweet_chars=self.context.settings.max_tweet_chars,previous_draft=previous_draft)
         try:
             if state.slot.slot_id not in self.writers:
                 self.writers[state.slot.slot_id]=Writer(self.root,state.slot.type,self.client(load_type(self.root,state.slot.type).writer,state.slot.slot_id))

@@ -67,6 +67,8 @@ class WriteRequest(Contract):
     research: ResearchPack
     post_type: PostType
     feedback: list[str]
+    max_tweet_chars: int = Field(default=280, ge=1, le=280)
+    previous_draft: Draft | None = None
 
 
 class Rubric(Contract):
