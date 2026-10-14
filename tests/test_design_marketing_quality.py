@@ -41,9 +41,14 @@ async def test_public_marketing_writer_sends_angle_quality_scaffold(topic_id, so
 
     await Writer(ROOT, "marketing-post", client)(request)
 
+    assert client.messages[1]["content"] == request.model_dump_json()
     prompt = client.messages[0]["content"]
     assert "finished, reader-facing post around one supported point, not a list of brand facts" in prompt
     assert "Open with a specific question or contrast tied to the supplied angle and evidence" in prompt
     assert "end with a direct next step that the supplied evidence supports" in prompt
-    assert "For an education angle, direct readers to check or apply the exact supplied mitigation" in prompt
+    assert "For an education angle, keep the hook and supported mechanism or mitigation concise" in prompt
     assert "A short grounded invitation is enough" not in prompt
+    if topic_id == "ANGLE-education":
+        assert "leave room within the effective configured limit for a distinct" in prompt
+        assert "distinct, evidence-tied reader-engagement question or concrete next step" in prompt
+        assert "Merely restating or applying the mitigation is not by itself this engagement CTA" in prompt
