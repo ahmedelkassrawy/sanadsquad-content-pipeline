@@ -42,23 +42,28 @@ def _payload_identity(value):
 
 
 def _visible_output(raw, parsed):
-    """Estimate from returned model payloads, counting duplicate representations once."""
+    """Estimate returned payload size while reconciling mirrored SDK views."""
     parts = []
     seen = set()
-    call_identities = {}
-
-    def call_id(call):
-        return call.get("id") if isinstance(call, dict) else getattr(call, "id", None)
-
-    def content_tool_call_ids(content):
-        if not isinstance(content, list):
-            return set()
-        return {
-            block.get("id") for block in content
-            if isinstance(block, dict)
-            and block.get("type") in {"tool_call", "server_tool_call", "tool_use"}
-            and block.get("id") is not None
-        }
+    call_views = []
+    content_call_counts = {}
+    content = getattr(raw, "content", "")
+    content_calls = []
+    if isinstance(content, list):
+        for block in content:
+            if isinstance(block, dict) and block.get("type") in {"tool_call", "server_tool_call", "tool_use"}:
+                content_calls.append(block)
+        add_content = content
+    else:
+        add_content = content
+        if isinstance(content, str) and content.strip():
+            try:
+                decoded_content = json.loads(content)
+                if isinstance(decoded_content, (dict, list)):
+                    identity = _payload_identity(decoded_content)
+                    content_call_counts[identity] = 1
+            except (TypeError, ValueError):
+                pass
 
     def add(value):
         text = _payload_text(value)
@@ -68,36 +73,69 @@ def _visible_output(raw, parsed):
                 seen.add(identity)
                 parts.append(text)
 
-    add(getattr(raw, "content", ""))
-    mirrored_ids = content_tool_call_ids(getattr(raw, "content", None))
-    calls = [*(getattr(raw, "tool_calls", None) or []), *(getattr(raw, "invalid_tool_calls", None) or [])]
+    add(add_content)
+    normalized_calls = [*(getattr(raw, "tool_calls", None) or []), *(getattr(raw, "invalid_tool_calls", None) or [])]
+    if normalized_calls:
+        call_views.append(normalized_calls)
     additional = getattr(raw, "additional_kwargs", None) or {}
-    if isinstance(additional, dict):
-        calls.extend(additional.get("tool_calls") or [])
-    for call in calls:
-        if call_id(call) is not None and call_id(call) in mirrored_ids:
-            continue
+    if isinstance(additional, dict) and additional.get("tool_calls"):
+        call_views.append(list(additional["tool_calls"]))
+    if content_calls:
+        call_views.append(content_calls)
+
+    def arguments_of(call):
         if isinstance(call, dict):
             function = call.get("function") or {}
             arguments = call.get("args", function.get("arguments"))
-            if arguments is not None:
-                text = _payload_text(arguments)
         else:
             function = getattr(call, "function", None)
             arguments = getattr(call, "args", None)
             if arguments is None and function is not None:
                 arguments = getattr(function, "arguments", None)
-            if arguments is not None:
-                text = _payload_text(arguments)
-        if arguments is not None and text.strip():
+        return arguments
+
+    # Each SDK field is a view of the response. Count equal payload occurrences
+    # by the maximum multiplicity in any one view, not their sum across views.
+    call_multiplicity = {}
+    call_ids = {}
+    call_text = {}
+    for view in call_views:
+        counts = {}
+        ids_in_view = {}
+        for call in view:
+            arguments = arguments_of(call)
+            text = _payload_text(arguments)
+            if arguments is None or not text.strip():
+                continue
             identity = _payload_identity(text)
-            current_id = call_id(call)
-            previous_id = call_identities.get(identity)
-            if identity not in seen or (current_id is not None and previous_id is not None and current_id != previous_id):
-                parts.append(text)
-                seen.add(identity)
-            if current_id is not None:
-                call_identities[identity] = current_id
+            call_id = call.get("id") if isinstance(call, dict) else getattr(call, "id", None)
+            if call_id is None:
+                counts[identity] = counts.get(identity, 0) + 1
+            else:
+                ids_in_view.setdefault(identity, set()).add(str(call_id))
+                call_ids.setdefault(identity, set()).add(str(call_id))
+            call_text[identity] = text
+        for identity, ids in ids_in_view.items():
+            counts[identity] = counts.get(identity, 0) + len(ids)
+        for identity, count in counts.items():
+            call_multiplicity[identity] = max(call_multiplicity.get(identity, 0), count)
+    for identity, count in call_multiplicity.items():
+        total = max(count, len(call_ids.get(identity, ())))
+        content_count = content_call_counts.get(identity, 0)
+        if content_calls:
+            content_ids = set()
+            content_idless = 0
+            for call in content_calls:
+                arguments = arguments_of(call)
+                if arguments is not None and _payload_identity(_payload_text(arguments)) == identity:
+                    call_id = call.get("id") if isinstance(call, dict) else getattr(call, "id", None)
+                    if call_id is None:
+                        content_idless += 1
+                    else:
+                        content_ids.add(str(call_id))
+            content_count = content_idless + len(content_ids)
+        extra_count = max(0, total - content_count)
+        parts.extend([call_text[identity]] * extra_count)
     function_call = getattr(raw, "function_call", None)
     if function_call is None and isinstance(additional, dict):
         function_call = additional.get("function_call")

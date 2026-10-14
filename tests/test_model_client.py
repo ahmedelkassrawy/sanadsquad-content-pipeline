@@ -203,3 +203,71 @@ async def test_distinct_tool_calls_with_identical_arguments_are_both_counted(tmp
     _, [record], _ = await _call(tmp_path, raw)
 
     assert record["output_tokens"] == math.ceil((len(arguments) * 2) / 3.5)
+
+
+async def test_native_additional_kwargs_mirrors_are_counted_once_by_id(tmp_path):
+    arguments = json.dumps(_draft(), separators=(",", ":"))
+    calls = [
+        {"id": call_id, "type": "function", "function": {"name": "Draft", "arguments": arguments}}
+        for call_id in ("call-a", "call-b")
+    ]
+    raw = AIMessage(content="", additional_kwargs={"tool_calls": calls})
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil((len(arguments) * 2) / 3.5)
+
+
+async def test_idless_duplicate_tool_calls_keep_occurrence_multiplicity(tmp_path):
+    arguments = json.dumps(_draft(), separators=(",", ":"))
+    raw = _raw("", tool_calls=[
+        {"function": {"arguments": arguments}},
+        {"function": {"arguments": arguments}},
+    ])
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil((len(arguments) * 2) / 3.5)
+
+
+async def test_idless_content_tool_call_mirror_is_counted_once(tmp_path):
+    args = _draft()
+    raw = _raw(
+        [{"type": "tool_call", "name": "Draft", "args": args}],
+        tool_calls=[{"name": "Draft", "args": args}],
+    )
+    content = json.dumps(raw.content, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil(len(content) / 3.5)
+
+
+async def test_same_id_different_arguments_are_distinct_occurrences(tmp_path):
+    first = json.dumps({"a": 1}, separators=(",", ":"))
+    second = json.dumps({"b": 2}, separators=(",", ":"))
+    raw = _raw("", tool_calls=[
+        {"id": "reused", "function": {"arguments": first}},
+        {"id": "reused", "function": {"arguments": second}},
+    ])
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil((len(first) + len(second)) / 3.5)
+
+
+async def test_id_union_across_mirrored_views_preserves_distinct_calls(tmp_path):
+    arguments = json.dumps(_draft(), separators=(",", ":"))
+    normalized = [
+        {"id": call_id, "args": _draft()}
+        for call_id in ("call-a", "call-b")
+    ]
+    additional = [
+        {"id": call_id, "function": {"arguments": arguments}}
+        for call_id in ("call-b", "call-c")
+    ]
+    raw = _raw("", tool_calls=normalized, additional_kwargs={"tool_calls": additional})
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil((len(arguments) * 3) / 3.5)
