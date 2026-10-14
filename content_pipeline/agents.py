@@ -98,6 +98,8 @@ class ResearchAgent(Agent):
             from .config import load_brand
             rules,_=load_brand(self.root/"inputs/brand-voice.md")
             sources=[SourceRecord(source_id=id,kind="stat",title=rules.brand_name,evidence_text=text) for id,text in rules.approved_stats.items()]
+            if angle.source_ids is not None:
+                sources=[self.kb.source(source_id) for source_id in angle.source_ids]+sources
             return ResearchPack(slot_id=slot.slot_id,topic_id=slot.topic_id,topic_name=angle.name,sources=sources)
         evidence={}
         searches=0

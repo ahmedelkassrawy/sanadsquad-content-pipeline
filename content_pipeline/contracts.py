@@ -6,11 +6,14 @@ from .models import Contract, Draft, ImageResult, ImageSpec, PostType, ResearchP
 class Angle(Contract):
     id: StrictStr = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
     name: StrictStr
+    source_ids: list[StrictStr] | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
         if not self.name.strip():
             raise ValueError("angle needs a nonempty name")
+        if self.source_ids is not None and (not self.source_ids or len(self.source_ids) != len(set(self.source_ids))):
+            raise ValueError("configured angle evidence needs unique source ids")
         return self
 
 

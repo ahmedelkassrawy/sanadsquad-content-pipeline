@@ -9,6 +9,21 @@
     "name": {
       "title": "Name",
       "type": "string"
+    },
+    "source_ids": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Ids"
     }
   },
   "required": [

@@ -58,7 +58,13 @@ def load_type(root: Path, name: str) -> PostType:
 
 def load_angles(root: Path, spec: PostType):
     path = local_file(root / "post_types" / spec.name, spec.research.angles)
-    return AnglesFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8"))).angles
+    angles = AnglesFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8"))).angles
+    configured_sources = {source_id for angle in angles for source_id in angle.source_ids or []}
+    if configured_sources:
+        kb_ids = {entry["id"] for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))["entries"]}
+        if configured_sources - kb_ids:
+            raise ValueError("angle evidence references an unknown knowledge-base source")
+    return angles
 
 
 def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
