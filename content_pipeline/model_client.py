@@ -58,6 +58,8 @@ class LangChainTransport:
         options = {"max_tokens": max_tokens, "max_retries": 0, "api_key": key}
         if self.reasoning_effort != "none":
             options["reasoning_effort"] = self.reasoning_effort
+        elif provider == "openrouter":
+            options["extra_body"] = {"reasoning": {"enabled": False}}
         if provider in {"openrouter", "opencode"}:
             options["base_url"] = "https://openrouter.ai/api/v1" if provider == "openrouter" else "https://opencode.ai/zen/v1"
             provider = "openai"
@@ -189,6 +191,12 @@ class ModelClient:
             await self.ledger.settle(call_id, in_tokens + out_tokens, cost)
             await self.record(UsageRecord(call_id=call_id, model=self.model, input_tokens=in_tokens, output_tokens=out_tokens, cached_input_tokens=cached, reasoning_tokens=reasoning, estimated=estimated, cost_usd=cost, cost_source=cost_source, overshoot_tokens=max(0, in_tokens + out_tokens - reserve_tokens)))
             finish = str(metadata.get("finish_reason") or metadata.get("stop_reason") or "").lower()
+            if finish == "error":
+                if transient < 3:
+                    transient += 1
+                    await self.sleep(2 ** (transient - 1))
+                    continue
+                raise ModelFailure("failed_api")
             if finish in {"length", "max_tokens"}:
                 if truncation:
                     raise ModelFailure("failed_output")
