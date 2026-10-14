@@ -8,6 +8,7 @@ from .contracts import ResearchAction, ResearchRecord, ResearchRequest, Research
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
 from .tools import research_tools
+from .review_wire import canonical_review, review_wire_schema
 
 
 def identity(slot_id,attempt,output):
@@ -162,10 +163,10 @@ class Reviewer(Agent):
         if request.research.slot_id!=request.slot_id or request.draft.slot_id!=request.slot_id or request.draft.attempt!=request.attempt:
             raise ModelFailure("failed_output")
         def check(assessment):
-            errors=review_contract_errors(request,assessment)
+            errors=review_contract_errors(request,canonical_review(assessment))
             if errors: raise ValidationError.from_exception_data("ReviewAssessment",errors)
-        assessment=await self.invoke(ReviewAssessment,request,request.slot_id,request.attempt,node="reviewer",output_validator=check)
-        return score_review(request,assessment)
+        assessment=await self.invoke(review_wire_schema(request),request,request.slot_id,request.attempt,node="reviewer",output_validator=check)
+        return score_review(request,canonical_review(assessment))
 
 
 class VisualAgent(Agent):

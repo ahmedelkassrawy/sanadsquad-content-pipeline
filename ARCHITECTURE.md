@@ -48,6 +48,12 @@ source IDs, then passes the exact approved candidate and identical evidence to r
 Review scoring requires every rubric criterion and hard-fail flag; average/threshold
 and approval are computed by code. An accepted boolean from the model is never trusted.
 The model still owns factual grounding judgment; valid source IDs alone prove no claim.
+The private reviewer tool schema spells out the current file-configured criterion and
+hard-fail keys, with score bounds. Its typed response converts back to the unchanged
+canonical dictionary contract before validation/scoring. Criterion reasons are required;
+false flags may omit reasons, true flags still require them, and extra string reasons
+remain allowed. This representation helps producers emit the required fields; it does
+not change approval policy or establish a model's grounding quality.
 
 `images.py` validates both modeled and fallback overlays before Pillow rendering.
 `trail.py` deduplicates stable record IDs and exports approved text unchanged. JSON
