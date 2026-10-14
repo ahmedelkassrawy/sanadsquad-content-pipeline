@@ -75,8 +75,8 @@ agents/
   research/  writer/  reviewer/  visual/  advisor/
              each: agent.yaml (model override?, max_output_tokens, reasoning_effort, skills) + system.md
 skills/
-  search_kb.py + .md     (shared: research, writers)
-  brand_rules.py + .md   (shared: writers, reviewer)
+  search_kb.py + .md     (research only; writers never search, see §6)
+  brand_rules.py + .md   (shared: writers, reviewer, visual, validator)
   web_search.py + .md    (research)
   build_image_prompt.py + .md (visual)
 config/
@@ -86,7 +86,7 @@ inputs/
 ```
 
 - The orchestrator reads `slot.type` and loads `post_types/<type>/`. It never names a post type. **Adding a post type = adding a folder.**
-- `type.yaml` names the writer, the rubric, tweet-count range, pass threshold.
+- `type.yaml` names the writer, the rubric, tweet-count range, pass threshold. Full contract in §6.9.
 
 ### 2.4 Inputs
 
@@ -102,16 +102,16 @@ inputs/
 | Source priority | **Knowledge base first**; web only when the KB doesn't cover a focus. |
 | KB retrieval | **BM25** (`rank-bm25`) over name, category, description and `aliases` -> top 5 -> **the same chat model** judges the match (no separate classifier, no Jev). |
 | Web search | `web_search` skill: **Tavily**, then **`ddgs`** (no key) as fallback. A failed or empty search marks the slot **failed**; the run continues. |
-| Research loop | Max 4 search steps; web page text capped before it enters the prompt. |
+| Research loop | Max 4 search steps; evidence text capped before it enters the prompt. Every web hit becomes a `SourceRecord` (§6.2). |
 | Topic repeats | Never repeat a KB id within a week; skip ids used in the last N run folders. |
 | Marketing angles | `angles.yaml` (`service`, `credibility`, `education-to-cta`); an empty focus gets a distinct angle. |
-| Citations | One scheme for every source type: `KB-07`, `STAT-02`, `WEB-<hash>`, `USER` (for `--set` text). |
-| Grounding check | Writers return structured output with **source ids per tweet**. **Code** checks every id exists in that slot's research pack. The **reviewer** judges whether the source supports the claim. |
+| Citations | One scheme for every source type: `KB-07`, `STAT-02`, `WEB-<hash>`. **No `USER` source**: `--set` sets a topic, not evidence (§6.1). |
+| Grounding check | Writers return structured output with **source ids per tweet**. **Code** checks every id exists in that slot's research pack. The **reviewer** checks **every factual claim** against the evidence text, including claims the writer didn't cite (§6.2). |
 
 ### 2.6 Quality gates
 
 **Validator (code, not an agent)** runs after every draft:
-- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted the way X counts** (links = 23), including the `1/7` numbering. `MAX_TWEET_CHARS` comes from `.env`.
+- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted by X's rules via `twitter-text-parser`** (weighted Unicode, URLs = 23), with the `1/7` numbering added by code **before** validation. `MAX_TWEET_CHARS` comes from `.env`.
 - **Safe fixes** (listed in config, never meaning-changing: whitespace, curly quotes, a trailing hashtag block) are applied and **logged** in the drafts trail.
 - **Real violations** skip the reviewer and go straight back to the writer as the one retry. A retry that still breaks a hard rule is dropped.
 
@@ -141,7 +141,7 @@ inputs/
 3. Else unknown. An unpriced model is **refused** unless `--allow-unpriced`, in which case only the token cap applies and the summary warns.
 - Every call records `cost_source: provider | genai-prices@<version> | unknown`.
 
-**Budget (hard cap)**
+**Budget (pre-call budget guard; see §6.7 for what it does and doesn't guarantee)**
 - `RUN_TOKEN_BUDGET` and `RUN_COST_BUDGET_USD` in `.env`; whichever is hit first stops spending.
 - A run-level **ledger** shared by all lanes, behind an `asyncio.Lock`. Before each call it reserves the worst case: estimated input (chars / 3.5, +15%) + full `max_output_tokens`. If it doesn't fit, the call never starts. After the call, the reservation is settled to actual numbers.
 - `max_output_tokens` per agent in `agent.yaml`, sized at about 2x the largest legitimate output (thinking included).
@@ -161,7 +161,7 @@ Visual agent (LLM) -> ImageSpec (concept, scene, palette, overlay text, alt text
 
 - Cloudflare Workers AI FLUX-schnell (free daily allowance, needs account id + token). No key or any failure -> Pillow card, so a run never breaks. The trail records which backend produced each image.
 - On-image text is always drawn by code: image models garble text.
-- Images are made **only for accepted pieces**.
+- Images are made **only for accepted pieces**. Visual-agent failure and overlay validation: §6.5.
 
 ### 2.10 Output
 
@@ -187,7 +187,7 @@ python run_week.py --plan inputs/plan.json --estimate
 python run_piece.py --type tech-thread --topic "reentrancy"
 ```
 
-- `--set slot=text` fills that slot's focus; the text is a `USER` source.
+- `--set slot=text` fills that slot's focus. It is a topic, not evidence: it still has to resolve to KB or web evidence.
 - `run_piece.py` builds a one-slot plan in memory and runs **the same graph**, with its own run folder.
 
 ### 2.12 Tests and observability
@@ -202,7 +202,7 @@ python run_piece.py --type tech-thread --topic "reentrancy"
 
 | Day | Work |
 |---|---|
-| **Wed 14** | Repo, inputs (brand voice, KB, plan), Pydantic contracts, model wrapper + usage ledger + pricing, validator + citation checker, skills (`search_kb`, `web_search`, `brand_rules`), pytest with fake LLM. |
+| **Wed 14** | Repo, inputs (brand voice, KB, plan), Pydantic contracts, model wrapper + usage ledger + pricing, validator + citation checker, skills (`search_kb`, `web_search` + page fetch, `brand_rules`), terminal-state enum, pytest with fake LLM. |
 | **Thu 15** | Agents (research, 2 writers, reviewer, visual), LangGraph graph with parallel lanes and retry-or-drop, trail writer, both CLIs, Pillow card. |
 | **Fri 16** | Advisor node, Cloudflare adapter, `--resume`, live sample run, README + ARCHITECTURE.md + limitations. |
 
@@ -223,3 +223,115 @@ python run_piece.py --type tech-thread --topic "reentrancy"
 - **15 slots**: unchanged graph; raise `MAX_CONCURRENCY`; swap `search_kb` from BM25 to embeddings (one file) as the KB grows.
 - **Second platform**: platform becomes a field on the post type (`max_chars`, thread support, CSV format); exporters become adapters like the image backends.
 - **Daily service**: Temporal for durable execution; advisor feeding a review queue.
+
+---
+
+## 6. Closures from the external design review (2026-10-14)
+
+An independent model reviewed this design against the brief. Kassra accepted the findings below. Where §2 and §6 disagree, **§6 wins** (§2 has been corrected in place where it contradicted).
+
+Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume) and 6.7 (budget) stay optional and keep their place on the cut list.
+
+### 6.1 A topic override is not evidence
+- `--set thread_2="oracle manipulation"` sets `requested_focus` only. It must still resolve to KB entries or web `SourceRecord`s like any other focus.
+- **`USER` is removed as a citation source.** The brief's CLI has no way to supply facts, so nothing the user types can support a claim.
+
+### 6.2 What counts as evidence
+- Every source a writer can cite is a `SourceRecord`:
+  `source_id, kind (kb | stat | web), url?, title, retrieved_at, evidence_text, status (ok | snippet_only | fetch_failed)`.
+- KB and STAT records carry their own text. Web records:
+  - **Tavily**: use its returned page content as `evidence_text`.
+  - **`ddgs`**: snippets only, so the page is fetched and extracted with **`trafilatura`**.
+  - Search succeeds but fetching fails -> `fetch_failed`, not citable. If a slot ends with no citable evidence, it becomes `failed_research`.
+- The **writer and the reviewer receive the same `SourceRecord`s**. All records are saved in `research_log.json`, so evidence can be inspected after the run.
+- Writers cite per tweet. The **reviewer checks every factual claim** in the text against `evidence_text`, including claims the writer didn't cite. An unsupported claim is a hard fail.
+
+### 6.3 Topic assignment can't sink several slots
+- The batch "pick N distinct topics" call is validated by **code**: every empty slot assigned, every id exists, no duplicates with each other, with focused slots, or with history.
+- Valid assignments are kept. A missing or invalid one is filled by **code**: the best unused KB entry by BM25 against the post type's research hints. No second LLM call.
+- Two **explicit** focuses resolving to the same KB id are allowed (it's the user's choice) and logged as a warning.
+- History exclusion: ids used in the **last 4 run folders**. If the pool is exhausted, the least recently used ids are allowed again, and this is logged.
+
+### 6.4 Writers never search
+- Writers work **only** from their slot's research pack; they don't call `search_kb`.
+- The shared-skill requirement is met by **`brand_rules`**, used by writers, reviewer, visual and validator.
+- **What a skill is**: a Python module plus a `.md` description.
+  - Research gets its skills as **LLM-callable tools** (`search_kb`, `web_search`).
+  - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check()` used by the validator).
+
+### 6.5 Visual failure and accuracy
+- If the visual agent fails (error, invalid output, budget refusal), **code builds a fallback `ImageSpec`** from the accepted piece: title from the topic name, severity from the KB entry if any, brand palette.
+- Overlay text goes through the **same validator** (banned words and characters) and may only contain text from the accepted piece or its sources. No new statistics.
+- The **severity badge is optional**; it is drawn only when the source has a severity, so marketing posts have none.
+- The Pillow card is local code, so an accepted piece always ships with an image. If even that fails, the piece ships with its written spec and the CSV `Image` cell points to the spec JSON. That is recorded.
+
+### 6.6 What resume can and can't promise
+- **Limitation, documented:** if a call completes and is billed but the process dies before the result is saved, `--resume` repeats that call. No exactly-once billing.
+- Every model call and trail record has a **stable id** (`slot_id/node/attempt/call_n`). The trail writer skips ids it already has, so resume never duplicates records.
+- On resume, reservations left open by a crash are released and logged as `uncertain` in the ledger.
+- Each run **snapshots** its inputs (`brand-voice.md`, `kb.json`, `plan.json`, `post_types/`, `agents/`, resolved config) into `run_dir/snapshot/`. Resume reads the snapshot, not the live files, so one run can't mix two policies.
+
+### 6.7 What the budget guarantees
+- It is a **pre-call budget guard**, not a mathematical hard cap. Input tokens are estimated (chars / 3.5 + 15%), and an estimate can be wrong for unusual text.
+- The guard reserves that estimate plus full `max_output_tokens` before each call. Any actual overshoot is recorded in `usage.jsonl` and the summary.
+- A call that times out may still have been billed: its reservation is kept as an `uncertain` charge and not released.
+- **Scope:** LLM spend only. Search and image calls are counted (calls, Tavily credits, Cloudflare neurons) but not priced in USD. The summary says so.
+- The brief requires cost **reporting**, not a cap. Kassra wants the guard, but it stays simple and never blocks the required pipeline work.
+
+### 6.8 CSV and export, stated honestly
+- `posts.csv` is **the brief's export format**: `Post Text, Image`, one row per accepted piece, rows in plan order.
+- No scheduler is claimed to import it as-is. ARCHITECTURE.md names **Hypefury** as the closest fit (one post per cell, auto-splits long text into a thread) and the conversion needed: one row per tweet. `posts.json` is our own structured format, not a scheduler's API body.
+- `Image` = path **relative to the run folder** (`images/thread_1.png`).
+- The `1/7` numbering is added by code **before** the validator runs. The text the reviewer approved is byte-for-byte the text exported. Nothing edits text after approval.
+
+### 6.9 The `type.yaml` contract
+```yaml
+name: tech-thread
+writer: thread_writer          # agents/<name>/
+rubric: rubric.md
+units: {min: 5, max: 10}       # tweets; marketing-post: {min: 1, max: 1}
+numbering: true                # add "1/N" prefixes
+research:
+  hints: research.md           # what good sources for this type look like
+  topic_source: kb             # kb | angles
+  angles: null                 # e.g. angles.yaml for marketing-post
+review:
+  pass_avg: 3.5
+  hard_fail: [unsupported_claim, off_brand]
+visual:
+  template: technical          # Pillow card template
+  severity_badge: auto         # auto | never
+```
+- **Acceptance test:** add a third post type (e.g. `case-study`, a single post) as folders only, and run it with **no Python change**.
+- **Scope of the promise:** new types that fit the existing pipeline (research -> write -> validate -> review -> visual) and contracts. A type needing a new stage needs code.
+
+### 6.10 Malformed outputs and terminal states
+- Malformed structured output at any stage gets **one repair attempt**: re-prompt with the parse error. It doesn't use the content retry and it is billed through the budget.
+- Still malformed:
+  - writer -> counts as the content rejection;
+  - **reviewer -> fails closed** (`failed_output`). Malformed review output never counts as approval;
+  - visual -> fallback spec (§6.5);
+  - research -> `failed_research`.
+- Every slot ends in **exactly one terminal state**: `shipped`, `dropped_quality`, `failed_research`, `failed_api`, `failed_budget`, `failed_output`.
+- Expected slot-level failures are caught inside the lane and recorded. They never escape and stop the graph.
+- Export and summary run **once**, after every lane reaches a terminal state, **including when zero pieces ship** (an empty CSV with headers).
+
+### 6.11 Validator semantics
+- Length: **`twitter-text-parser`** (X's weighted counting: Unicode weights, URLs = 23). `MAX_TWEET_CHARS` in `.env` may change the limit (default 280).
+- Links: **domain** allow-list (subdomains allowed only if listed).
+- Banned words and phrases: **case-insensitive, word-boundary** matching. Banned characters: exact.
+- Safe fixes are only: whitespace normalisation, curly to straight quotes, and removing **a trailing block of hashtags**. A hashtag inside a sentence is a violation, not a fix.
+- The original draft is kept beside the fixed one in `drafts.json`. Fixes happen before review. Approved text is never modified afterwards.
+
+### 6.12 Tests that back the claims
+Fake-LLM tests (routing and rules), in addition to §2.12:
+- unknown citation id; **valid id that doesn't support the claim** (reviewer stub rejects, so the routing is proven);
+- batch topic assignment with a missing slot and a duplicate;
+- visual-agent failure -> fallback spec; overlay text with a banned word;
+- concurrent budget reservations and concurrent trail writes (no lost or duplicate records);
+- resume skips completed nodes and doesn't duplicate trail records (if `--resume` survives the cut);
+- a post type added by files only (§6.9 acceptance test);
+- CSV round-trip: a thread survives write -> read with numbering and newlines intact;
+- malformed reviewer output -> `failed_output`, never shipped; zero shipped -> header-only CSV.
+
+**Live check** (a few real calls): one piece with a **deliberately unsupported claim** must be rejected by the real reviewer. Fake-LLM tests prove routing; only this proves grounding judgement.
