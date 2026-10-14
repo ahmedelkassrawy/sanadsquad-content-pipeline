@@ -157,6 +157,12 @@ The reviewer control gives an unsupported invented claim a valid citation ID; it
 reject that claim and accept the supported control. The sample succeeds only if all six
 pieces ship. Keep the sample provenance alongside its packaged artifacts. Tests inject
 offline responses to prove routing and persistence; they do not prove semantic judgment.
+Packaging verifies snapshot hashes against saved run identity and the exact files
+referenced by the saved configuration, plus referenced PNG/spec files and matching
+exports. Rubrics/research hints use `.md`, angles use `.yaml`. Unexpected files/directories
+in the snapshot/images or run root refuse packaging before the destination is created;
+known private runtime files are excluded. Source/destination overlap and symlinks,
+junctions or reparse points are rejected. Only explicitly validated file bytes are copied.
 The complete real six-slot sample is currently pending provider availability (quota reset
 or available provider credits);
 the retained failed attempts are not published as a successful sample. The

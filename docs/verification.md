@@ -97,3 +97,11 @@ for both controls, with8086 uncertain reserved tokens/USD0.0104344 estimated exp
 not measured actual billing. The key authenticated, but the credits endpoint reported
 zero total credits; calls stopped. Provider availability remains pending either a quota
 reset or available credits. No complete real six-slot sample is claimed.
+
+Independent security review found recursive sample packaging could copy synthetic private
+extras. Packaging now requires the saved snapshot manifest/hash identity AND the exact
+file set derived from its saved type/agent configuration. It rejects unexpected files,
+links/junctions/reparse points, source/destination overlap, altered snapshot bytes and
+invalid/mismatched referenced PNG/spec files before destination creation. Only validated
+bytes are copied, never recursive directories. Public tests generate six-slot offline
+PNG and spec-fallback runs; those controls prove packaging, not live provenance.
