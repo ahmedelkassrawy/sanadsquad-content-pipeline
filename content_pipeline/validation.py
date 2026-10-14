@@ -34,26 +34,29 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
         raise ValueError("editorial limit must be 1..280")
     fixed = draft.model_copy(deep=True)
     fixes = []
+    empty_content = []
     for i, tweet in enumerate(fixed.tweets, 1):
         text = tweet.text
         operations = {
             "whitespace": lambda t: " ".join(t.split()),
             "curly_quotes": lambda t: t.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})),
-            "trailing_hashtags": lambda t: re.sub(r"(?:\s+#[\w]+)+\s*$", "", t),
+            "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
         }
         for fix in rules.safe_fixes:
             changed = operations[fix](text)
             if changed != text:
                 fixes.append(f"tweet_{i}:{fix}")
             text = changed
+        if not text.strip():
+            empty_content.append(f"tweet_{i}:invalid_text")
         tweet.text = f"{i}/{len(fixed.tweets)} {text}" if spec.numbering else text
-    errors = check_citations(fixed, pack)
+    errors = check_citations(fixed, pack) + empty_content
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
         errors.append("tweet_count")
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_brand(tweet.text, rules))
         parsed = parse_tweet(tweet.text)
-        if not parsed.valid:
+        if not parsed.valid and f"tweet_{i}:invalid_text" not in errors:
             errors.append(f"tweet_{i}:invalid_text")
         if parsed.weightedLength > limit:
             errors.append(f"tweet_{i}:length")
