@@ -1,4 +1,4 @@
-﻿"""Isolated prior-head RED and focused GREEN, with external evidence only."""
+"""Isolated prior-head RED and focused GREEN, with external evidence only."""
 import argparse
 import io
 import json
@@ -44,4 +44,3 @@ def main():
 
 
 if __name__=="__main__": raise SystemExit(main())
-
