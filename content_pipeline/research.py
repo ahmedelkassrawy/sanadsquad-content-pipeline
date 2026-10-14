@@ -7,8 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse, urljoin
 from rank_bm25 import BM25Okapi
 from .models import SourceRecord, ResolvedSlot
-from .config import load_type, local_file
-import yaml
+from .config import load_type, load_angles, local_file
 
 
 def words(text):
@@ -38,7 +37,7 @@ class KnowledgeBase:
         return SourceRecord(source_id=entry["id"], kind="kb", title=entry["name"], url=entry["references"][0], evidence_text=entry["description"] + "\nRoot cause: " + entry["root_cause"])
 
 
-def assign_topics(root: Path, slots: list[ResolvedSlot], proposals: dict[str, str], kb: KnowledgeBase, history: list[list[str]] | None = None):
+def assign_topics(root: Path, slots: list[ResolvedSlot], proposals: dict[str, str], kb: KnowledgeBase, history: list[list[str]] | None = None, *, allow_partial=False):
     history = (history or [])[-4:]
     historical = {id for run in history for id in run}
     used = set()
@@ -51,6 +50,7 @@ def assign_topics(root: Path, slots: list[ResolvedSlot], proposals: dict[str, st
                     warnings.append("explicit_duplicate:" + slot.topic_id)
                 used.add(slot.topic_id)
             result[slot.slot_id] = slot.topic_id or slot.focus
+    pools = {}
     for slot in slots:
         if slot.focus:
             continue
@@ -59,17 +59,28 @@ def assign_topics(root: Path, slots: list[ResolvedSlot], proposals: dict[str, st
         if spec.research.topic_source == "kb":
             pool = [e["id"] for e in kb.search(local_file(folder, spec.research.hints).read_text(encoding="utf-8"), len(kb.entries))]
         else:
-            pool = [a["id"] for a in yaml.safe_load(local_file(folder, spec.research.angles).read_text(encoding="utf-8"))["angles"]]
+            pool = [angle.id for angle in load_angles(root, spec)]
+        pools[slot.slot_id] = pool
         candidate = proposals.get(slot.slot_id)
+        if candidate in pool and candidate not in used and candidate not in historical:
+            result[slot.slot_id] = candidate
+            used.add(candidate)
+    for slot in slots:
+        if slot.slot_id in result:
+            continue
+        pool = pools[slot.slot_id]
         available = [id for id in pool if id not in used and id not in historical]
-        if candidate not in available:
-            if not available:
-                available = [id for id in pool if id not in used]
-                available.sort(key=lambda id: max((i for i, run in enumerate(history) if id in run), default=-1))
+        if not available:
+            available = [id for id in pool if id not in used]
+            available.sort(key=lambda id: max((i for i, run in enumerate(history) if id in run), default=-1))
+            if available:
                 warnings.append("history_exhausted:" + slot.slot_id)
-            if not available:
-                raise ValueError("topic pool exhausted within week")
-            candidate = available[0]
+        if not available:
+            if allow_partial:
+                warnings.append("topic_pool_exhausted:" + slot.slot_id)
+                continue
+            raise ValueError("topic pool exhausted within week")
+        candidate = available[0]
         result[slot.slot_id] = candidate
         used.add(candidate)
     return result, warnings

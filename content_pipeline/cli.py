@@ -39,9 +39,11 @@ def main(argv=None,*,piece=False,model_factory=None,search_factory=None,renderer
         else:
             plan=args.plan if args.plan.is_absolute() else args.root/args.plan
             slots=parse_sets(load_plan(args.root,plan),args.set)
+        startup=estimate(args.root,slots,settings)
         if args.estimate:
-            print(estimate(args.root,slots,settings).model_dump_json(indent=2))
+            print(startup.model_dump_json(indent=2))
             return 0
+        print("startup_budget_warning: "+startup.model_dump_json(),file=sys.stderr)
         result=asyncio.run(run_pipeline(args.root,slots,args.output,settings,model_factory,search_factory,renderer))
         print(result.model_dump_json(indent=2))
         return 0

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import yaml
 from pydantic import ValidationError
-from .config import load_agent, load_prompt, load_type, local_file
+from .config import load_agent, load_angles, load_prompt, load_type, local_file
 from .contracts import ResearchAction, ResearchRecord, ResearchRequest, ResearchTurn, ReviewAssessment, ReviewRequest, Rubric, TopicChoiceRequest, TopicChoices, VisualOutput, VisualRequest, WriteRequest
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
@@ -92,12 +92,11 @@ class ResearchAgent(Agent):
             source=self.kb.source(slot.topic_id)
             return ResearchPack(slot_id=slot.slot_id,topic_id=source.source_id,topic_name=source.title,sources=[source])
         if slot.topic_id and spec.research.topic_source=="angles" and not slot.focus:
-            angles=yaml.safe_load(local_file(self.root/"post_types"/slot.type,spec.research.angles).read_text(encoding="utf-8"))["angles"]
-            angle=next(a for a in angles if a["id"]==slot.topic_id)
+            angle=next(a for a in load_angles(self.root,spec) if a.id==slot.topic_id)
             from .config import load_brand
             rules,_=load_brand(self.root/"inputs/brand-voice.md")
             sources=[SourceRecord(source_id=id,kind="stat",title=rules.brand_name,evidence_text=text) for id,text in rules.approved_stats.items()]
-            return ResearchPack(slot_id=slot.slot_id,topic_id=slot.topic_id,topic_name=angle["name"],sources=sources)
+            return ResearchPack(slot_id=slot.slot_id,topic_id=slot.topic_id,topic_name=angle.name,sources=sources)
         evidence={}
         searches=0
         async def search(name,query):

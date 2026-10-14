@@ -1,6 +1,27 @@
 from typing import Literal
-from pydantic import Field, model_validator
+from pydantic import Field, StrictStr, model_validator
 from .models import Contract, Draft, ImageResult, ImageSpec, PostType, ResearchPack, ResolvedSlot, Review, SlotOutcome, SourceRecord
+
+
+class Angle(Contract):
+    id: StrictStr = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
+    name: StrictStr
+
+    @model_validator(mode="after")
+    def nonempty_name(self):
+        if not self.name.strip():
+            raise ValueError("angle needs a nonempty name")
+        return self
+
+
+class AnglesFile(Contract):
+    angles: list[Angle] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def unique_ids(self):
+        if len({angle.id for angle in self.angles}) != len(self.angles):
+            raise ValueError("duplicate angle ids")
+        return self
 
 
 class ResearchRequest(Contract):

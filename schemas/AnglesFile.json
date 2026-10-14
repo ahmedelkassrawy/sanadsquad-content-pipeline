@@ -1,0 +1,40 @@
+{
+  "$defs": {
+    "Angle": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Angle",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "angles": {
+      "items": {
+        "$ref": "#/$defs/Angle"
+      },
+      "minItems": 1,
+      "title": "Angles",
+      "type": "array"
+    }
+  },
+  "required": [
+    "angles"
+  ],
+  "title": "AnglesFile",
+  "type": "object"
+}

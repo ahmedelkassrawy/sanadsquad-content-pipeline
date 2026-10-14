@@ -7,12 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, TypedDict
 from uuid import uuid4
-import yaml
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent, load_rubric
-from .config import Settings, load_agent, load_brand, load_type, local_file, resolve_model
+from .config import Settings, load_agent, load_angles, load_brand, load_type, local_file, resolve_model
 from .contracts import DraftAudit, DraftRecord, Estimate, ExportPost, ExternalUsage, FinalPiece, ResearchRecord, ResearchRequest, ResolvedPlan, ReviewRecord, ReviewRequest, RunSummary, SlotState, TerminalSlot, TopicChoiceRequest, VisualRecord, VisualRequest, WeekSnapshot, WriteRequest
 from .images import fallback_spec, overlay_errors, render_card
 from .ledger import BudgetExhausted, Ledger
@@ -53,6 +52,7 @@ def validate_inputs(root,slots,settings=None):
         safe_name(slot.slot_id)
         safe_name(slot.type)
         spec=load_type(root,slot.type)
+        if spec.research.topic_source=="angles": load_angles(root,spec)
         if "unsupported_claim" not in spec.review.hard_fail:
             raise ValueError("rubric must hard-fail unsupported claims")
         safe_name(spec.writer)
@@ -250,27 +250,17 @@ class Pipeline:
             for state in empty:
                 spec=load_type(self.root,state.slot.type)
                 if spec.research.topic_source=="kb": choices[state.slot.slot_id]=[entry["id"] for entry in self.kb.entries]
-                else: choices[state.slot.slot_id]=[angle["id"] for angle in yaml.safe_load(local_file(self.root/"post_types"/spec.name,spec.research.angles).read_text(encoding="utf-8"))["angles"]]
+                else: choices[state.slot.slot_id]=[angle.id for angle in load_angles(self.root,spec)]
             excluded=[state.slot.topic_id for state in states if state.slot.topic_id]+[id for run in prior for id in run]
             try:
                 proposals=(await TopicSelector(self.root,self.client("research","_batch"))(TopicChoiceRequest(choices=choices,exclude=excluded))).assignments
             except Exception:
                 warnings.append("topic_selection_failed:code_fallback")
-        try:
-            assigned,notes=assign_topics(self.root,[state.slot for state in states],proposals,self.kb,prior)
-        except ValueError:
-            assigned={}
-            notes=[]
-            selected=[state.slot for state in states if state.slot.focus]
-            for state in empty:
-                try:
-                    partial,new_notes=assign_topics(self.root,[*selected,state.slot],{**proposals,**assigned},self.kb,prior)
-                    assigned[state.slot.slot_id]=partial[state.slot.slot_id]
-                    selected.append(state.slot)
-                    notes.extend(new_notes)
-                except ValueError:
-                    state.outcome=SlotOutcome.failed_research
-                    state.reasons=["topic_pool_exhausted"]
+        assigned,notes=assign_topics(self.root,[state.slot for state in states],proposals,self.kb,prior,allow_partial=True)
+        for state in empty:
+            if state.slot.slot_id not in assigned:
+                state.outcome=SlotOutcome.failed_research
+                state.reasons=["topic_pool_exhausted"]
         warnings=list(dict.fromkeys(warnings+notes))
         for state in empty:
             if not state.outcome: state.slot.topic_id=assigned[state.slot.slot_id]
