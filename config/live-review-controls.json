@@ -1,4 +1,5 @@
 {
+  "post_type": "marketing-post",
   "topic_id": "KB-01",
   "supported_text": "External calls can reenter before state is finalized.",
   "unsupported_text": "Reentrancy caused exactly 97.3 percent of all smart contract losses last year.",

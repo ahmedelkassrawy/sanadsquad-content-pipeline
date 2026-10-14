@@ -160,11 +160,13 @@ class DraftRecord(Trace):
 
 
 class ReviewRecord(Trace):
+    input_sha256: str | None = None
     review: Review | None = None
     failure: str | None = None
 
 
 class VisualRecord(Trace):
+    input_sha256: str | None = None
     spec: ImageSpec
     result: ImageResult
 
@@ -279,6 +281,7 @@ class AdvisorOutput(Contract):
 
 
 class AdvisorRecord(Trace):
+    input_sha256: str | None = None
     status: Literal["not_enabled", "completed", "failed"]
     output: AdvisorOutput | None = None
     reason: str | None = None

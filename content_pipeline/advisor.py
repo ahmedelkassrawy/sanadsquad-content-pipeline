@@ -26,7 +26,7 @@ def advice_patch(request,output):
         if text.startswith("---\n") and edit.before in text.split("---",2)[1]:
             raise ValueError("advice cannot edit machine rules")
         candidate=text.replace(edit.before,edit.after,1)
-        if candidate.startswith("---\n") and candidate.split("---",2)[1]!=text.split("---",2)[1]:
+        if text.startswith("---\n") and (not candidate.startswith("---\n") or candidate.split("---",2)[:2]!=text.split("---",2)[:2]):
             raise ValueError("advice cannot edit machine rules")
         if set(re.findall(r"\d+(?:\.\d+)?",edit.after))-set(re.findall(r"\d+(?:\.\d+)?",text)):
             raise ValueError("advice introduces numeric claims")

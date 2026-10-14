@@ -19,7 +19,7 @@ def parser(piece=False):
         cli.add_argument("--type")
         cli.add_argument("--topic")
     else:
-        cli.add_argument("--plan",type=Path,default=Path("inputs/plan.json"))
+        cli.add_argument("--plan",type=Path)
         cli.add_argument("--set",action="append",default=[])
     cli.add_argument("--estimate",action="store_true")
     cli.add_argument("--default-model")
@@ -38,7 +38,7 @@ def main(argv=None,*,piece=False,model_factory=None,search_factory=None,renderer
         if args.resume:
             forbidden=[args.output,args.default_model,args.model_override,args.max_tweet_chars,args.allow_unpriced,args.no_advisor]
             if piece: forbidden.extend([args.type,args.topic])
-            else: forbidden.extend([args.set,args.plan!=Path("inputs/plan.json")])
+            else: forbidden.extend([args.set,args.plan])
             if any(value is not None and value is not False and value!=[] for value in forbidden):
                 raise ValueError("resume uses saved policy and plan")
             policy,slots,settings,_=resume_inputs(args.resume,overrides)
@@ -51,7 +51,8 @@ def main(argv=None,*,piece=False,model_factory=None,search_factory=None,renderer
             if not args.topic.strip(): raise ValueError("topic cannot be empty")
             slots=[ResolvedSlot(slot_id="piece_1",type=args.type,focus=args.topic.strip())]
         elif not args.resume:
-            plan=args.plan if args.plan.is_absolute() else args.root/args.plan
+            requested=args.plan or Path("inputs/plan.json")
+            plan=requested if requested.is_absolute() else args.root/requested
             slots=parse_sets(load_plan(args.root,plan),args.set)
         startup=estimate(policy,slots,settings)
         if args.estimate:

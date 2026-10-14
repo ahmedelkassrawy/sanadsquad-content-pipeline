@@ -39,6 +39,9 @@ class DeliveryModels(OfflineModels):
             if self.advisor=="escape": edits[0]["path"]="../../.env"
             if self.advisor=="stale": edits[0]["source_sha256"]="0"*64
             if self.advisor=="stat": edits[0]["after"]="Our firm prevents 97.3 percent of hacks.\n"
+            if self.advisor=="frontmatter":
+                file=request["instructions"]["inputs/brand-voice.md"]
+                edits=[{"path":"inputs/brand-voice.md","source_sha256":file["sha256"],"before":file["text"],"after":"Simplified brand voice.\n"}]
             if self.advisor=="malformed": edits=[{"path":path}]
             parsed={"slot_id":"_run","attempt":1,"recommendations":["Keep openings grounded in supplied evidence."],"edits":edits}
             return {"raw":SimpleNamespace(content=json.dumps(parsed),usage_metadata={"input_tokens":20,"output_tokens":30},response_metadata={"finish_reason":"stop"}),"parsed":parsed,"parsing_error":None}
@@ -128,6 +131,44 @@ async def test_resume_reconciles_crash_charge_and_advances_call_ids(tmp_path):
     assert len({entry["call_id"] for entry in usage})==len(usage)
 
 
+async def test_unfinished_research_gather_can_repeat_saved_sibling_call(tmp_path):
+    from content_pipeline.pipeline import Pipeline
+    models=DeliveryModels()
+    saved_sibling=asyncio.Event()
+    cancelled=False
+    original_record=Pipeline.record
+    async def record(pipeline,name,entry):
+        await original_record(pipeline,name,entry)
+        if name=="research_log" and entry.slot_id=="a" and entry.pack is not None:
+            saved_sibling.set()
+    original_factory=models.factory
+    def factory(name,slot_id,context):
+        client=original_factory(name,slot_id,context)
+        transport=client.transport
+        async def interrupted(messages,schema,max_tokens):
+            nonlocal cancelled
+            if slot_id=="b" and schema.__name__=="ResearchAction" and not cancelled:
+                await saved_sibling.wait()
+                cancelled=True
+                raise asyncio.CancelledError()
+            return await transport(messages,schema,max_tokens)
+        client.transport=interrupted
+        return client
+    from unittest.mock import patch
+    output=tmp_path/"run"
+    slots=[ResolvedSlot(slot_id=id,type="tech-thread",focus="reentrancy") for id in ["a","b"]]
+    with patch.object(Pipeline,"record",record):
+        with pytest.raises(NodeCancelledError):
+            await run_pipeline(ROOT,slots,output,model_factory=factory,search_factory=search_factory)
+    assert any(entry["pack"] is not None for entry in records(output,"research_log") if entry["slot_id"]=="a")
+    summary=await run_pipeline(ROOT,resume=output,model_factory=factory,search_factory=search_factory)
+    assert summary.shipped==2 and summary.uncertain_tokens>0
+    usage=[json.loads(line) for line in (output/"usage.jsonl").read_text().splitlines()]
+    assert [(entry["call_id"],entry["status"]) for entry in usage if entry["call_id"].startswith("a/research_step_1/")]==[("a/research_step_1/1/1","confirmed"),("a/research_step_1/1/2","confirmed")]
+    trail=records(output,"research_log")
+    assert len({entry["record_id"] for entry in trail})==len(trail)
+
+
 @pytest.mark.parametrize("bad",["snapshot","checkpoint","budget","settings"])
 async def test_invalid_resume_refuses_without_calls_or_writes(tmp_path,bad):
     models=DeliveryModels()
@@ -157,7 +198,35 @@ async def test_same_run_ownership_refuses_before_ledger_recovery(tmp_path):
     assert (await run_pipeline(ROOT,resume=output,model_factory=models.factory,search_factory=search_factory)).shipped==1
 
 
-@pytest.mark.parametrize("mode",["valid","api","escape","stale","stat","malformed"])
+@pytest.mark.parametrize("stage,schema",[("review_report","ReviewAssessment"),("visuals","VisualOutput"),("advisor","AdvisorOutput")])
+async def test_resume_after_saved_stage_trail_keeps_result_and_artifacts_consistent(tmp_path,stage,schema):
+    from content_pipeline.pipeline import Pipeline
+    from unittest.mock import patch
+    models=DeliveryModels()
+    output=tmp_path/"run"
+    original=Pipeline.record
+    interrupted=False
+    async def record(pipeline,name,entry):
+        nonlocal interrupted
+        await original(pipeline,name,entry)
+        if name==stage and not interrupted:
+            interrupted=True
+            raise asyncio.CancelledError()
+    with patch.object(Pipeline,"record",record):
+        with pytest.raises(NodeCancelledError):
+            await run_pipeline(ROOT,one_slot(),output,model_factory=models.factory,search_factory=search_factory)
+    saved=records(output,stage)
+    saved_image={path.name:path.read_bytes() for path in (output/"images").glob("*")} if stage=="visuals" else {}
+    saved_advice=(output/"advice.patch").read_bytes() if stage=="advisor" else None
+    summary=await run_pipeline(ROOT,resume=output,model_factory=models.factory,search_factory=search_factory)
+    assert summary.shipped==1 and summary.advisor=="completed"
+    assert records(output,stage)==saved
+    assert len([call for call in models.calls if call[2]==schema])==1
+    if saved_image: assert saved_image=={path.name:path.read_bytes() for path in (output/"images").glob("*")}
+    if saved_advice is not None: assert (output/"advice.patch").read_bytes()==saved_advice
+
+
+@pytest.mark.parametrize("mode",["valid","api","escape","stale","stat","malformed","frontmatter"])
 async def test_advisor_suggests_only_bounded_patch_and_never_sinks_export(tmp_path,mode):
     models=DeliveryModels(advisor=mode)
     output=tmp_path/"run"
@@ -173,7 +242,15 @@ async def test_advisor_suggests_only_bounded_patch_and_never_sinks_export(tmp_pa
         assert "--- a/post_types/tech-thread/writer.md" in patch
         assert "+Prefer a clear opening grounded in the supplied sources." in patch
         assert summary.confirmed_tokens==250
+        import subprocess
+        check_root=tmp_path/"patch-check"
+        target=check_root/"post_types/tech-thread/writer.md"
+        target.parent.mkdir(parents=True)
+        target.write_bytes(original)
+        result=subprocess.run(["git","apply","--check",str(output/"advice.patch")],cwd=check_root,capture_output=True,text=True)
+        assert result.returncode==0,result.stderr
     else: assert patch==""
+    if mode=="malformed": assert len([call for call in models.calls if call[2]=="AdvisorOutput"])==2
     assert "synthetic-advisor-secret" not in (output/"run_summary.json").read_text()
     assert len(records(output,"advisor"))==1
 
@@ -186,6 +263,7 @@ def test_public_cli_resume_and_estimate_use_saved_policy_without_initialization(
     assert main(["--root",str(ROOT),"--resume",str(output),"--estimate"],model_factory=forbidden,search_factory=forbidden)==0
     assert main(["--root",str(ROOT),"--resume",str(output)],model_factory=forbidden,search_factory=forbidden)==0
     assert main(["--root",str(ROOT),"--resume",str(output),"--model-override","openai:gpt-4.1-mini"],model_factory=forbidden,search_factory=forbidden)==2
+    assert main(["--root",str(ROOT),"--resume",str(output),"--plan","inputs/plan.json"],model_factory=forbidden,search_factory=forbidden)==2
     assert main(["--root",str(ROOT),"--resume",str(tmp_path/"missing")],model_factory=forbidden,search_factory=forbidden)==2
     assert initial.shipped==1
 

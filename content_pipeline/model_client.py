@@ -148,6 +148,9 @@ class ModelClient:
                 if isinstance(error, asyncio.CancelledError):
                     raise
                 status = getattr(error, "status_code", None) or getattr(error,"code",None)
+                from langchain_google_genai.chat_models import GoogleRateLimitError
+                if isinstance(error,GoogleRateLimitError):
+                    status=getattr(error.__cause__,"code",None) or 429
                 if status in {402, 403}:
                     raise ModelFailure("failed_budget") from None
                 from openai import APIConnectionError

@@ -18,8 +18,8 @@ from .validation import validate
 
 async def reviewer_control(root,output,model,token_budget,cost_budget):
     settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False)
-    spec=load_type(root,"tech-thread")
     controls=json.loads(local_file(root,"config/live-review-controls.json").read_text(encoding="utf-8"))
+    spec=load_type(root,controls["post_type"])
     kb=KnowledgeBase(root/"inputs/kb.json")
     source=kb.source(controls["topic_id"])
     rules,_=load_brand(root/"inputs/brand-voice.md")
@@ -48,7 +48,7 @@ async def reviewer_control(root,output,model,token_budget,cost_budget):
                 reviews.append({"control":name,"failure":getattr(error,"outcome","failed_api")})
             atomic_json(output/"reviews.json",reviews)
         passed=len(reviews)==2 and reviews[0].get("review",{}).get("accepted") is True and reviews[1].get("review",{}).get("accepted") is False and "unsupported_claim" in reviews[1]["review"]["hard_fail"]
-        report={"provenance":"live configured provider; no synthetic transport","model":model,"verdict":"PASS" if passed else "FAIL","totals":ledger.totals(),"inputs_sha256":{name:hashlib.sha256(local_file(root,name).read_bytes()).hexdigest() for name in ["agents/reviewer/system.md","agents/reviewer/agent.yaml","post_types/tech-thread/rubric.md","inputs/kb.json","inputs/brand-voice.md","config/live-review-controls.json"]}}
+        report={"provenance":"live configured provider; no synthetic transport","model":model,"verdict":"PASS" if passed else "FAIL","totals":ledger.totals(),"inputs_sha256":{name:hashlib.sha256(local_file(root,name).read_bytes()).hexdigest() for name in ["agents/reviewer/system.md","agents/reviewer/agent.yaml",f"post_types/{spec.name}/{spec.rubric}","inputs/kb.json","inputs/brand-voice.md","config/live-review-controls.json"]}}
         atomic_json(output/"report.json",report)
         return passed
     finally: prices.close()

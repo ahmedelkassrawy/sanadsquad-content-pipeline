@@ -4,7 +4,7 @@ import os
 import sqlite3
 from pathlib import Path
 from .config import Settings, load_plan, local_file
-from .contracts import ExternalUsage, LedgerEntry, RunIdentity
+from .contracts import AdvisorRecord, DraftRecord, ExternalUsage, FinalPiece, LedgerEntry, ResearchRecord, ReviewRecord, RunIdentity, VisualRecord
 from .models import UsageRecord
 
 
@@ -75,10 +75,15 @@ def resume_inputs(run_dir: Path, budget_overrides=None):
     usage=[UsageRecord.model_validate_json(line) for line in local_file(run_dir,"usage.jsonl").read_text(encoding="utf-8").splitlines()]
     if len({entry.call_id for entry in usage})!=len(usage): raise ValueError("duplicate usage ids")
     ExternalUsage.model_validate_json(local_file(run_dir,"external-usage.json").read_text(encoding="utf-8"))
-    for name in ["research_log","drafts","review_report","visuals","final","advisor"]:
+    trail_models={"research_log":ResearchRecord,"drafts":DraftRecord,"review_report":ReviewRecord,"visuals":VisualRecord,"final":FinalPiece,"advisor":AdvisorRecord}
+    for name,model in trail_models.items():
         records=json.loads(local_file(run_dir,name+".json").read_text(encoding="utf-8"))
         if not isinstance(records,list) or len({record["record_id"] for record in records})!=len(records):
             raise ValueError("invalid saved trail")
+        for record in records:
+            typed=model.model_validate(record)
+            if name in {"review_report","visuals","advisor"} and typed.input_sha256 is None and not (name=="advisor" and typed.status=="not_enabled"):
+                raise ValueError("incompatible saved stage format")
     local_file(run_dir,"run.lock")
     checkpoint=local_file(run_dir,"checkpoint.sqlite")
     with sqlite3.connect(checkpoint.as_uri()+"?mode=ro",uri=True) as connection:

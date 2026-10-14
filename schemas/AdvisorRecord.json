@@ -86,6 +86,18 @@
       "title": "Attempt",
       "type": "integer"
     },
+    "input_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Sha256"
+    },
     "status": {
       "enum": [
         "not_enabled",

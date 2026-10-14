@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import re
 import shutil
@@ -226,6 +227,14 @@ class Pipeline:
     async def record(self,name,record):
         await self.trails[name].append(record.record_id,record.model_dump(mode="json",exclude={"record_id"}))
 
+    def saved_record(self,name,record_id,model,request):
+        raw=next((record for record in json.loads(self.trails[name].path.read_text(encoding="utf-8")) if record["record_id"]==record_id),None)
+        if raw is None: return None
+        record=model.model_validate(raw)
+        if record.input_sha256!=hashlib.sha256(request.model_dump_json().encode()).hexdigest():
+            raise ValueError("saved stage input mismatch")
+        return record
+
     async def save_search_usage(self,searcher):
         mapping={"search_calls":"calls","tavily_calls":"tavily_calls","ddgs_calls":"ddgs_calls","fetch_calls":"fetch_calls","tavily_credits":"tavily_credits"}
         async with self.external_lock:
@@ -336,15 +345,25 @@ class Pipeline:
     async def review(self,raw):
         state=lane_state(raw)
         spec=load_type(self.root,state.slot.type)
+        request=ReviewRequest(slot_id=state.slot.slot_id,attempt=state.attempt,draft=state.audit.approved(),research=state.pack,post_type=spec,rubric=load_rubric(self.root,spec))
+        record_id=f"{state.slot.slot_id}/reviewer/{state.attempt}/1"
         try:
+            saved=self.saved_record("review_report",record_id,ReviewRecord,request)
+            if saved:
+                state.review=saved.review
+                if saved.failure:
+                    state.outcome=SlotOutcome(saved.failure)
+                    state.reasons=[saved.failure]
+                state.feedback=state.review.reasons if state.review else []
+                return state.model_dump(mode="json")
             if state.slot.slot_id not in self.reviewers:
                 self.reviewers[state.slot.slot_id]=Reviewer(self.root,state.slot.type,self.client("reviewer",state.slot.slot_id))
-            state.review=await self.reviewers[state.slot.slot_id](ReviewRequest(slot_id=state.slot.slot_id,attempt=state.attempt,draft=state.audit.approved(),research=state.pack,post_type=spec,rubric=load_rubric(self.root,spec)))
+            state.review=await self.reviewers[state.slot.slot_id](request)
             state.feedback=state.review.reasons
         except Exception as error:
             state.outcome=failure(error)
             state.reasons=[state.outcome.value]
-        await self.record("review_report",ReviewRecord(record_id=f"{state.slot.slot_id}/reviewer/{state.attempt}/1",slot_id=state.slot.slot_id,attempt=state.attempt,review=state.review,failure=state.outcome.value if state.outcome else None))
+        await self.record("review_report",ReviewRecord(record_id=record_id,slot_id=state.slot.slot_id,attempt=state.attempt,review=state.review,failure=state.outcome.value if state.outcome else None,input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest()))
         return state.model_dump(mode="json")
 
     async def retry(self,raw):
@@ -358,6 +377,25 @@ class Pipeline:
         state=lane_state(raw)
         severity=next((entry["severity"] for entry in self.kb.entries if entry["id"]==state.pack.topic_id),None)
         request=VisualRequest(slot_id=state.slot.slot_id,attempt=state.attempt,draft=state.audit.approved(),research=state.pack,post_type=load_type(self.root,state.slot.type),severity=severity)
+        record_id=f"{state.slot.slot_id}/visual/{state.attempt}/1"
+        saved=self.saved_record("visuals",record_id,VisualRecord,request)
+        if saved:
+            from pathlib import PureWindowsPath
+            relative=PureWindowsPath(saved.result.path)
+            if relative.anchor or ".." in relative.parts: raise ValueError("invalid saved image path")
+            path=local_file(self.context.run_dir,Path(*relative.parts).as_posix())
+            stored=local_file(self.context.run_dir,path.with_suffix(".json").relative_to(self.context.run_dir).as_posix())
+            if json.loads(stored.read_text(encoding="utf-8"))!=saved.spec.model_dump(mode="json") or overlay_errors(saved.spec,request,self.rules):
+                raise ValueError("saved visual artifact mismatch")
+            if saved.result.slot_id!=state.slot.slot_id: raise ValueError("saved visual identity mismatch")
+            if saved.result.backend=="pillow_card":
+                from PIL import Image
+                with Image.open(path) as image:
+                    if image.format!="PNG" or image.size!=(1200,675): raise ValueError("invalid saved card")
+                    image.verify()
+            state.image=saved.result
+            state.outcome=SlotOutcome.shipped
+            return state.model_dump(mode="json")
         reason=None
         try:
             if state.slot.slot_id not in self.visuals:
@@ -389,7 +427,7 @@ class Pipeline:
             reason="pillow_fallback_spec"
         state.image=ImageResult(slot_id=state.slot.slot_id,path=path.relative_to(self.context.run_dir).as_posix(),backend=backend,fallback_reason=reason)
         state.outcome=SlotOutcome.shipped
-        await self.record("visuals",VisualRecord(record_id=f"{state.slot.slot_id}/visual/{state.attempt}/1",slot_id=state.slot.slot_id,attempt=state.attempt,spec=spec,result=state.image))
+        await self.record("visuals",VisualRecord(record_id=record_id,slot_id=state.slot.slot_id,attempt=state.attempt,spec=spec,result=state.image,input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest()))
         return state.model_dump(mode="json")
 
     async def collect(self,raw):
@@ -414,10 +452,18 @@ class Pipeline:
         reason=None
         output=None
         patch=""
+        input_hash=None
         if self.context.settings.advisor_enabled:
             try:
                 evidence={name:json.loads(self.trails[name].path.read_text(encoding="utf-8")) for name in ["research_log","drafts","review_report","final"]}
                 request=AdvisorRequest(evidence=evidence,instructions=instruction_files(self.root,self.plan))
+                input_hash=hashlib.sha256(request.model_dump_json().encode()).hexdigest()
+                saved=self.saved_record("advisor","_run/advisor/1/1",AdvisorRecord,request)
+                if saved:
+                    if saved.output is not None: advice_patch(request,saved.output)
+                    local_file(self.context.run_dir,"advice.md")
+                    local_file(self.context.run_dir,"advice.patch")
+                    return {"advisor":saved.status,"advisor_reason":saved.reason}
                 output=await Advisor(self.root,self.client("advisor","_run"))(request)
                 patch=advice_patch(request,output)
                 status="completed"
@@ -426,7 +472,7 @@ class Pipeline:
                 reason=failure(error).value
         (self.context.run_dir/"advice.md").write_text("# Run advice\n\n"+("\n".join("- "+line for line in output.recommendations) if status=="completed" else "Advisor "+status+(": "+reason if reason else ""))+"\n",encoding="utf-8")
         (self.context.run_dir/"advice.patch").write_text(patch,encoding="utf-8")
-        await self.record("advisor",AdvisorRecord(record_id="_run/advisor/1/1",slot_id="_run",attempt=1,status=status,output=output if status=="completed" else None,reason=reason))
+        await self.record("advisor",AdvisorRecord(record_id="_run/advisor/1/1",slot_id="_run",attempt=1,status=status,output=output if status=="completed" else None,reason=reason,input_sha256=input_hash))
         return {"advisor":status,"advisor_reason":reason}
 
     async def finalize(self,week):
