@@ -1,0 +1,63 @@
+{
+  "head": "d462e557e5d956f47715c52dff06b9ccd956ac32",
+  "base": "438120aa42ff9ec1904435a71485333ba0eedeba",
+  "base_red": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-S",
+      "-m",
+      "content_pipeline.schemas",
+      "--output",
+      "schemas"
+    ],
+    "cwd": "C:\\Users\\Dell\\AppData\\Local\\Temp\\sanadsquad-base-red-xl1l_q8g",
+    "exit": 1,
+    "output": "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe: Error while finding module specification for 'content_pipeline.schemas' (ModuleNotFoundError: No module named 'content_pipeline')\n"
+  },
+  "guard_bypass_red": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-c",
+      "import pytest; import content_pipeline.validation as v; v.check_citations=lambda draft,pack: []; raise SystemExit(pytest.main(['-q','tests/test_foundation.py::test_citation_acceptance_guard']))"
+    ],
+    "cwd": "D:\\me\\SanadSquad-day1",
+    "exit": 1,
+    "output": "F                                                                        [100%]\n================================== FAILURES ===================================\n_______________________ test_citation_acceptance_guard ________________________\n\n    def test_citation_acceptance_guard():\n        result=validate_thread(draft(ids=[\"KB-99\"]))\n>       assert result.accepted is False\nE       AssertionError: assert True is False\nE        +  where True = ValidationResult(original=Draft(slot_id='thread_1', attempt=1, tweets=[Tweet(text='State before calls.', source_ids=['..._ids=['KB-99']), Tweet(text='5/5 State before calls.', source_ids=['KB-99'])]), fixes=[], violations=[], accepted=True).accepted\n\ntests\\test_foundation.py:103: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_foundation.py::test_citation_acceptance_guard - AssertionEr...\n1 failed in 0.39s\nD:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\n"
+  },
+  "head_green": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-m",
+      "pytest",
+      "-q"
+    ],
+    "cwd": "D:\\me\\SanadSquad-day1",
+    "exit": 0,
+    "output": "...................................                                      [100%]\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day1\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n35 passed, 1 warning in 1.23s\n"
+  },
+  "schema_export": {
+    "command": [
+      "D:\\me\\SanadSquad-day1\\.venv\\Scripts\\python.exe",
+      "-m",
+      "content_pipeline.schemas",
+      "--output",
+      "schemas"
+    ],
+    "cwd": "D:\\me\\SanadSquad-day1",
+    "exit": 0,
+    "output": ""
+  },
+  "limitations": [
+    "No live model/search calls, provider adapter integration unverified.",
+    "No graph, complete agents, week/piece CLIs, live reviewer grounding, images, advisor or resume.",
+    "KB entries pending Kassra review; brand statistics fictional demo fixtures.",
+    "twitter-text-parser requires setuptools<81 and emits upstream pkg_resources deprecation warning.",
+    "LLM budget is an estimated pre-call guard; search/image USD excluded; dispatched errors retain uncertain reservation."
+  ],
+  "pending_stages": [
+    "independent general/security/API review",
+    "coordinator release verification",
+    "PR/merge approval",
+    "later pipeline implementation and live sample"
+  ]
+}
