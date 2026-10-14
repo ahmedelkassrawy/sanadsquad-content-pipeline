@@ -1,0 +1,5 @@
+model: null
+max_output_tokens: 3000
+reasoning_effort: medium
+skills:
+- brand_rules

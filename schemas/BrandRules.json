@@ -1,0 +1,67 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "brand_name": {
+      "title": "Brand Name",
+      "type": "string"
+    },
+    "banned_words": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Banned Words",
+      "type": "array"
+    },
+    "banned_characters": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Banned Characters",
+      "type": "array"
+    },
+    "allowed_links": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Links",
+      "type": "array"
+    },
+    "safe_fixes": {
+      "items": {
+        "enum": [
+          "whitespace",
+          "curly_quotes",
+          "trailing_hashtags"
+        ],
+        "type": "string"
+      },
+      "title": "Safe Fixes",
+      "type": "array"
+    },
+    "approved_stats": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Approved Stats",
+      "type": "object"
+    },
+    "palette": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Palette",
+      "type": "array"
+    }
+  },
+  "required": [
+    "brand_name",
+    "banned_words",
+    "banned_characters",
+    "allowed_links",
+    "safe_fixes",
+    "approved_stats",
+    "palette"
+  ],
+  "title": "BrandRules",
+  "type": "object"
+}

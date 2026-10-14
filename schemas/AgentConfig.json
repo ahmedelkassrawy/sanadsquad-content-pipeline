@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model"
+    },
+    "max_output_tokens": {
+      "minimum": 1,
+      "title": "Max Output Tokens",
+      "type": "integer"
+    },
+    "reasoning_effort": {
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "title": "Reasoning Effort",
+      "type": "string"
+    },
+    "skills": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Skills",
+      "type": "array"
+    }
+  },
+  "required": [
+    "max_output_tokens",
+    "reasoning_effort",
+    "skills"
+  ],
+  "title": "AgentConfig",
+  "type": "object"
+}

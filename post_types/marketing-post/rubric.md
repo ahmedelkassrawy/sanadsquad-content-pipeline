@@ -1,0 +1,1 @@
+Score hook, technical accuracy, grounding, voice, clarity and CTA from 1 to 5. Check every factual claim against exactly the supplied evidence, including uncited claims. Unsupported claims and off-brand language fail closed. Explain every rejection.

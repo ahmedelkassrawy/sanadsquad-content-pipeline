@@ -1,0 +1,34 @@
+{
+  "slots": [
+    {
+      "slot_id": "thread_1",
+      "type": "tech-thread",
+      "focus": "reentrancy"
+    },
+    {
+      "slot_id": "thread_2",
+      "type": "tech-thread",
+      "focus": null
+    },
+    {
+      "slot_id": "thread_3",
+      "type": "tech-thread",
+      "focus": null
+    },
+    {
+      "slot_id": "marketing_1",
+      "type": "marketing-post",
+      "focus": null
+    },
+    {
+      "slot_id": "marketing_2",
+      "type": "marketing-post",
+      "focus": null
+    },
+    {
+      "slot_id": "marketing_3",
+      "type": "marketing-post",
+      "focus": null
+    }
+  ]
+}

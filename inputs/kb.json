@@ -1,0 +1,323 @@
+{
+  "review_status": "pending_kassra_review",
+  "severity_note": "Draft educational labels; severity is context dependent. SWC is historical and not a complete current taxonomy.",
+  "entries": [
+    {
+      "id": "KB-01",
+      "name": "Reentrancy",
+      "severity": "high",
+      "category": "external calls",
+      "description": "External calls can reenter before state is finalized.",
+      "root_cause": "State updates after untrusted calls allow repeated execution.",
+      "aliases": [
+        "recursive call",
+        "SWC-107"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-107.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-02",
+      "name": "Integer overflow and underflow",
+      "severity": "high",
+      "category": "arithmetic",
+      "description": "Unchecked arithmetic can wrap numeric values.",
+      "root_cause": "Arithmetic bounds are not enforced; older Solidity versions require particular care.",
+      "aliases": [
+        "wraparound",
+        "SWC-101"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-03",
+      "name": "Unchecked call return value",
+      "severity": "medium",
+      "category": "external calls",
+      "description": "A failed low-level call can be silently ignored.",
+      "root_cause": "The caller does not inspect the returned success flag.",
+      "aliases": [
+        "ignored return",
+        "SWC-104"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-104.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-04",
+      "name": "Unprotected Ether withdrawal",
+      "severity": "high",
+      "category": "access control",
+      "description": "Unauthorized callers can withdraw contract Ether.",
+      "root_cause": "Withdrawal functions lack effective caller authorization.",
+      "aliases": [
+        "withdrawal authorization",
+        "SWC-105"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-05",
+      "name": "Unprotected selfdestruct",
+      "severity": "high",
+      "category": "access control",
+      "description": "An exposed destructive operation can disrupt a contract.",
+      "root_cause": "Sensitive selfdestruct execution lacks authorization; effects depend on chain semantics.",
+      "aliases": [
+        "suicide",
+        "SWC-106"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-106.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-06",
+      "name": "Delegatecall to untrusted callee",
+      "severity": "high",
+      "category": "external calls",
+      "description": "Untrusted delegated code executes in caller storage context.",
+      "root_cause": "The delegated target is attacker controlled or inadequately constrained.",
+      "aliases": [
+        "delegatecall",
+        "SWC-112"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-112.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-07",
+      "name": "Authorization through tx.origin",
+      "severity": "high",
+      "category": "access control",
+      "description": "tx.origin authorization can be bypassed through a malicious intermediary.",
+      "root_cause": "The original transaction sender is treated as the authorized immediate caller.",
+      "aliases": [
+        "phishing",
+        "SWC-115"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-115.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-08",
+      "name": "Transaction order dependence",
+      "severity": "medium",
+      "category": "ordering",
+      "description": "Transaction ordering can change sensitive outcomes.",
+      "root_cause": "Shared state transitions rely on ordering that block producers can influence.",
+      "aliases": [
+        "front running",
+        "SWC-114"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-114.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-09",
+      "name": "Block values as time proxy",
+      "severity": "medium",
+      "category": "time",
+      "description": "Block timing assumptions can make sensitive logic unreliable.",
+      "root_cause": "Contract logic treats adjustable or approximate block values as precise time.",
+      "aliases": [
+        "timestamp dependence",
+        "SWC-116"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-10",
+      "name": "Weak randomness",
+      "severity": "high",
+      "category": "randomness",
+      "description": "Predictable blockchain values can undermine random selection.",
+      "root_cause": "Public or influenceable values are used as secret unbiased entropy.",
+      "aliases": [
+        "predictable entropy",
+        "SWC-120"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-120.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-11",
+      "name": "Denial of service with failed call",
+      "severity": "medium",
+      "category": "availability",
+      "description": "A failing recipient can block a larger operation.",
+      "root_cause": "Progress depends on every external transfer or call succeeding.",
+      "aliases": [
+        "revert griefing",
+        "SWC-113"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-113.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-12",
+      "name": "Denial of service with block gas limit",
+      "severity": "medium",
+      "category": "availability",
+      "description": "Growing work can exceed the block gas limit.",
+      "root_cause": "Required operations iterate over unbounded state.",
+      "aliases": [
+        "unbounded loop",
+        "SWC-128"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-128.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-13",
+      "name": "Write to arbitrary storage location",
+      "severity": "high",
+      "category": "storage",
+      "description": "Unexpected storage writes can corrupt sensitive state.",
+      "root_cause": "Storage index calculations permit writing unintended locations.",
+      "aliases": [
+        "storage overwrite",
+        "SWC-124"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-124.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-14",
+      "name": "Incorrect constructor name",
+      "severity": "high",
+      "category": "initialization",
+      "description": "Legacy constructor naming mistakes can expose initialization publicly.",
+      "root_cause": "A function intended as a constructor does not match the legacy contract name.",
+      "aliases": [
+        "legacy constructor",
+        "SWC-118"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-118.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-15",
+      "name": "Shadowing state variables",
+      "severity": "medium",
+      "category": "storage",
+      "description": "A shadowed variable can diverge from the state developers intend to use.",
+      "root_cause": "Duplicate names across scope or inheritance obscure the storage actually accessed.",
+      "aliases": [
+        "variable shadowing",
+        "SWC-119"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-16",
+      "name": "Missing protection against signature replay",
+      "severity": "high",
+      "category": "signatures",
+      "description": "A valid signature can authorize unintended repeated actions.",
+      "root_cause": "Signed messages lack nonces or adequate domain separation.",
+      "aliases": [
+        "replay attack",
+        "SWC-121"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-121.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-17",
+      "name": "Lack of proper signature verification",
+      "severity": "high",
+      "category": "signatures",
+      "description": "Improper signature checks can accept unauthorized messages.",
+      "root_cause": "Verification does not bind the signer and message to the intended operation.",
+      "aliases": [
+        "signature verification",
+        "SWC-122"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-122.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-18",
+      "name": "Price oracle manipulation",
+      "severity": "high",
+      "category": "oracles",
+      "description": "Influenced price feeds can distort protocol decisions.",
+      "root_cause": "The protocol trusts price inputs attackers can move.",
+      "aliases": [
+        "oracle manipulation"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-19",
+      "name": "Flash loan facilitated attacks",
+      "severity": "high",
+      "category": "economic security",
+      "description": "Borrowed liquidity can amplify a vulnerable operation in one transaction.",
+      "root_cause": "Protocol assumptions fail when an attacker temporarily controls substantial liquidity.",
+      "aliases": [
+        "flash loan"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC04-FlashLoanAttacks/"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-20",
+      "name": "Business logic errors",
+      "severity": "high",
+      "category": "logic",
+      "description": "Contract behavior can violate the intended economic rules despite valid execution.",
+      "root_cause": "Implementation omits or misapplies a required business invariant.",
+      "aliases": [
+        "economic invariant"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/"
+      ],
+      "review_status": "pending_kassra_review"
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "minLength": 1,
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "type": {
+      "minLength": 1,
+      "title": "Type",
+      "type": "string"
+    },
+    "focus": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Focus"
+    },
+    "topic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Topic Id"
+    }
+  },
+  "required": [
+    "slot_id",
+    "type"
+  ],
+  "title": "ResolvedSlot",
+  "type": "object"
+}
