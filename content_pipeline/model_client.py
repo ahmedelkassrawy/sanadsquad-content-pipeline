@@ -74,16 +74,16 @@ class LangChainTransport:
         return await self.prepare(schema,max_tokens).ainvoke(messages)
 
 
-def configured_client(root: Path, agent_name: str, ledger: Ledger, usage_path: Path, settings=None, **kwargs):
+def configured_client(root: Path, agent_name: str, ledger: Ledger, usage_path: Path, settings=None, credential_root: Path | None = None, **kwargs):
     from .config import Settings, load_agent, resolve_model
     settings = settings or Settings.load(root)
     agent = load_agent(root,agent_name)
     model = resolve_model(settings,agent)
-    return ModelClient(model,ledger,usage_path,transport=LangChainTransport(model,agent.reasoning_effort,root),allow_unpriced=settings.allow_unpriced,repair_prompt=root/"config/repair.md",**kwargs)
+    return ModelClient(model,ledger,usage_path,transport=LangChainTransport(model,agent.reasoning_effort,credential_root or root),allow_unpriced=settings.allow_unpriced,repair_prompt=root/"config/repair.md",**kwargs)
 
 
 class ModelClient:
-    def __init__(self, model: str, ledger: Ledger, usage_path: Path, transport=None, prices=None, allow_unpriced=False, repair_prompt: Path | None = None, sleep=asyncio.sleep):
+    def __init__(self, model: str, ledger: Ledger, usage_path: Path, transport=None, prices=None, allow_unpriced=False, repair_prompt: Path | None = None, sleep=asyncio.sleep, usage_lock=None):
         self.model = model
         self.ledger = ledger
         self.usage_path = usage_path
@@ -92,7 +92,7 @@ class ModelClient:
         self.allow_unpriced = allow_unpriced
         self.repair_prompt = repair_prompt or Path(__file__).resolve().parents[1] / "config" / "repair.md"
         self.sleep = sleep
-        self.usage_lock = asyncio.Lock()
+        self.usage_lock = usage_lock or asyncio.Lock()
 
     def quote(self, inputs, outputs, cached=0, cache_creation=0):
         try:
@@ -103,12 +103,14 @@ class ModelClient:
             return None, "unknown"
 
     async def record(self, record: UsageRecord):
+        slot,node,attempt,_=record.call_id.rsplit("/",3)
+        record=record.model_copy(update={"slot_id":slot,"node":node,"attempt":int(attempt)})
         async with self.usage_lock:
             self.usage_path.parent.mkdir(parents=True, exist_ok=True)
             with self.usage_path.open("a", encoding="utf-8") as stream:
                 stream.write(record.model_dump_json() + "\n")
 
-    async def call(self, schema: type[BaseModel], messages: list[dict], slot_id: str, node: str, attempt: int, max_output_tokens: int):
+    async def call(self, schema: type[BaseModel], messages: list[dict], slot_id: str, node: str, attempt: int, max_output_tokens: int, output_validator=None):
         repair = truncation = transient = 0
         messages = list(messages)
         call_n = 0
@@ -179,7 +181,10 @@ class ModelClient:
             try:
                 if result.get("parsing_error") or result.get("parsed") is None:
                     raise ValueError("malformed structured response")
-                return schema.model_validate(result["parsed"])
+                parsed=schema.model_validate(result["parsed"])
+                if output_validator is not None:
+                    output_validator(parsed)
+                return parsed
             except (ValueError, TypeError) as parse_error:
                 if repair:
                     raise ModelFailure("failed_output") from None

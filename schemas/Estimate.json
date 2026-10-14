@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slots": {
+      "title": "Slots",
+      "type": "integer"
+    },
+    "worst_case_tokens": {
+      "title": "Worst Case Tokens",
+      "type": "integer"
+    },
+    "worst_case_cost_usd": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Worst Case Cost Usd"
+    },
+    "token_budget": {
+      "title": "Token Budget",
+      "type": "integer"
+    },
+    "cost_budget_usd": {
+      "title": "Cost Budget Usd",
+      "type": "number"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "slots",
+    "worst_case_tokens",
+    "worst_case_cost_usd",
+    "token_budget",
+    "cost_budget_usd",
+    "warnings"
+  ],
+  "title": "Estimate",
+  "type": "object"
+}

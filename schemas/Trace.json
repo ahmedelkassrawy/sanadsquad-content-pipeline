@@ -1,0 +1,24 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "record_id",
+    "slot_id",
+    "attempt"
+  ],
+  "title": "Trace",
+  "type": "object"
+}

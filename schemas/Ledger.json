@@ -1,0 +1,47 @@
+{
+  "$defs": {
+    "LedgerEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "tokens": {
+          "minimum": 0,
+          "title": "Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cost Usd"
+        },
+        "status": {
+          "enum": [
+            "reserved",
+            "dispatched",
+            "released",
+            "confirmed",
+            "uncertain"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tokens",
+        "cost_usd",
+        "status"
+      ],
+      "title": "LedgerEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": {
+    "$ref": "#/$defs/LedgerEntry"
+  },
+  "type": "object"
+}

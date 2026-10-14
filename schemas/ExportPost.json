@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    },
+    "topic_id": {
+      "title": "Topic Id",
+      "type": "string"
+    },
+    "topic_name": {
+      "title": "Topic Name",
+      "type": "string"
+    },
+    "tweets": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tweets",
+      "type": "array"
+    },
+    "image": {
+      "title": "Image",
+      "type": "string"
+    }
+  },
+  "required": [
+    "record_id",
+    "slot_id",
+    "attempt",
+    "type",
+    "topic_id",
+    "topic_name",
+    "tweets",
+    "image"
+  ],
+  "title": "ExportPost",
+  "type": "object"
+}

@@ -1,0 +1,18 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "criteria": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Criteria",
+      "type": "array"
+    }
+  },
+  "required": [
+    "criteria"
+  ],
+  "title": "Rubric",
+  "type": "object"
+}

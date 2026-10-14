@@ -1,0 +1,212 @@
+{
+  "verdict": "PASS",
+  "head": "58b9add89f3b8617526d764b0db616d4a4e0cc9f",
+  "base": "27c40d29e7f13f6fd70f985f22a4afdbb100ed81",
+  "checks": {
+    "base_python": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-S",
+        "-c",
+        "import sys; sys.path[:0]=['C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base', 'D:\\\\me\\\\SanadSquad-day2\\\\.venv\\\\Lib\\\\site-packages']; import content_pipeline; assert content_pipeline.__file__.startswith('C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base'), content_pipeline.__file__; from content_pipeline.pipeline import run_pipeline"
+      ],
+      "cwd": "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\base",
+      "exit": 1,
+      "output": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    import sys; sys.path[:0]=['C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base', 'D:\\\\me\\\\SanadSquad-day2\\\\.venv\\\\Lib\\\\site-packages']; import content_pipeline; assert content_pipeline.__file__.startswith('C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base'), content_pipeline.__file__; from content_pipeline.pipeline import run_pipeline\n                                                                                                                                                                                                                                                                                                                                                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nModuleNotFoundError: No module named 'content_pipeline.pipeline'\n"
+    },
+    "base_week": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-S",
+        "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\base\\run_week.py",
+        "--estimate"
+      ],
+      "cwd": "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\base",
+      "exit": 2,
+      "output": "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe: can't open file 'C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base\\\\run_week.py': [Errno 2] No such file or directory\n"
+    },
+    "base_piece": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-S",
+        "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\base\\run_piece.py",
+        "--type",
+        "tech-thread",
+        "--topic",
+        "reentrancy",
+        "--estimate"
+      ],
+      "cwd": "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\base",
+      "exit": 2,
+      "output": "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe: can't open file 'C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\base\\\\run_piece.py': [Errno 2] No such file or directory\n"
+    },
+    "validator_bypass": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-c",
+        "import pytest,content_pipeline.pipeline as p; original=p.validate\ndef bypass(*args,**kwargs):\n result=original(*args,**kwargs); result.accepted=True; result.violations=[]; return result\np.validate=bypass\nraise SystemExit(pytest.main(['-q','tests/test_pipeline.py::test_validator_guard_never_reaches_reviewer_or_visual','--basetemp','C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\validation-mutant']))"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 1,
+      "output": "F                                                                        [100%]\n================================== FAILURES ===================================\n____________ test_validator_guard_never_reaches_reviewer_or_visual ____________\n\ntmp_path = WindowsPath('C:/Users/Dell/.t3/scratch/2026-10-12-i-want-to-write-the-c75c9f5b/day2-final-proof/validation-mutant/test_validator_guard_never_rea0')\n\n    async def test_validator_guard_never_reaches_reviewer_or_visual(tmp_path):\n        models=OfflineModels({\"a\":{\"invalid_attempts\":[1,2]}})\n        summary=await run(tmp_path,models,[plan_pair()[0]])\n>       assert summary.slots[\"a\"].outcome.value==\"dropped_quality\"\nE       AssertionError: assert 'shipped' == 'dropped_quality'\nE         \nE         - dropped_quality\nE         + shipped\n\ntests\\test_pipeline.py:167: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; langsmith\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_pipeline.py::test_validator_guard_never_reaches_reviewer_or_visual\n1 failed, 2 warnings in 0.37s\nD:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\n"
+    },
+    "reviewer_bypass": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-c",
+        "import pytest,content_pipeline.agents as a; from content_pipeline.models import Review\ndef bypass(request,assessment):\n return Review(slot_id=request.slot_id,scores=assessment.scores,reasons=[],hard_fail=[],accepted=True)\na.score_review=bypass\nraise SystemExit(pytest.main(['-q','tests/test_pipeline.py::test_reviewer_guard_rejects_unsupported_claim','--basetemp','C:\\\\Users\\\\Dell\\\\.t3\\\\scratch\\\\2026-10-12-i-want-to-write-the-c75c9f5b\\\\day2-final-proof\\\\review-mutant']))"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 1,
+      "output": "F                                                                        [100%]\n================================== FAILURES ===================================\n________________ test_reviewer_guard_rejects_unsupported_claim ________________\n\ntmp_path = WindowsPath('C:/Users/Dell/.t3/scratch/2026-10-12-i-want-to-write-the-c75c9f5b/day2-final-proof/review-mutant/test_reviewer_guard_rejects_un0')\n\n    async def test_reviewer_guard_rejects_unsupported_claim(tmp_path):\n        models=OfflineModels({\"a\":{\"reject_attempts\":[1,2]}})\n        summary=await run(tmp_path,models,[plan_pair()[0]])\n>       assert summary.shipped==0\nE       AssertionError: assert 1 == 0\nE        +  where 1 = RunSummary(record_id='_run/summary/1/1', slot_id='_run', attempt=1, run_id='run', slots={'a': TerminalSlot(outcome=<Sl...but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.', advisor='not_enabled').shipped\n\ntests\\test_pipeline.py:189: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; langsmith\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n\n.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_pipeline.py::test_reviewer_guard_rejects_unsupported_claim\n1 failed, 3 warnings in 0.87s\n"
+    },
+    "full_suite": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp",
+        "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\pytest"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "........................................................................ [ 67%]\n...................................                                      [100%]\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5\n  D:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n107 passed, 1 warning in 16.87s\n"
+    },
+    "pip_check": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pip",
+        "check"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "No broken requirements found.\n"
+    },
+    "schemas": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "-m",
+        "content_pipeline.schemas",
+        "--output",
+        "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\schemas"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": ""
+    },
+    "week_help": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "run_week.py",
+        "--help"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "usage: run_week.py [-h] [--root ROOT] [--output OUTPUT] [--plan PLAN]\n                   [--set SET] [--estimate] [--default-model DEFAULT_MODEL]\n                   [--model-override MODEL_OVERRIDE]\n                   [--max-tweet-chars MAX_TWEET_CHARS]\n                   [--token-budget TOKEN_BUDGET] [--cost-budget COST_BUDGET]\n                   [--allow-unpriced]\n\nProduce grounded X content through the configured pipeline.\n\noptions:\n  -h, --help            show this help message and exit\n  --root ROOT\n  --output OUTPUT\n  --plan PLAN\n  --set SET\n  --estimate\n  --default-model DEFAULT_MODEL\n  --model-override MODEL_OVERRIDE\n  --max-tweet-chars MAX_TWEET_CHARS\n  --token-budget TOKEN_BUDGET\n  --cost-budget COST_BUDGET\n  --allow-unpriced\nD:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\n"
+    },
+    "piece_help": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "run_piece.py",
+        "--help"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "usage: run_piece.py [-h] [--root ROOT] [--output OUTPUT] --type TYPE\n                    --topic TOPIC [--estimate] [--default-model DEFAULT_MODEL]\n                    [--model-override MODEL_OVERRIDE]\n                    [--max-tweet-chars MAX_TWEET_CHARS]\n                    [--token-budget TOKEN_BUDGET] [--cost-budget COST_BUDGET]\n                    [--allow-unpriced]\n\nProduce grounded X content through the configured pipeline.\n\noptions:\n  -h, --help            show this help message and exit\n  --root ROOT\n  --output OUTPUT\n  --type TYPE\n  --topic TOPIC\n  --estimate\n  --default-model DEFAULT_MODEL\n  --model-override MODEL_OVERRIDE\n  --max-tweet-chars MAX_TWEET_CHARS\n  --token-budget TOKEN_BUDGET\n  --cost-budget COST_BUDGET\n  --allow-unpriced\nD:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\n"
+    },
+    "estimate": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "run_week.py",
+        "--estimate"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "{\n  \"slots\": 6,\n  \"worst_case_tokens\": 11092000,\n  \"worst_case_cost_usd\": 7.763199999999996,\n  \"token_budget\": 250000,\n  \"cost_budget_usd\": 1.0,\n  \"warnings\": [\n    \"worst_case_exceeds_budget\"\n  ]\n}\nD:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\n"
+    },
+    "offline_smoke": {
+      "command": [
+        "D:\\me\\SanadSquad-day2\\.venv\\Scripts\\python.exe",
+        "scripts/offline_pipeline_smoke.py",
+        "--output",
+        "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\offline-run"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": "{\n  \"record_id\": \"_run/summary/1/1\",\n  \"slot_id\": \"_run\",\n  \"attempt\": 1,\n  \"run_id\": \"offline-run\",\n  \"slots\": {\n    \"thread_1\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"KB-01\",\n      \"reasons\": []\n    },\n    \"thread_2\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"KB-18\",\n      \"reasons\": []\n    },\n    \"thread_3\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"KB-02\",\n      \"reasons\": []\n    },\n    \"marketing_1\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"ANGLE-service\",\n      \"reasons\": []\n    },\n    \"marketing_2\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"ANGLE-credibility\",\n      \"reasons\": []\n    },\n    \"marketing_3\": {\n      \"outcome\": \"shipped\",\n      \"attempts\": 1,\n      \"topic_id\": \"ANGLE-education\",\n      \"reasons\": []\n    }\n  },\n  \"shipped\": 6,\n  \"confirmed_tokens\": 1000,\n  \"uncertain_tokens\": 0,\n  \"confirmed_cost_usd\": 0.0002,\n  \"uncertain_cost_usd\": 0.0,\n  \"unpriced\": false,\n  \"external_usage\": {\n    \"search_calls\": 0,\n    \"tavily_calls\": 0,\n    \"ddgs_calls\": 0,\n    \"fetch_calls\": 0,\n    \"tavily_credits\": 0.0,\n    \"tavily_credits_estimated\": false,\n    \"image_calls\": 6,\n    \"cloudflare_neurons\": 0,\n    \"pillow_cards\": 6\n  },\n  \"cost_scope\": \"LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.\",\n  \"advisor\": \"not_enabled\"\n}\nD:\\me\\SanadSquad-day2\\.venv\\Lib\\site-packages\\twitter_text\\regexp\\emoji.py:5: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n  import pkg_resources\nOFFLINE INJECTED FIXTURE: scripted model decisions; not live or semantic grounding proof.\n"
+    },
+    "diff_check": {
+      "command": [
+        "git",
+        "diff",
+        "--check",
+        "27c40d29e7f13f6fd70f985f22a4afdbb100ed81"
+      ],
+      "cwd": "D:\\me\\SanadSquad-day2",
+      "exit": 0,
+      "output": ""
+    }
+  },
+  "schemas_equal": {
+    "AgentConfig.json": true,
+    "AuditTweet.json": true,
+    "BrandRules.json": true,
+    "Draft.json": true,
+    "DraftAudit.json": true,
+    "DraftRecord.json": true,
+    "Estimate.json": true,
+    "ExportPost.json": true,
+    "ExternalUsage.json": true,
+    "FinalPiece.json": true,
+    "ImageResult.json": true,
+    "ImageSpec.json": true,
+    "Ledger.json": true,
+    "LedgerEntry.json": true,
+    "PostType.json": true,
+    "ResearchAction.json": true,
+    "ResearchConfig.json": true,
+    "ResearchPack.json": true,
+    "ResearchRecord.json": true,
+    "ResearchRequest.json": true,
+    "ResearchTurn.json": true,
+    "ResolvedPlan.json": true,
+    "ResolvedSlot.json": true,
+    "Review.json": true,
+    "ReviewAssessment.json": true,
+    "ReviewConfig.json": true,
+    "ReviewRecord.json": true,
+    "ReviewRequest.json": true,
+    "Rubric.json": true,
+    "RunSummary.json": true,
+    "Settings.json": true,
+    "SlotOutcome.json": true,
+    "SlotState.json": true,
+    "SourceRecord.json": true,
+    "TerminalSlot.json": true,
+    "TopicChoiceRequest.json": true,
+    "TopicChoices.json": true,
+    "Trace.json": true,
+    "Tweet.json": true,
+    "Units.json": true,
+    "UsageRecord.json": true,
+    "ValidationResult.json": true,
+    "VisualConfig.json": true,
+    "VisualOutput.json": true,
+    "VisualRecord.json": true,
+    "VisualRequest.json": true,
+    "WeekSnapshot.json": true,
+    "WriteRequest.json": true,
+    "file_set_equal": true
+  },
+  "artifact_run": "C:\\Users\\Dell\\.t3\\scratch\\2026-10-12-i-want-to-write-the-c75c9f5b\\day2-final-proof\\offline-run",
+  "provenance": "Offline injected scripted models/evidence; no live or semantic grounding proof.",
+  "pending": [
+    "independent general/contract/security review",
+    "coordinator release verification",
+    "Day 3 live sample/grounding/resume/advisor/optional Cloudflare",
+    "KB owner review",
+    "PR/merge/deployment authorization"
+  ]
+}

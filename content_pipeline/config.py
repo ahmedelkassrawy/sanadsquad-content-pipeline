@@ -5,6 +5,7 @@ import yaml
 from dotenv import dotenv_values
 from pydantic import Field
 from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot
+from .contracts import AnglesFile
 
 
 class Settings(Contract):
@@ -52,6 +53,11 @@ def load_type(root: Path, name: str) -> PostType:
     local_file(root / "agents", spec.writer + "/system.md")
     load_agent(root,spec.writer,writer=True)
     return spec
+
+
+def load_angles(root: Path, spec: PostType):
+    path = local_file(root / "post_types" / spec.name, spec.research.angles)
+    return AnglesFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8"))).angles
 
 
 def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
