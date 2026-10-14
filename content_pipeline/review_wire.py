@@ -25,7 +25,7 @@ def review_wire_schema(request):
     }
     for key in flags:
         if key not in criteria:
-            reason_fields[f"field_{len(reason_fields)}"] = (str | None, Field(default=None, alias=key))
+            reason_fields[f"field_{len(reason_fields)}"] = (str, Field(default="", alias=key))
     reasons = create_model("ReviewReasons", __base__=_ReasonFields, **reason_fields)
     return create_model("ReviewAssessment", __base__=ReviewAssessment,
                         scores=(scores, ...), reasons=(reasons, ...), hard_fail=(hard_fail, ...))

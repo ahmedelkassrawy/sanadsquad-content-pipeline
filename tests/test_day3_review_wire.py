@@ -49,6 +49,10 @@ def sdk_client(tmp_path,monkeypatch,request,mode):
         elif mode=="range": args["scores"][request.rubric.criteria[0]]=6
         elif mode=="approval": args["accepted"]=True
         elif mode=="null-false-reason": args["reasons"]["off_brand"]=None
+        elif mode=="empty-false-reason": args["reasons"]["off_brand"]=""
+        elif mode=="empty-true-reason":
+            args["hard_fail"]["unsupported_claim"]=True
+            args["reasons"]["unsupported_claim"]=""
         message={"role":"assistant","content":None,"tool_calls":[{"id":"call_wire","type":"function","function":{"name":payload["tools"][0]["function"]["name"],"arguments":json.dumps(args)}}]}
         return httpx.Response(200,json={"id":"chatcmpl-wire","object":"chat.completion","created":1,"model":payload["model"],"choices":[{"index":0,"message":message,"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":20,"completion_tokens":30,"total_tokens":50}})
     original=ChatOpenAI.__init__
