@@ -87,7 +87,7 @@ def expected_snapshot(contents):
 def validated_files(source):
     contracts={"research_log":ResearchRecord,"drafts":DraftRecord,"review_report":ReviewRecord,"visuals":VisualRecord,"final":FinalPiece,"advisor":AdvisorRecord,"posts":ExportPost}
     root_names={*(name+".json" for name in contracts),"plan.resolved.json","run_summary.json","usage.jsonl","ledger.json","external-usage.json","posts.csv","advice.md","advice.patch","run.log"}
-    private_names={"run.lock","run_identity.json","runtime-settings.json","state.json","checkpoint.sqlite","checkpoint.sqlite-wal","checkpoint.sqlite-shm"}
+    private_names={"run.lock","run_identity.json","runtime-settings.json","state.json","research-replay.json","checkpoint.sqlite","checkpoint.sqlite-wal","checkpoint.sqlite-shm"}
     if {path.name for path in source.iterdir()}-(root_names|private_names|{"snapshot","images"}): raise ValueError("unexpected run artifact")
     for path in source.iterdir(): boundary(path)
     snapshot_paths,snapshot_dirs=inventory(source/"snapshot")

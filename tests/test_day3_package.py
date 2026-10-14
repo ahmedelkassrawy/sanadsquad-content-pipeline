@@ -53,6 +53,7 @@ def directory_link(link,target):
 
 
 def test_public_packager_copies_exact_six_slot_artifacts(six_slot_source,tmp_path):
+    assert (six_slot_source/"research-replay.json").is_file()
     target=tmp_path/"package"
     packager.package(six_slot_source,target)
     manifest=json.loads((six_slot_source/"run_identity.json").read_text())["snapshot_files"]
@@ -73,7 +74,7 @@ def test_public_packager_copies_exact_six_slot_artifacts(six_slot_source,tmp_pat
             assert spec.palette==["#14213d","#fca311","#ffffff"]
     assert {path.name for path in (target/"images").iterdir()}==images
     assert len(list((target/"schemas").glob("*.json")))==56
-    assert not any((target/name).exists() for name in ["checkpoint.sqlite","run.lock","run_identity.json","runtime-settings.json","state.json"])
+    assert not any((target/name).exists() for name in ["checkpoint.sqlite","run.lock","run_identity.json","runtime-settings.json","state.json","research-replay.json"])
 
 
 @pytest.mark.parametrize("name,tamper",[("snapshot/.env",False),("images/private-note.txt",False),("snapshot/private-note.md",True),("snapshot/.env",True),("private-note.txt",False)])
