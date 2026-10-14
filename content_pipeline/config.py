@@ -50,6 +50,7 @@ def load_type(root: Path, name: str) -> PostType:
         if file:
             local_file(path.parent, file)
     local_file(root / "agents", spec.writer + "/system.md")
+    load_agent(root,spec.writer,writer=True)
     return spec
 
 
@@ -62,9 +63,16 @@ def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
     return slots
 
 
-def load_agent(root: Path, name: str) -> AgentConfig:
+def load_agent(root: Path, name: str, *, writer: bool = False) -> AgentConfig:
     config = AgentConfig.model_validate(yaml.safe_load(local_file(root / "agents", name + "/agent.yaml").read_text(encoding="utf-8")))
-    if name in {"thread_writer", "marketing_writer"} and any(s in {"search_kb", "web_search"} for s in config.skills):
+    if not writer:
+        folder=root/"post_types"
+        for path in sorted(folder.glob("*/type.yaml")):
+            spec=PostType.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+            if spec.writer == name:
+                writer=True
+                break
+    if writer and any(s in {"search_kb", "web_search"} for s in config.skills):
         raise ValueError("writers cannot search")
     return config
 

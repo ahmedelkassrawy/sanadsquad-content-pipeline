@@ -29,8 +29,10 @@ class Prices:
     def quote(self, model, input_tokens, output_tokens, cached=0, cache_creation=0):
         from genai_prices import Usage, calc_price
         provider, name = model.split(":", 1)
-        if provider in {"openrouter", "opencode"}:
-            provider, _, name = name.partition("/")
+        if provider == "openrouter" or (provider == "opencode" and "/" in name):
+            provider, name = name.split("/", 1)
+        elif provider == "opencode":
+            provider = None
         price = calc_price(Usage(input_tokens=input_tokens, output_tokens=output_tokens, cache_read_tokens=cached, cache_write_tokens=cache_creation), name, provider_id=provider)
         return float(price.total_price), "genai-prices@" + version("genai-prices")
 
@@ -41,27 +43,35 @@ class LangChainTransport:
         self.reasoning_effort = reasoning_effort
         self.root = root or Path(__file__).resolve().parents[1]
 
-    async def __call__(self, messages, schema, max_tokens):
+    def prepare(self, schema, max_tokens):
         from langchain.chat_models import init_chat_model
         import os
         from dotenv import dotenv_values
         env = {**dotenv_values(self.root / ".env"), **os.environ}
         provider, name = self.model.split(":", 1)
-        options = {"max_tokens": max_tokens, "max_retries": 0}
+        key_name = {"openrouter":"OPENROUTER_API_KEY","opencode":"OPENCODE_API_KEY","openai":"OPENAI_API_KEY","google_genai":"GEMINI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}.get(provider)
+        if not key_name:
+            raise ValueError("unsupported configured model provider")
+        key = env.get(key_name)
+        if not key or not key.strip():
+            raise ValueError("missing credential for selected provider")
+        options = {"max_tokens": max_tokens, "max_retries": 0, "api_key": key}
         if self.reasoning_effort != "none":
             options["reasoning_effort"] = self.reasoning_effort
         if provider in {"openrouter", "opencode"}:
-            options.update(base_url="https://openrouter.ai/api/v1" if provider == "openrouter" else "https://opencode.ai/zen/v1", api_key=env.get("OPENROUTER_API_KEY" if provider == "openrouter" else "OPENCODE_API_KEY"))
+            options["base_url"] = "https://openrouter.ai/api/v1" if provider == "openrouter" else "https://opencode.ai/zen/v1"
             provider = "openai"
-        elif provider == "openai":
-            options["api_key"] = env.get("OPENAI_API_KEY")
-        elif provider == "google_genai":
-            options["api_key"] = env.get("GEMINI_API_KEY")
         if provider == "google_genai":
             options.pop("max_tokens")
             options["max_output_tokens"] = max_tokens
         chat = init_chat_model(name, model_provider=provider, **options)
-        return await chat.with_structured_output(schema, include_raw=True).ainvoke(messages)
+        # Tool structured output retains raw usage before LangChain parses it;
+        # native SDK parsing can raise on length or bad JSON before returning usage.
+        method = {"openai":"function_calling","google_genai":"json_schema","anthropic":"function_calling"}[provider]
+        return chat.with_structured_output(schema, method=method, include_raw=True)
+
+    async def __call__(self, messages, schema, max_tokens):
+        return await self.prepare(schema,max_tokens).ainvoke(messages)
 
 
 def configured_client(root: Path, agent_name: str, ledger: Ledger, usage_path: Path, settings=None, **kwargs):
@@ -108,19 +118,25 @@ class ModelClient:
             inputs = math.ceil(sum(len(str(m["content"])) for m in messages) / 3.5 * 1.15)
             reserve_tokens = inputs + max_output_tokens
             cost, cost_source = self.quote(inputs, max_output_tokens)
+            try:
+                prepared = self.transport.prepare(schema,max_output_tokens) if hasattr(self.transport,"prepare") else None
+            except Exception:
+                raise ModelFailure("failed_api") from None
             await self.ledger.reserve(call_id, reserve_tokens, cost)
             await self.ledger.dispatch(call_id)
             try:
-                result = await self.transport(messages, schema, max_output_tokens)
+                result = await prepared.ainvoke(messages) if prepared is not None else await self.transport(messages, schema, max_output_tokens)
             except BaseException as error:
                 await self.ledger.uncertain(call_id)
                 await self.record(UsageRecord(call_id=call_id, model=self.model, input_tokens=inputs, output_tokens=max_output_tokens, estimated=True, cost_usd=cost, cost_source=cost_source, status="uncertain"))
                 if isinstance(error, asyncio.CancelledError):
                     raise
-                status = getattr(error, "status_code", None)
+                status = getattr(error, "status_code", None) or getattr(error,"code",None)
                 if status in {402, 403}:
                     raise ModelFailure("failed_budget") from None
-                retryable = isinstance(error, (TimeoutError, ConnectionError)) or status in {408, 429, 500, 502, 503, 504}
+                from openai import APIConnectionError
+                from anthropic import APIConnectionError as AnthropicConnectionError
+                retryable = isinstance(error, (TimeoutError, ConnectionError, APIConnectionError, AnthropicConnectionError)) or status in {408, 429, 500, 502, 503, 504}
                 if retryable and transient < 3:
                     transient += 1
                     await self.sleep(2 ** (transient - 1))
@@ -153,7 +169,8 @@ class ModelClient:
                     raise ModelFailure("failed_api") from None
             await self.ledger.settle(call_id, in_tokens + out_tokens, cost)
             await self.record(UsageRecord(call_id=call_id, model=self.model, input_tokens=in_tokens, output_tokens=out_tokens, cached_input_tokens=cached, reasoning_tokens=reasoning, estimated=estimated, cost_usd=cost, cost_source=cost_source, overshoot_tokens=max(0, in_tokens + out_tokens - reserve_tokens)))
-            if metadata.get("finish_reason") in {"length", "max_tokens"}:
+            finish = str(metadata.get("finish_reason") or metadata.get("stop_reason") or "").lower()
+            if finish in {"length", "max_tokens"}:
                 if truncation:
                     raise ModelFailure("failed_output")
                 truncation += 1

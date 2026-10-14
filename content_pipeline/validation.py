@@ -52,6 +52,9 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
         errors.append("tweet_count")
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_brand(tweet.text, rules))
-        if parse_tweet(tweet.text).weightedLength > limit:
+        parsed = parse_tweet(tweet.text)
+        if not parsed.valid:
+            errors.append(f"tweet_{i}:invalid_text")
+        if parsed.weightedLength > limit:
             errors.append(f"tweet_{i}:length")
     return ValidationResult(original=draft, normalized=fixed, fixes=fixes, violations=errors, accepted=not errors)
