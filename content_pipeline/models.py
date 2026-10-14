@@ -17,6 +17,34 @@ class SlotOutcome(str, Enum):
     failed_output = "failed_output"
 
 
+class CallFailureKind(str, Enum):
+    rate_limit = "rate_limit"
+    auth = "auth"
+    payment = "payment"
+    timeout = "timeout"
+    connection = "connection"
+    server = "server"
+    provider_error = "provider_error"
+    truncated = "truncated"
+    malformed_output = "malformed_output"
+    malformed_envelope = "malformed_envelope"
+    output_rejected = "output_rejected"
+    unknown = "unknown"
+
+
+class CallFinishReason(str, Enum):
+    stop = "stop"
+    end_turn = "end_turn"
+    stop_sequence = "stop_sequence"
+    tool_calls = "tool_calls"
+    function_call = "function_call"
+    length = "length"
+    max_tokens = "max_tokens"
+    error = "error"
+    content_filter = "content_filter"
+    unknown = "unknown"
+
+
 class ResolvedSlot(Contract):
     slot_id: str = Field(min_length=1)
     type: str = Field(min_length=1)
@@ -124,6 +152,9 @@ class UsageRecord(Contract):
     cost_source: str
     status: Literal["confirmed", "uncertain"] = "confirmed"
     overshoot_tokens: int = Field(default=0, ge=0)
+    failure_kind: CallFailureKind | None = None
+    http_status: int | None = Field(default=None, strict=True, ge=100, le=599)
+    finish_reason: CallFinishReason | None = None
 
 
 class Units(Contract):
