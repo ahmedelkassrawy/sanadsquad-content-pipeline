@@ -30,8 +30,8 @@ flowchart TD
     FAN --> W
     VIS --> EXP["Export (code)<br/>posts.csv + posts.json"]
     DROP --> EXP
-    EXP --> SUM["Summary (code)<br/>shipped, dropped + why, tokens, cost"]
-    SUM --> ADV["Advisor<br/>advice.md + advice.patch<br/>(suggests, never edits)"]
+    EXP --> ADV["Advisor (optional)<br/>advice.md + advice.patch<br/>(suggests, never edits)"]
+    ADV --> SUM["Summary (code, last)<br/>shipped, dropped + why, tokens, cost"]
 ```
 
 It is a **fixed workflow**: the steps and their order are decided by code. Only the research agent runs a small tool loop. "Model-agnostic" is a separate property: which LLM runs inside each step is configuration.
@@ -49,7 +49,7 @@ It is a **fixed workflow**: the steps and their order are decided by code. Only 
 | Orchestrator | **Pure code, no LLM** | Everything it decides (routing, parallelism, retries) is fixed by config. Cheap, reproducible, can't be confused by one failure. |
 | Router | Conditional edges in code | Nothing in the flow is genuinely undecided. |
 | Parallel split | Research for the whole week first, then 6 lanes from Write onward | Topic de-duplication needs one choice point. Focused slots research in parallel; empty slots pick distinct topics in **one call**, excluding ids already taken. |
-| Durability | **LangGraph SQLite checkpointer** in the run folder + `--resume <run_dir>` | A crash in Review doesn't re-pay for Research and Write. Temporal is the growth path for a daily service. |
+| Durability | **LangGraph SQLite checkpointer** in the run folder + `--resume <run_dir>` | Resuming skips nodes whose results were saved, so finished Research and Write aren't paid for again. A call billed just before a crash can repeat (§6.6). Temporal is the growth path for a daily service. |
 | Advisor | Last node, every run. Writes `advice.md` + `advice.patch` against `writer.md` / `rubric.md` / `brand-voice.md` | Suggest-only. Auto-editing prompts would drift and loosen its own rubric. A human runs `git apply`. |
 
 ### 2.2 Handoffs and state
@@ -72,8 +72,9 @@ post_types/
   tech-thread/      type.yaml  writer.md  rubric.md
   marketing-post/   type.yaml  writer.md  rubric.md  angles.yaml
 agents/
-  research/  writer/  reviewer/  visual/  advisor/
+  research/  thread_writer/  marketing_writer/  reviewer/  visual/  advisor/
              each: agent.yaml (model override?, max_output_tokens, reasoning_effort, skills) + system.md
+             (a writer's prompt = agents/<writer>/system.md + post_types/<type>/writer.md + brand voice)
 skills/
   search_kb.py + .md     (research only; writers never search, see §6)
   brand_rules.py + .md   (shared: writers, reviewer, visual, validator)
@@ -103,7 +104,7 @@ inputs/
 | KB retrieval | **BM25** (`rank-bm25`) over name, category, description and `aliases` -> top 5 -> **the same chat model** judges the match (no separate classifier, no Jev). |
 | Web search | `web_search` skill: **Tavily**, then **`ddgs`** (no key) as fallback. A failed or empty search marks the slot **failed**; the run continues. |
 | Research loop | Max 4 search steps; evidence text capped before it enters the prompt. Every web hit becomes a `SourceRecord` (§6.2). |
-| Topic repeats | Never repeat a KB id within a week; skip ids used in the last N run folders. |
+| Topic repeats | Topics the system picks never repeat within a week or with the last 4 run folders. Explicit focuses may repeat (warning). Details: §6.3. |
 | Marketing angles | `angles.yaml` (`service`, `credibility`, `education-to-cta`); an empty focus gets a distinct angle. |
 | Citations | One scheme for every source type: `KB-07`, `STAT-02`, `WEB-<hash>`. **No `USER` source**: `--set` sets a topic, not evidence (§6.1). |
 | Grounding check | Writers return structured output with **source ids per tweet**. **Code** checks every id exists in that slot's research pack. The **reviewer** checks **every factual claim** against the evidence text, including claims the writer didn't cite (§6.2). |
@@ -111,7 +112,7 @@ inputs/
 ### 2.6 Quality gates
 
 **Validator (code, not an agent)** runs after every draft:
-- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted by X's rules via `twitter-text-parser`** (weighted Unicode, URLs = 23), with the `1/7` numbering added by code **before** validation. `MAX_TWEET_CHARS` comes from `.env`.
+- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted by X's rules via `twitter-text-parser`** (weighted Unicode, URLs = 23), with the `1/7` numbering added by code **before** validation. `MAX_TWEET_CHARS` comes from `.env` and may only **lower** the limit (§6.11).
 - **Safe fixes** (listed in config, never meaning-changing: whitespace, curly quotes, a trailing hashtag block) are applied and **logged** in the drafts trail.
 - **Real violations** skip the reviewer and go straight back to the writer as the one retry. A retry that still breaks a hard rule is dropped.
 
@@ -228,7 +229,7 @@ python run_piece.py --type tech-thread --topic "reentrancy"
 
 ## 6. Closures from the external design review (2026-10-14)
 
-An independent model reviewed this design against the brief. Kassra accepted the findings below. Where §2 and §6 disagree, **§6 wins** (§2 has been corrected in place where it contradicted).
+An independent model reviewed this design against the brief, twice. Kassra accepted the findings below. §2 has been corrected in place wherever it contradicted them; if any conflict remains, §6 wins and it's a doc bug to fix.
 
 Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume) and 6.7 (budget) stay optional and keep their place on the cut list.
 
@@ -248,7 +249,8 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 
 ### 6.3 Topic assignment can't sink several slots
 - The batch "pick N distinct topics" call is validated by **code**: every empty slot assigned, every id exists, no duplicates with each other, with focused slots, or with history.
-- Valid assignments are kept. A missing or invalid one is filled by **code**: the best unused KB entry by BM25 against the post type's research hints. No second LLM call.
+- Valid assignments are kept. A missing or invalid one is filled by **code**, from that post type's `topic_source` (§6.9): the best unused **KB entry** (BM25 against the type's research hints) for `kb`, or the next unused **angle** from the type's angles file for `angles`. No second LLM call.
+- **Topic selection may fall back; evidence may not.** After a topic is chosen (by the model or the fallback), its evidence is resolved normally (§6.2). If evidence resolution fails or returns malformed output, the slot is `failed_research`. Code never invents evidence.
 - Two **explicit** focuses resolving to the same KB id are allowed (it's the user's choice) and logged as a warning.
 - History exclusion: ids used in the **last 4 run folders**. If the pool is exhausted, the least recently used ids are allowed again, and this is logged.
 
@@ -268,19 +270,20 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 ### 6.6 What resume can and can't promise
 - **Limitation, documented:** if a call completes and is billed but the process dies before the result is saved, `--resume` repeats that call. No exactly-once billing.
 - Every model call and trail record has a **stable id** (`slot_id/node/attempt/call_n`). The trail writer skips ids it already has, so resume never duplicates records.
-- On resume, reservations left open by a crash are released and logged as `uncertain` in the ledger.
+- On resume, a reservation left open by a crash is released **only if the call was never dispatched** (the ledger writes a `dispatched` mark before sending). A dispatched call with no saved result stays an **uncertain charge**, exactly like a timeout (§6.7).
 - Each run **snapshots** its inputs (`brand-voice.md`, `kb.json`, `plan.json`, `post_types/`, `agents/`, resolved config) into `run_dir/snapshot/`. Resume reads the snapshot, not the live files, so one run can't mix two policies.
 
 ### 6.7 What the budget guarantees
 - It is a **pre-call budget guard**, not a mathematical hard cap. Input tokens are estimated (chars / 3.5 + 15%), and an estimate can be wrong for unusual text.
 - The guard reserves that estimate plus full `max_output_tokens` before each call. Any actual overshoot is recorded in `usage.jsonl` and the summary.
-- A call that times out may still have been billed: its reservation is kept as an `uncertain` charge and not released.
+- A call that was dispatched but has no recorded result (timeout, crash) may still have been billed: its reservation is kept as an **uncertain** charge and never released. The summary reports **confirmed** and **uncertain** spend separately.
 - **Scope:** LLM spend only. Search and image calls are counted (calls, Tavily credits, Cloudflare neurons) but not priced in USD. The summary says so.
 - The brief requires cost **reporting**, not a cap. Kassra wants the guard, but it stays simple and never blocks the required pipeline work.
 
 ### 6.8 CSV and export, stated honestly
 - `posts.csv` is **the brief's export format**: `Post Text, Image`, one row per accepted piece, rows in plan order.
 - No scheduler is claimed to import it as-is. ARCHITECTURE.md names **Hypefury** as the closest fit (one post per cell, auto-splits long text into a thread) and the conversion needed: one row per tweet. `posts.json` is our own structured format, not a scheduler's API body.
+- **Known delivery limitation:** the brief asks for a CSV "ready for a scheduling tool". Until one concrete conversion (e.g. to Hypefury's one-tweet-per-row import) is actually tested against the tool's documented format, README and limitations say "export format", never "scheduler-ready".
 - `Image` = path **relative to the run folder** (`images/thread_1.png`).
 - The `1/7` numbering is added by code **before** the validator runs. The text the reviewer approved is byte-for-byte the text exported. Nothing edits text after approval.
 
@@ -314,10 +317,11 @@ visual:
   - research -> `failed_research`.
 - Every slot ends in **exactly one terminal state**: `shipped`, `dropped_quality`, `failed_research`, `failed_api`, `failed_budget`, `failed_output`.
 - Expected slot-level failures are caught inside the lane and recorded. They never escape and stop the graph.
+- **Run order at the end:** Export -> Advisor (optional) -> finalize usage -> Summary. The summary is last so its token and cost totals include the advisor. If the advisor fails, it is recorded in the summary (`advisor: failed, reason`); shipped content and the CSV are untouched and the run still completes.
 - Export and summary run **once**, after every lane reaches a terminal state, **including when zero pieces ship** (an empty CSV with headers).
 
 ### 6.11 Validator semantics
-- Length: **`twitter-text-parser`** (X's weighted counting: Unicode weights, URLs = 23). `MAX_TWEET_CHARS` in `.env` may change the limit (default 280).
+- Length: **`twitter-text-parser`** (X's weighted counting: Unicode weights, URLs = 23). `MAX_TWEET_CHARS` in `.env` may set a **lower** editorial limit (default 280). A value above 280 is a startup error: longer posts would be a future platform capability (e.g. Premium), declared explicitly, not a config tweak.
 - Links: **domain** allow-list (subdomains allowed only if listed).
 - Banned words and phrases: **case-insensitive, word-boundary** matching. Banned characters: exact.
 - Safe fixes are only: whitespace normalisation, curly to straight quotes, and removing **a trailing block of hashtags**. A hashtag inside a sentence is a violation, not a fix.
