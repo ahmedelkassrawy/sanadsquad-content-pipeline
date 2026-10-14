@@ -1,0 +1,15 @@
+{
+  "issue": "#3",
+  "plan": "plans/3-day2-pipeline.md",
+  "catalog": [{"id": "S2-day2-pipeline", "kind": "slice"}],
+  "contracts": {
+    "S2-day2-pipeline": {
+      "inputs": "Locked DESIGN.md section 6, reviewed Day 1 package, plan/config files and injected model/search interfaces",
+      "outputs": "Plain typed agents, LangGraph slot lanes, public week/piece CLIs, Pillow visuals, JSON trails and terminal CSV/summary",
+      "ordering": "Resolve research then parallel write/validate/review/retry/visual lanes; accepted only export in plan order after one join",
+      "emptyBehavior": "Invalid plan/config fails before calls; no evidence fails its slot; zero accepted still exports headers and summary",
+      "errorBehavior": "One shared content retry, bounded transport repairs, fail-closed review, isolated terminal failures, grounded visual/spec fallback",
+      "permissions": "Project-local code and safe run outputs, public research only; no secrets in logs, live model calls, publishing, merge or deployment"
+    }
+  }
+}
