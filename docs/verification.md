@@ -83,3 +83,17 @@ adapter or scheduler-specific import/publishing is built. A sample package canno
 The pinned twitter-text parser emits the documented pkg_resources deprecation warning;
 setuptools is pinned below81 for compatibility. Live adapter coverage differs by provider;
 supporting an adapter does not claim every model/account combination was called live.
+
+The independent contract review found an advisor guard defect: a new percentage claim
+could borrow12 from unrelated fictional-audit front matter. Each edit now rejects added,
+removed or modified numeric-bearing full lines, including changed words around an existing
+number omitted from the edit excerpt. A numeric no-op and a real nonnumeric clarity edit remain allowed.
+Public-run regressions preserve shipped text/source bytes and isolate rejected advice.
+This conservative rule does not recognize the meaning of number words or certify prose;
+all recommendations still require human review before manual application.
+
+The subsequent real OpenRouter GPT-4.1-mini grounding attempt on5916999 ended failed_budget
+for both controls, with8086 uncertain reserved tokens/USD0.0104344 estimated exposure,
+not measured actual billing. The key authenticated, but the credits endpoint reported
+zero total credits; calls stopped. Provider availability remains pending either a quota
+reset or available credits. No complete real six-slot sample is claimed.

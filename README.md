@@ -113,10 +113,14 @@ consistent. Missing hashes in an older unfinished run refuse compatible-stage re
 The advisor runs by default after export and before final accounting. Disable it for a
 new run with `--no-advisor` or `ADVISOR_ENABLED=false`. It reads saved run evidence and
 allowed snapshot instructions. Code derives a bounded unified diff from typed edits,
-checks exact source hashes/paths, and rejects machine-rule changes/new numeric claims.
+checks exact source hashes/paths, and rejects machine-rule changes. Each edit is checked
+against its affected full lines: numeric-bearing lines cannot be added, removed or
+changed, including edits of surrounding words. Unchanged numeric lines are allowed.
+Numbers elsewhere in a file cannot authorize an edit.
 The target set is each used type's `writer.md`, configured rubric, and brand voice.
 Source files and accepted content are never changed. Review `advice.patch` yourself
-before any manual application; suggested prose still needs human judgment. Advisor
+before any manual application. This conservative text guard is not semantic fact checking:
+review all suggested prose, including quantities written as words. Advisor
 API/budget/output failure is recorded and does not prevent content export.
 
 ## Cost and verification
@@ -153,6 +157,7 @@ The reviewer control gives an unsupported invented claim a valid citation ID; it
 reject that claim and accept the supported control. The sample succeeds only if all six
 pieces ship. Keep the sample provenance alongside its packaged artifacts. Tests inject
 offline responses to prove routing and persistence; they do not prove semantic judgment.
-The complete real six-slot sample is currently pending provider daily-quota availability;
+The complete real six-slot sample is currently pending provider availability (quota reset
+or available provider credits);
 the retained failed attempts are not published as a successful sample. The
 [architecture](ARCHITECTURE.md) explains extensions and the remaining limitations.

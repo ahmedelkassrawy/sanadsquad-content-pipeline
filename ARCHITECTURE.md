@@ -89,9 +89,13 @@ run metadata. Local checkpoint folders should remain under their operator's cont
 `advisor.py` is a plain typed agent after export. It reads the frozen allowed instruction
 files and saved research/draft/review/final records. Structured edits identify exact
 source hashes and unique before excerpts. Code derives the unified diff, bounds its
-size, limits paths, and rejects machine-rule changes and newly introduced numbers.
+size, limits paths, and rejects machine-rule changes. A changed edit cannot contain
+numeric characters on its affected full lines, preventing reused numbers or changed
+wording around an existing number, even if the edit excerpt omits that number.
+Unchanged numeric lines remain allowed.
 The diff and prose are recommendations for human review, never executed/applied.
-This is not a proof that every suggested prose change improves the policy. Advisor
+This is not semantic fact checking or proof that suggested prose improves the policy;
+human review is required for every recommendation, including worded quantities. Advisor
 failure is isolated; summary totals include its confirmed or uncertain spending.
 
 SQLite is runtime state; JSON trails are inspectable views. The packaged sample omits

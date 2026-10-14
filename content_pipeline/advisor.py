@@ -1,6 +1,5 @@
 import difflib
 import hashlib
-import re
 from .agents import Agent, identity
 from .config import load_type, local_file
 from .contracts import AdvisorOutput, InstructionFile
@@ -28,8 +27,11 @@ def advice_patch(request,output):
         candidate=text.replace(edit.before,edit.after,1)
         if text.startswith("---\n") and (not candidate.startswith("---\n") or candidate.split("---",2)[:2]!=text.split("---",2)[:2]):
             raise ValueError("advice cannot edit machine rules")
-        if set(re.findall(r"\d+(?:\.\d+)?",edit.after))-set(re.findall(r"\d+(?:\.\d+)?",text)):
-            raise ValueError("advice introduces numeric claims")
+        before_lines=text.splitlines()
+        after_lines=candidate.splitlines()
+        for operation,start,end,new_start,new_end in difflib.SequenceMatcher(a=before_lines,b=after_lines,autojunk=False).get_opcodes():
+            if operation!="equal" and any(character.isnumeric() for line in before_lines[start:end]+after_lines[new_start:new_end] for character in line):
+                raise ValueError("advice cannot add or modify numeric-bearing lines")
         texts[edit.path]=candidate
         changed.add(edit.path)
     patch="".join("".join(difflib.unified_diff(request.instructions[name].text.splitlines(keepends=True),texts[name].splitlines(keepends=True),fromfile="a/"+name,tofile="b/"+name)) for name in sorted(changed))
