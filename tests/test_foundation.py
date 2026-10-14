@@ -70,14 +70,14 @@ def test_folder_only_post_type(tmp_path):
 
 
 def test_normalization_keeps_original_and_numbers_before_review():
-    result = validate_thread(draft("  â€œStateâ€‌   before calls. #audit #security  "))
-    assert result.original.tweets[0].text == "  â€œStateâ€‌   before calls. #audit #security  "
+    result = validate_thread(draft("  “State”   before calls. #audit #security  "))
+    assert result.original.tweets[0].text == "  “State”   before calls. #audit #security  "
     assert [t.text for t in result.normalized.tweets] == [f'{i}/5 "State" before calls.' for i in range(1,6)]
     assert result.fixes[:3] == ["tweet_1:whitespace","tweet_1:curly_quotes","tweet_1:trailing_hashtags"]
     assert result.accepted is True
 
 
-@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("Stateâ€”calls.","banned_character:â€”"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("ç•Œ"*139,"length"),("a"*277,"length")])
+@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("State—calls.","banned_character:—"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("界"*139,"length"),("a"*277,"length")])
 def test_brand_and_weighted_length_rejections(text,error):
     result=validate_thread(draft(text))
     assert result.accepted is False
