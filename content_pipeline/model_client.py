@@ -365,7 +365,7 @@ class ModelClient:
                     await self.sleep(2 ** (transient - 1))
                     continue
                 raise ModelFailure("failed_api") from None
-            if not isinstance(result, dict) or "raw" not in result or result["raw"] is None:
+            if not isinstance(result, dict) or "raw" not in result:
                 await self.ledger.uncertain(call_id)
                 await self.record(UsageRecord(call_id=call_id,model=self.model,input_tokens=inputs,output_tokens=max_output_tokens,estimated=True,cost_usd=cost,cost_source=cost_source,status="uncertain",failure_kind=CallFailureKind.malformed_envelope.value))
                 raise ModelFailure("failed_output")
@@ -410,7 +410,12 @@ class ModelClient:
             finish_value = metadata.get("finish_reason") or metadata.get("stop_reason")
             finish = _safe_finish_reason(finish_value)
             row = UsageRecord(call_id=call_id, model=self.model, input_tokens=in_tokens, output_tokens=out_tokens, cached_input_tokens=cached, reasoning_tokens=reasoning, estimated=estimated, cost_usd=cost, cost_source=cost_source, overshoot_tokens=max(0, in_tokens + out_tokens - reserve_tokens), http_status=raw_status, finish_reason=finish)
-            if finish == "error":
+            try:
+                route_finish = str(finish_value or "").lower()
+            except BaseException:
+                await self.record(row)
+                raise
+            if route_finish == "error":
                 row = row.model_copy(update={"failure_kind": CallFailureKind.provider_error})
                 await self.record(row)
                 if transient < 3:
@@ -418,7 +423,7 @@ class ModelClient:
                     await self.sleep(2 ** (transient - 1))
                     continue
                 raise ModelFailure("failed_api")
-            if finish in {"length", "max_tokens"}:
+            if route_finish in {"length", "max_tokens"}:
                 row = row.model_copy(update={"failure_kind": CallFailureKind.truncated})
                 await self.record(row)
                 if truncation:
@@ -447,6 +452,17 @@ class ModelClient:
             if output_validator is not None:
                 try:
                     output_validator(parsed)
+                except (ValueError, TypeError) as validation_error:
+                    row = row.model_copy(update={"failure_kind": CallFailureKind.output_rejected})
+                    await self.record(row)
+                    if repair:
+                        raise ModelFailure("failed_output") from None
+                    repair += 1
+                    # Only locations/types enter repair feedback, never echoed model input or credentials.
+                    errors = validation_error.errors(include_input=False, include_context=False) if hasattr(validation_error,"errors") else [{"type":"malformed_structured_response"}]
+                    safe_error = json.dumps([{ "loc": error.get("loc", []), "type": error["type"]} for error in errors])
+                    messages = [*messages, {"role": "user", "content": self.repair_prompt.read_text(encoding="utf-8").replace("{parse_error}",safe_error)}]
+                    continue
                 except BaseException:
                     row = row.model_copy(update={"failure_kind": CallFailureKind.output_rejected})
                     await self.record(row)
