@@ -48,6 +48,23 @@ direct code; typed/cause handling restores bounded retries without logging provi
 exception text. That repair does not prove the failed live attempt was a429 or that
 the service recovered. Further live execution belongs to the coordinator after review.
 
+After the file prompt explicitly required reason keys for every true hard-fail flag,
+the committed live harness passed both controls on Gemini 2.5 Flash Lite: the supported
+claim was accepted and the unsupported claim was rejected with unsupported_claim.
+The coordinator measured 5412 actual tokens/USD0.0014115 list-price estimate and no
+uncertain charge, with request/review/usage artifacts and source hashes retained.
+This supersedes no history: an earlier Lite response safely became failed_output for
+missing a required hard-fail reason, and the earlier Flash sample remains an API failure.
+The current bounded judgment check does not certify every generated claim.
+
+A subsequent Lite six-slot attempt shipped one marketing piece and failed the other
+five slots; totals were 16925 confirmed tokens/USD0.0041045 estimated list price and
+156836 uncertain reserved tokens/USD0.0480836. That marketing text incorrectly included
+literal source_ids bookkeeping. The run is retained as failed evidence, not the final
+sample. Writer instructions now place bookkeeping only in structured fields, and the
+demo brand rules reject literal source_ids before review/export, with a public caller
+regression. The coordinator owns any later bounded sample attempt and content inspection.
+
 Primary-source review supports the 20 concise KB core facts/reference assignments.
 SWC is historical/incomplete. KB-15 qualifies inherited-state shadowing as legacy
 Solidity; KB-02/05 include current compiler/SELFDESTRUCT references. Editorial severities

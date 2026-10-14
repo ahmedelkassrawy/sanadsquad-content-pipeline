@@ -4,6 +4,7 @@ banned_words:
 - guaranteed
 - unhackable
 - 100% secure
+- source_ids
 banned_characters:
 - —
 allowed_links:

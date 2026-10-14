@@ -307,3 +307,25 @@ async def test_advisor_disabled_and_zero_export_budget_failure_are_explicit(tmp_
     failed=await run_pipeline(ROOT,one_slot(),tmp_path/"failed",Settings(run_token_budget=1),models.factory,search_factory)
     assert failed.shipped==0 and failed.advisor=="failed" and failed.advisor_reason=="failed_budget"
     assert (tmp_path/"failed/posts.csv").read_bytes()==b"Post Text,Image\r\n"
+
+
+async def test_inline_source_ids_metadata_is_rejected_before_review_and_export(tmp_path):
+    models=DeliveryModels()
+    def factory(name,slot_id,context):
+        client=models.factory(name,slot_id,context)
+        original=client.transport
+        async def transport(messages,schema,max_tokens):
+            result=await original(messages,schema,max_tokens)
+            if schema.__name__=="Draft":
+                for tweet in result["parsed"]["tweets"]:
+                    tweet["text"]+=" source_ids: [KB-01]"
+            return result
+        client.transport=transport
+        return client
+    summary=await run_pipeline(ROOT,one_slot(),tmp_path/"run",model_factory=factory,search_factory=search_factory)
+    assert summary.shipped==0
+    assert summary.slots["a"].outcome.value=="dropped_quality"
+    assert summary.slots["a"].attempts==2
+    assert not any(call[2]=="ReviewAssessment" for call in models.calls)
+    assert (tmp_path/"run/posts.csv").read_bytes()==b"Post Text,Image\r\n"
+    assert all("source_ids" in reason for reason in summary.slots["a"].reasons)
