@@ -65,6 +65,12 @@ sample. Writer instructions now place bookkeeping only in structured fields, and
 demo brand rules reject literal source_ids before review/export, with a public caller
 regression. The coordinator owns any later bounded sample attempt and content inspection.
 
+The final safe SDK metadata probe confirmed Gemini Flash Lite free-tier daily quota
+exhaustion: the observed project/model limit was20 requests and RetryInfo requested
+34735 seconds. This is a particular account observation, not a universal provider limit.
+The complete live sample remains pending provider availability. No further blind Gemini
+week, synthetic substitution or weakened acceptance contract is used to claim completion.
+
 Primary-source review supports the 20 concise KB core facts/reference assignments.
 SWC is historical/incomplete. KB-15 qualifies inherited-state shadowing as legacy
 Solidity; KB-02/05 include current compiler/SELFDESTRUCT references. Editorial severities

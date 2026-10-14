@@ -48,7 +48,7 @@ Advisor tests inspect actual bounded diff, git apply --check, byte-unchanged sou
 field/path/hash/frontmatter/stat rejection, billed malformed repair and failure isolation.
 
 Fresh Day3 venv installed the existing pinned requirements with miniconda Python3.13;
-pip check exited0. Installed LangGraph1.2.15/SQLite3.1.2, Google adapter4.2.6 and SDK2.30.1
+pip check exited0. Installed LangGraph1.2.15/SQLite3.1.2, Google adapter4.4.2 and SDK2.30.1
 were exercised (exact package pins remain in requirements.txt). SDK-shaped Gemini requests
 and responses test reasoning config, normalized thoughts,429/503 retry and401 refusal;
 provider exception text never enters usage/ledger. Official thinking/persistence links
@@ -61,7 +61,9 @@ include advisor; they initialize no clients/search and create no output.
 No worker live calls, model spend, nested agents, T3, vault writes or PR/merge actions.
 Coordinator live history is separate: bounded real Flash and clarified Lite reviewer
 controls passed; two real six-slot attempts failed and remain retained as failures.
-One Lite output exposed inline source_ids, now guarded offline. No complete real sample
-is claimed. Coordinator owns remaining provider diagnosis/bounded sample, independent
+One Lite output exposed inline source_ids, now guarded offline. A subsequent safe SDK
+diagnostic confirmed the free-tier daily request quota exhausted (observed limit20,
+retry delay34735 seconds); no pacing change or further blind Gemini week is planned.
+No complete real sample is claimed. Coordinator owns provider availability/sample, independent
 general/contract/security/docs review and final assembled full-suite/release gates.
 Cloudflare deferred, KB owner approval pending, parser/pkg_resources warning documented.

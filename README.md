@@ -153,4 +153,6 @@ The reviewer control gives an unsupported invented claim a valid citation ID; it
 reject that claim and accept the supported control. The sample succeeds only if all six
 pieces ship. Keep the sample provenance alongside its packaged artifacts. Tests inject
 offline responses to prove routing and persistence; they do not prove semantic judgment.
-The [architecture](ARCHITECTURE.md) explains extensions and the remaining limitations.
+The complete real six-slot sample is currently pending provider daily-quota availability;
+the retained failed attempts are not published as a successful sample. The
+[architecture](ARCHITECTURE.md) explains extensions and the remaining limitations.
