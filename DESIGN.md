@@ -176,7 +176,7 @@ posts.csv  posts.json  images/  run.log  checkpoint.sqlite
 
 - Schemas are Pydantic models, exported as JSON Schema into `schemas/`.
 - **`posts.csv`**: columns `Post Text, Image`, one row per accepted piece. Thread tweets go in one cell, each on a new line with a `1/7` prefix.
-- **`posts.json`**: each thread's tweets as a separate array, the shape a scheduler API consumes. ARCHITECTURE.md states honestly which tools can import what (Hypefury imports threads from CSV; Typefully has no CSV import; Buffer's bulk CSV has no thread column).
+- **`posts.json`**: the same accepted pieces with each thread's tweets as a separate array, for easy reading and testing.
 
 ### 2.11 CLI
 
@@ -282,8 +282,7 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 
 ### 6.8 CSV and export, stated honestly
 - `posts.csv` is **the brief's export format**: `Post Text, Image`, one row per accepted piece, rows in plan order.
-- No scheduler is claimed to import it as-is. ARCHITECTURE.md names **Hypefury** as the closest fit (one post per cell, auto-splits long text into a thread) and the conversion needed: one row per tweet. `posts.json` is our own structured format, not a scheduler's API body.
-- **Known delivery limitation:** the brief asks for a CSV "ready for a scheduling tool". Until one concrete conversion (e.g. to Hypefury's one-tweet-per-row import) is actually tested against the tool's documented format, README and limitations say "export format", never "scheduler-ready".
+- **Scope (Kassra, 2026-10-14):** the deliverable is the CSV the brief specifies. We don't target or test any particular scheduler's import format, and the docs don't claim compatibility with one.
 - `Image` = path **relative to the run folder** (`images/thread_1.png`).
 - The `1/7` numbering is added by code **before** the validator runs. The text the reviewer approved is byte-for-byte the text exported. Nothing edits text after approval.
 
