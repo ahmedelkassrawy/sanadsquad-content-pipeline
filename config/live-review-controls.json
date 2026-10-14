@@ -3,5 +3,6 @@
   "topic_id": "KB-01",
   "supported_text": "Can an external call reenter before your state is finalized? Updating state after an untrusted call allows repeated execution. Check your state-update order before the next external call.",
   "unsupported_text": "Reentrancy caused exactly 97.3 percent of all smart contract losses last year.",
-  "note": "The unsupported percentage is deliberately invented test content, never production evidence. Both drafts cite the real KB-01 ID so code citation validation alone cannot distinguish them."
+  "note": "The unsupported percentage is deliberately invented test content, never production evidence. Both drafts cite the real KB-01 ID so code citation validation alone cannot distinguish them. The unsupported_general_text control deliberately adds an unsupported prevalence claim; it also cites KB-01 and must pass code validation but fail semantic grounding.",
+  "unsupported_general_text": "Most smart contract vulnerabilities stem from logic errors in state transitions. Review your state-update order before the next external call."
 }

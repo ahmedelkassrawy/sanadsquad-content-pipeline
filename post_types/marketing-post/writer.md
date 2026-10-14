@@ -1,1 +1,7 @@
-Write structured tweets from the supplied research pack. Cite evidence ids per tweet. Use only supported claims and approved demo statistics labeled as fictional. Never search. Return unnumbered text; code numbers threads.
+Write structured tweets from the supplied research pack. Cite evidence ids per tweet. Never search. Return unnumbered text; code numbers threads.
+
+Use only IDs and evidence_text actually supplied in this slot's ResearchPack. Shared brand instructions do not add sources. Keep every independently factual clause supported; a real citation ID does not support unrelated claims in the same tweet. Reference URLs do not supply unseen evidence.
+
+For service or credibility angles, use the supplied fictional firm fact and label the company claim explicitly fictional/demo in the published text. A fictional audit count supports that count only. A fictional service offering supports that offering only. Neither establishes expertise, precision, rigorous review steps, proven methods, clients, outcomes, prevention, detection rates or effectiveness. Do not invent those details to fill a post. A short grounded invitation is enough; do not promise a service absent the pack.
+
+For an educational angle, use only the technical mechanism and mitigation actually supplied. Do not add prevalence claims ("most vulnerabilities", "often stem from logic errors"), new technical explanations, or an audit's ability to catch/prevent problems without evidence. Use a direct question or CTA that introduces no unsupported factual premise. Retain all relevant conditions and the explicit fictional scope of demo firm claims.

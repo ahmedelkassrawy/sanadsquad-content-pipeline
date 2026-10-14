@@ -7,13 +7,14 @@
       "name": "Reentrancy",
       "severity": "high",
       "category": "external calls",
-      "description": "External calls can reenter before state is finalized.",
-      "root_cause": "State updates after untrusted calls allow repeated execution.",
+      "description": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.",
+      "root_cause": "State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
       "aliases": [
         "recursive call",
         "SWC-107"
       ],
       "references": [
+        "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-107.md"
       ],
       "review_status": "pending_kassra_review"
@@ -23,13 +24,14 @@
       "name": "Integer overflow and underflow",
       "severity": "high",
       "category": "arithmetic",
-      "description": "Unchecked arithmetic can wrap numeric values.",
-      "root_cause": "Arithmetic bounds are not enforced; older Solidity versions require particular care.",
+      "description": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.",
+      "root_cause": "Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
       "aliases": [
         "wraparound",
         "SWC-101"
       ],
       "references": [
+        "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md",
         "https://docs.soliditylang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic"
       ],
@@ -40,14 +42,16 @@
       "name": "Unchecked call return value",
       "severity": "medium",
       "category": "external calls",
-      "description": "A failed low-level call can be silently ignored.",
-      "root_cause": "The caller does not inspect the returned success flag.",
+      "description": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.",
+      "root_cause": "The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
       "aliases": [
         "ignored return",
         "SWC-104"
       ],
       "references": [
-        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-104.md"
+        "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-104.md",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#error-handling-assert-require-revert-and-exceptions"
       ],
       "review_status": "pending_kassra_review"
     },
