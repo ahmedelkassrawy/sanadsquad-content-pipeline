@@ -8,6 +8,75 @@ from .ledger import Ledger
 from .models import UsageRecord
 
 
+def _valid_token_count(value):
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
+def _reported_count(usage, provider_usage, usage_key, provider_key, fallback):
+    value = usage.get(usage_key)
+    if _valid_token_count(value):
+        return value, False
+    value = provider_usage.get(provider_key)
+    if _valid_token_count(value):
+        return value, False
+    return fallback, True
+
+
+def _payload_text(value):
+    if value is None or value == [] or value == {}:
+        return ""
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _payload_identity(value):
+    try:
+        decoded = json.loads(value) if isinstance(value, str) else value
+        return json.dumps(decoded, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    except (TypeError, ValueError):
+        return value
+
+
+def _visible_output(raw, parsed):
+    """Estimate from returned model payloads, counting duplicate representations once."""
+    parts = []
+    seen = set()
+
+    def add(value):
+        text = _payload_text(value)
+        if text.strip():
+            identity = _payload_identity(text)
+            if identity not in seen:
+                seen.add(identity)
+                parts.append(text)
+
+    add(getattr(raw, "content", ""))
+    for call in getattr(raw, "tool_calls", None) or []:
+        if isinstance(call, dict):
+            function = call.get("function") or {}
+            arguments = call.get("args", function.get("arguments"))
+            if arguments is not None:
+                add(arguments)
+        else:
+            function = getattr(call, "function", None)
+            arguments = getattr(call, "args", None)
+            if arguments is None and function is not None:
+                arguments = getattr(function, "arguments", None)
+            if arguments is not None:
+                add(arguments)
+    function_call = getattr(raw, "function_call", None)
+    if function_call is not None:
+        arguments = function_call.get("arguments") if isinstance(function_call, dict) else getattr(function_call, "arguments", None)
+        add(arguments if arguments is not None else function_call)
+    if not parts and parsed is not None:
+        add(parsed.model_dump() if isinstance(parsed, BaseModel) else parsed)
+    return "".join(parts)
+
+
 class ModelFailure(Exception):
     def __init__(self, outcome):
         super().__init__(outcome)
@@ -171,13 +240,28 @@ class ModelClient:
             usage = getattr(raw, "usage_metadata", None) or {}
             metadata = getattr(raw, "response_metadata", None) or {}
             provider_usage = metadata.get("token_usage") or metadata.get("usage") or {}
-            estimated = not bool(usage or provider_usage.get("prompt_tokens"))
-            in_tokens = usage.get("input_tokens", provider_usage.get("prompt_tokens", inputs))
-            out_tokens = usage.get("output_tokens", provider_usage.get("completion_tokens", math.ceil(len(str(getattr(raw, "content", ""))) / 3.5)))
-            details = usage.get("input_token_details", {})
+            if not isinstance(usage, dict):
+                usage = {}
+            if not isinstance(provider_usage, dict):
+                provider_usage = {}
+            output_text = _visible_output(raw, result.get("parsed"))
+            in_tokens, estimated_input = _reported_count(usage, provider_usage, "input_tokens", "prompt_tokens", inputs)
+            out_tokens, estimated_output = _reported_count(
+                usage, provider_usage, "output_tokens", "completion_tokens", math.ceil(len(output_text) / 3.5)
+            )
+            estimated = estimated_input or estimated_output
+            details = usage.get("input_token_details") or {}
+            if not isinstance(details, dict):
+                details = {}
+            output_details = usage.get("output_token_details") or {}
+            if not isinstance(output_details, dict):
+                output_details = {}
             cached = details.get("cache_read", 0)
             creation = details.get("cache_creation", 0)
-            reasoning = usage.get("output_token_details", {}).get("reasoning", 0)
+            reasoning = output_details.get("reasoning", 0)
+            cached = cached if _valid_token_count(cached) else 0
+            creation = creation if _valid_token_count(creation) else 0
+            reasoning = reasoning if _valid_token_count(reasoning) else 0
             if provider_usage.get("cost") is not None:
                 cost = float(provider_usage["cost"]) + float((provider_usage.get("cost_details") or {}).get("upstream_inference_cost") or 0)
                 cost_source = "provider"
