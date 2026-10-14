@@ -126,7 +126,8 @@ class ModelClient:
     async def call(self, schema: type[BaseModel], messages: list[dict], slot_id: str, node: str, attempt: int, max_output_tokens: int, output_validator=None):
         repair = truncation = transient = 0
         messages = list(messages)
-        call_n = 0
+        prefix=f"{slot_id}/{node}/{attempt}/"
+        call_n = max((int(key[len(prefix):]) for key in self.ledger.entries if key.startswith(prefix) and key[len(prefix):].isdigit()),default=0)
         while True:
             call_n += 1
             call_id = f"{slot_id}/{node}/{attempt}/{call_n}"

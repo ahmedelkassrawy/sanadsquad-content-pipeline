@@ -78,12 +78,13 @@ class Agent:
 
 
 class ResearchAgent(Agent):
-    def __init__(self,root,client,kb,searcher):
+    def __init__(self,root,client,kb,searcher,usage_callback=None):
         super().__init__(root,"research",client)
         self.kb=kb
         self.searcher=searcher
         self.tools={tool.name:tool for tool in research_tools(root,kb,searcher)}
         self.records=[]
+        self.usage_callback=usage_callback
 
     async def __call__(self,request: ResearchRequest) -> ResearchPack:
         slot=request.slot
@@ -104,7 +105,10 @@ class ResearchAgent(Agent):
             if searches>=4:
                 raise ModelFailure("failed_research")
             searches+=1
-            data=await asyncio.to_thread(self.tools[name].invoke,{"query":query})
+            try:
+                data=await asyncio.to_thread(self.tools[name].invoke,{"query":query})
+            finally:
+                if self.usage_callback: await self.usage_callback(self.searcher)
             records=[self.kb.source(entry["id"]) for entry in data] if name=="search_kb" else [SourceRecord.model_validate(item) for item in data]
             evidence.update({record.source_id:record for record in records})
             self.records.append(ResearchRecord(record_id=f"{slot.slot_id}/research_search/{request.attempt}/{searches}",slot_id=slot.slot_id,attempt=request.attempt,evidence=records,action=name,query=query))

@@ -88,6 +88,8 @@ class OfflineModels:
                 if mode.get("visual_api"): raise RuntimeError("synthetic-key-must-not-leak")
                 overlay=mode.get("overlay",payload["draft"]["tweets"][0]["text"])
                 parsed={"slot_id":slot_id,"attempt":attempt,"spec":{"concept":"Card","scene":"Card","palette":load_brand(context.root/"inputs/brand-voice.md")[0].palette,"overlay_text":overlay,"alt_text":overlay,"severity":payload["severity"] if payload["post_type"]["visual"]["severity_badge"]=="auto" else None}}
+            elif schema.__name__=="AdvisorOutput":
+                parsed={"slot_id":slot_id,"attempt":attempt,"recommendations":[],"edits":[]}
             else: raise AssertionError("unexpected schema "+schema.__name__)
             return {"raw":SimpleNamespace(content=json.dumps(parsed),usage_metadata={"input_tokens":20,"output_tokens":30},response_metadata={"finish_reason":"stop"}),"parsed":parsed,"parsing_error":None}
         return ModelClient("openai:gpt-4.1-mini",context.ledger,context.run_dir/"usage.jsonl",transport=transport,prices=FixturePrices(),repair_prompt=context.root/"config/repair.md",usage_lock=context.usage_lock)

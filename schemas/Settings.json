@@ -41,6 +41,11 @@
       "default": false,
       "title": "Allow Unpriced",
       "type": "boolean"
+    },
+    "advisor_enabled": {
+      "default": true,
+      "title": "Advisor Enabled",
+      "type": "boolean"
     }
   },
   "title": "Settings",

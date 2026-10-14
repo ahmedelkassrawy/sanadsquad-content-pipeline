@@ -30,7 +30,8 @@
         "SWC-101"
       ],
       "references": [
-        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md"
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic"
       ],
       "review_status": "pending_kassra_review"
     },
@@ -78,7 +79,8 @@
         "SWC-106"
       ],
       "references": [
-        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-106.md"
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-106.md",
+        "https://eips.ethereum.org/EIPS/eip-6780"
       ],
       "review_status": "pending_kassra_review"
     },
@@ -232,13 +234,15 @@
       "severity": "medium",
       "category": "storage",
       "description": "A shadowed variable can diverge from the state developers intend to use.",
-      "root_cause": "Duplicate names across scope or inheritance obscure the storage actually accessed.",
+      "root_cause": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed.",
       "aliases": [
         "variable shadowing",
         "SWC-119"
       ],
       "references": [
-        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md"
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md",
+        "https://docs.soliditylang.org/en/latest/060-breaking-changes.html",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#scoping-and-declarations"
       ],
       "review_status": "pending_kassra_review"
     },

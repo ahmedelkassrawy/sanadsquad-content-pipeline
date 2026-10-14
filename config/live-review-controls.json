@@ -1,0 +1,6 @@
+{
+  "topic_id": "KB-01",
+  "supported_text": "External calls can reenter before state is finalized.",
+  "unsupported_text": "Reentrancy caused exactly 97.3 percent of all smart contract losses last year.",
+  "note": "The unsupported percentage is deliberately invented test content, never production evidence. Both drafts cite the real KB-01 ID so code citation validation alone cannot distinguish them."
+}

@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "AdvisorOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "attempt": {
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "recommendations": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Recommendations",
+          "type": "array"
+        },
+        "edits": {
+          "items": {
+            "$ref": "#/$defs/InstructionEdit"
+          },
+          "maxItems": 8,
+          "title": "Edits",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "attempt",
+        "recommendations",
+        "edits"
+      ],
+      "title": "AdvisorOutput",
+      "type": "object"
+    },
+    "InstructionEdit": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "before": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Before",
+          "type": "string"
+        },
+        "after": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "After",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "source_sha256",
+        "before",
+        "after"
+      ],
+      "title": "InstructionEdit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "not_enabled",
+        "completed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "output": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AdvisorOutput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    }
+  },
+  "required": [
+    "record_id",
+    "slot_id",
+    "attempt",
+    "status"
+  ],
+  "title": "AdvisorRecord",
+  "type": "object"
+}

@@ -219,7 +219,8 @@ class RunSummary(Trace):
     unpriced: bool
     external_usage: ExternalUsage
     cost_scope: str = "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."
-    advisor: Literal["not_enabled"] = "not_enabled"
+    advisor: Literal["not_enabled", "completed", "failed"] = "not_enabled"
+    advisor_reason: str | None = None
 
 
 class Estimate(Contract):
@@ -241,3 +242,50 @@ class WeekSnapshot(Contract):
     slots: dict[str, SlotState]
     warnings: list[str]
     summary: RunSummary | None = None
+    advisor: str | None = None
+    advisor_reason: str | None = None
+
+
+class InstructionFile(Contract):
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    text: str
+
+
+class AdvisorRequest(Contract):
+    slot_id: str = "_run"
+    attempt: int = 1
+    evidence: dict[str, list[dict]]
+    instructions: dict[str, InstructionFile]
+
+
+class InstructionEdit(Contract):
+    path: str
+    source_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    before: str = Field(min_length=1, max_length=2000)
+    after: str = Field(min_length=1, max_length=2000)
+
+
+class AdvisorOutput(Contract):
+    slot_id: str
+    attempt: int
+    recommendations: list[str] = Field(max_length=10)
+    edits: list[InstructionEdit] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def bounded_recommendations(self):
+        if any(not line.strip() or len(line)>600 for line in self.recommendations):
+            raise ValueError("advice recommendations must be concise")
+        return self
+
+
+class AdvisorRecord(Trace):
+    status: Literal["not_enabled", "completed", "failed"]
+    output: AdvisorOutput | None = None
+    reason: str | None = None
+
+
+class RunIdentity(Contract):
+    version: Literal[1] = 1
+    thread_id: str
+    run_id: str
+    snapshot_files: dict[str, str]

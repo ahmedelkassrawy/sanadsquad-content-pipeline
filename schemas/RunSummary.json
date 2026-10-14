@@ -161,10 +161,26 @@
       "type": "string"
     },
     "advisor": {
-      "const": "not_enabled",
       "default": "not_enabled",
+      "enum": [
+        "not_enabled",
+        "completed",
+        "failed"
+      ],
       "title": "Advisor",
       "type": "string"
+    },
+    "advisor_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Advisor Reason"
     }
   },
   "required": [

@@ -21,6 +21,9 @@ from .research import KnowledgeBase, assign_topics
 from .tools import configured_web_search
 from .trail import Trail, export_posts
 from .validation import validate
+from .advisor import Advisor, advice_patch, instruction_files
+from .contracts import AdvisorRecord, AdvisorRequest, RunIdentity
+from .durability import RunLock, atomic_json, resume_inputs, snapshot_hashes
 
 
 def safe_name(name):
@@ -57,14 +60,18 @@ def validate_inputs(root,slots,settings=None):
             raise ValueError("rubric must hard-fail unsupported claims")
         safe_name(spec.writer)
         load_rubric(root,spec)
-        for name in [spec.writer,"research","reviewer","visual"]:
+        for name in [spec.writer,"research","reviewer","visual"]+(["advisor"] if not settings or settings.advisor_enabled else []):
             agent=load_agent(root,name)
+            local_file(root/"agents",name+"/system.md")
+            for skill in agent.skills:
+                local_file(root/"skills",skill+".md")
+                local_file(root/"skills",skill+".py")
             if settings:
                 model=resolve_model(settings,agent)
                 provider,separator,reference=model.partition(":")
                 if not separator or provider not in {"openrouter","opencode","openai","google_genai","anthropic"} or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:-]*",reference) or (provider=="openrouter" and "/" not in reference):
                     raise ValueError("invalid configured model reference")
-    for name in ["agents/research/loop.md","agents/research/topics.md","config/repair.md"]:
+    for name in ["agents/research/loop.md","agents/research/topics.md","config/repair.md","config/visual.yaml"]:
         local_file(root,name)
 
 
@@ -75,7 +82,7 @@ def estimate(root,slots,settings):
     unpriced=False
     warnings=[]
     prices=Prices(update=False)
-    names=["research"]+ [name for slot in slots for name in ["research",load_type(root,slot.type).writer,"reviewer","visual"]]
+    names=["research"]+ [name for slot in slots for name in ["research",load_type(root,slot.type).writer,"reviewer","visual"]]+(["advisor"] if settings.advisor_enabled else [])
     for name in names:
         config=load_agent(root,name)
         # Includes up to 4 search turns, two content attempts, parsing/truncation
@@ -117,7 +124,7 @@ def snapshot(root,run_dir,slots,settings):
         destination.parent.mkdir(parents=True,exist_ok=True)
         shutil.copyfile(source,destination)
     files={"agents/research/loop.md","agents/research/topics.md","config/repair.md","config/visual.yaml"}
-    names={"research","reviewer","visual"}
+    names={"research","reviewer","visual","advisor"}
     for slot in slots:
         spec=load_type(root,slot.type)
         names.add(spec.writer)
@@ -146,6 +153,7 @@ class RunContext:
     ledger: Ledger
     prices: Prices
     usage_lock: asyncio.Lock
+    identity: RunIdentity | None = None
 
 
 def default_model_factory(name,slot_id,context):
@@ -160,6 +168,8 @@ class WeekState(TypedDict):
     slots: Annotated[dict,merge_slots]
     warnings: list[str]
     summary: dict
+    advisor: str
+    advisor_reason: str | None
 
 
 class LaneState(TypedDict):
@@ -200,17 +210,37 @@ class Pipeline:
         self.search_factory=search_factory
         self.renderer=renderer
         self.searchers=[]
-        self.external=ExternalUsage()
-        self.trails={name:Trail(context.run_dir/(name+".json")) for name in ["research_log","drafts","review_report","visuals","final"]}
-        for trail in self.trails.values(): trail.path.write_text("[]",encoding="utf-8")
-        self.writers={slot.slot_id:Writer(self.root,slot.type,self.client(load_type(self.root,slot.type).writer,slot.slot_id)) for slot in slots}
-        self.reviewers={slot.slot_id:Reviewer(self.root,slot.type,self.client("reviewer",slot.slot_id)) for slot in slots}
-        self.visuals={slot.slot_id:VisualAgent(self.root,self.client("visual",slot.slot_id)) for slot in slots}
+        external=context.run_dir/"external-usage.json"
+        self.external=ExternalUsage.model_validate_json(external.read_text(encoding="utf-8")) if external.exists() else ExternalUsage()
+        self.external_lock=asyncio.Lock()
+        self.search_seen={}
+        self.trails={name:Trail(context.run_dir/(name+".json")) for name in ["research_log","drafts","review_report","visuals","final","advisor"]}
+        for trail in self.trails.values():
+            if not trail.path.exists(): trail.path.write_text("[]",encoding="utf-8")
+        self.writers={}
+        self.reviewers={}
+        self.visuals={}
 
     def client(self,name,slot_id): return self.model_factory(name,slot_id,self.context)
 
     async def record(self,name,record):
         await self.trails[name].append(record.record_id,record.model_dump(mode="json",exclude={"record_id"}))
+
+    async def save_search_usage(self,searcher):
+        mapping={"search_calls":"calls","tavily_calls":"tavily_calls","ddgs_calls":"ddgs_calls","fetch_calls":"fetch_calls","tavily_credits":"tavily_credits"}
+        async with self.external_lock:
+            previous=self.search_seen.setdefault(id(searcher),{})
+            for key,attribute in mapping.items():
+                value=getattr(searcher,attribute,0)
+                setattr(self.external,key,getattr(self.external,key)+value-previous.get(key,0))
+                previous[key]=value
+            self.external.tavily_credits_estimated|=getattr(searcher,"tavily_credits_estimated",False)
+            atomic_json(self.context.run_dir/"external-usage.json",self.external.model_dump())
+
+    async def image_count(self,key):
+        async with self.external_lock:
+            setattr(self.external,key,getattr(self.external,key)+1)
+            atomic_json(self.context.run_dir/"external-usage.json",self.external.model_dump())
 
     async def research_slot(self,state):
         slot=state.slot
@@ -218,7 +248,7 @@ class Pipeline:
         try:
             searcher=self.search_factory(self.context.credential_root)
             self.searchers.append(searcher)
-            agent=ResearchAgent(self.root,self.client("research",slot.slot_id),self.kb,searcher)
+            agent=ResearchAgent(self.root,self.client("research",slot.slot_id),self.kb,searcher,self.save_search_usage)
             spec=load_type(self.root,slot.type)
             hints=local_file(self.root/"post_types"/slot.type,spec.research.hints).read_text(encoding="utf-8")
             pack=await agent(ResearchRequest(slot=slot,hints=hints))
@@ -282,6 +312,8 @@ class Pipeline:
         state.review=None
         request=WriteRequest(slot_id=state.slot.slot_id,attempt=state.attempt,research=state.pack,post_type=load_type(self.root,state.slot.type),feedback=state.feedback)
         try:
+            if state.slot.slot_id not in self.writers:
+                self.writers[state.slot.slot_id]=Writer(self.root,state.slot.type,self.client(load_type(self.root,state.slot.type).writer,state.slot.slot_id))
             state.draft=await self.writers[state.slot.slot_id](request)
         except Exception as error:
             outcome=failure(error)
@@ -305,6 +337,8 @@ class Pipeline:
         state=lane_state(raw)
         spec=load_type(self.root,state.slot.type)
         try:
+            if state.slot.slot_id not in self.reviewers:
+                self.reviewers[state.slot.slot_id]=Reviewer(self.root,state.slot.type,self.client("reviewer",state.slot.slot_id))
             state.review=await self.reviewers[state.slot.slot_id](ReviewRequest(slot_id=state.slot.slot_id,attempt=state.attempt,draft=state.audit.approved(),research=state.pack,post_type=spec,rubric=load_rubric(self.root,spec)))
             state.feedback=state.review.reasons
         except Exception as error:
@@ -326,6 +360,8 @@ class Pipeline:
         request=VisualRequest(slot_id=state.slot.slot_id,attempt=state.attempt,draft=state.audit.approved(),research=state.pack,post_type=load_type(self.root,state.slot.type),severity=severity)
         reason=None
         try:
+            if state.slot.slot_id not in self.visuals:
+                self.visuals[state.slot.slot_id]=VisualAgent(self.root,self.client("visual",state.slot.slot_id))
             spec=await self.visuals[state.slot.slot_id](request)
             if overlay_errors(spec,request,self.rules): raise ValueError("invalid_overlay")
         except Exception:
@@ -338,14 +374,14 @@ class Pipeline:
         spec_path.parent.mkdir(exist_ok=True)
         spec_path.write_text(spec.model_dump_json(indent=2),encoding="utf-8")
         path=spec_path.with_suffix(".png")
-        self.external.image_calls+=1
+        await self.image_count("image_calls")
         try:
             await asyncio.to_thread(self.renderer,spec,path)
             from PIL import Image
             with Image.open(path) as image:
                 if image.format!="PNG" or image.size!=(1200,675): raise ValueError("invalid rendered card")
                 image.verify()
-            self.external.pillow_cards+=1
+            await self.image_count("pillow_cards")
             backend="pillow_card"
         except Exception:
             path=spec_path
@@ -364,26 +400,47 @@ class Pipeline:
             await self.record("final",piece)
         return {"slots":{state.slot.slot_id:state.model_dump(mode="json")}}
 
-    async def finalize(self,week):
+    async def export(self,week):
         states=[SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
         accepted=[]
         for state in states:
             if state.outcome==SlotOutcome.shipped:
                 accepted.append(ExportPost(record_id=f"{state.slot.slot_id}/export/{state.attempt}/1",slot_id=state.slot.slot_id,attempt=state.attempt,type=state.slot.type,topic_id=state.pack.topic_id,topic_name=state.pack.topic_name,tweets=[tweet.text for tweet in state.audit.approved().tweets],image=state.image.path).model_dump(mode="json"))
         export_posts(self.context.run_dir,accepted)
+        return {}
+
+    async def advise(self,week):
+        status="not_enabled"
+        reason=None
+        output=None
+        patch=""
+        if self.context.settings.advisor_enabled:
+            try:
+                evidence={name:json.loads(self.trails[name].path.read_text(encoding="utf-8")) for name in ["research_log","drafts","review_report","final"]}
+                request=AdvisorRequest(evidence=evidence,instructions=instruction_files(self.root,self.plan))
+                output=await Advisor(self.root,self.client("advisor","_run"))(request)
+                patch=advice_patch(request,output)
+                status="completed"
+            except Exception as error:
+                status="failed"
+                reason=failure(error).value
+        (self.context.run_dir/"advice.md").write_text("# Run advice\n\n"+("\n".join("- "+line for line in output.recommendations) if status=="completed" else "Advisor "+status+(": "+reason if reason else ""))+"\n",encoding="utf-8")
+        (self.context.run_dir/"advice.patch").write_text(patch,encoding="utf-8")
+        await self.record("advisor",AdvisorRecord(record_id="_run/advisor/1/1",slot_id="_run",attempt=1,status=status,output=output if status=="completed" else None,reason=reason))
+        return {"advisor":status,"advisor_reason":reason}
+
+    async def finalize(self,week):
+        states=[SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
+        accepted=[state for state in states if state.outcome==SlotOutcome.shipped]
         totals=self.context.ledger.totals()
-        self.external.search_calls=sum(searcher.calls for searcher in self.searchers)
-        self.external.tavily_credits=sum(searcher.tavily_credits for searcher in self.searchers)
-        for key in ["tavily_calls","ddgs_calls","fetch_calls"]:
-            setattr(self.external,key,sum(getattr(searcher,key,0) for searcher in self.searchers))
-        self.external.tavily_credits_estimated=any(getattr(searcher,"tavily_credits_estimated",False) for searcher in self.searchers)
         usage=[json.loads(line) for line in (self.context.run_dir/"usage.jsonl").read_text(encoding="utf-8").splitlines()]
-        summary=RunSummary(record_id="_run/summary/1/1",slot_id="_run",attempt=1,run_id=self.context.run_dir.name,slots={state.slot.slot_id:TerminalSlot(outcome=state.outcome,attempts=state.attempt,topic_id=state.slot.topic_id,reasons=state.reasons) for state in states},shipped=len(accepted),confirmed_tokens=totals["tokens"]-totals["uncertain_tokens"],uncertain_tokens=totals["uncertain_tokens"],confirmed_cost_usd=totals["cost_usd"]-totals["uncertain_cost_usd"],uncertain_cost_usd=totals["uncertain_cost_usd"],unpriced=any(record["cost_source"]=="unknown" for record in usage) or any("unpriced_model" in state.reasons for state in states),external_usage=self.external)
+        summary=RunSummary(record_id="_run/summary/1/1",slot_id="_run",attempt=1,run_id=self.context.identity.run_id if self.context.identity else self.context.run_dir.name,slots={state.slot.slot_id:TerminalSlot(outcome=state.outcome,attempts=state.attempt,topic_id=state.slot.topic_id,reasons=state.reasons) for state in states},shipped=len(accepted),confirmed_tokens=totals["tokens"]-totals["uncertain_tokens"],uncertain_tokens=totals["uncertain_tokens"],confirmed_cost_usd=totals["cost_usd"]-totals["uncertain_cost_usd"],uncertain_cost_usd=totals["uncertain_cost_usd"],unpriced=any(record["cost_source"]=="unknown" for record in usage) or any("unpriced_model" in state.reasons for state in states),external_usage=self.external,advisor=week["advisor"],advisor_reason=week.get("advisor_reason"))
         (self.context.run_dir/"run_summary.json").write_text(summary.model_dump_json(indent=2),encoding="utf-8")
         (self.context.run_dir/"run.log").write_text("export: complete\nsummary: complete\n",encoding="utf-8")
         return {"summary":summary.model_dump(mode="json")}
 
-    def graph(self,checkpointer):
+    def graph(self,checkpointer,interrupt_after=None):
+        interrupts=interrupt_after or []
         lane=StateGraph(LaneState)
         for name,node in [("write",self.write),("validate",self.validation),("review",self.review),("retry",self.retry),("visual",self.visual),("collect",self.collect)]: lane.add_node(name,node)
         lane.add_conditional_edges(START,lambda state:"collect" if state.get("outcome") else "write")
@@ -396,36 +453,69 @@ class Pipeline:
         graph=StateGraph(WeekState)
         graph.add_node("focused_research",self.focused)
         graph.add_node("topic_selection",self.select)
-        graph.add_node("lane",lane.compile())
-        graph.add_node("export_summary",self.finalize)
+        graph.add_node("lane",lane.compile(interrupt_after=[name.split(":",1)[1] for name in interrupts if name.startswith("lane:")]))
+        graph.add_node("export",self.export)
+        graph.add_node("advisor",self.advise)
+        graph.add_node("summary",self.finalize)
         graph.add_edge(START,"focused_research")
         graph.add_edge("focused_research","topic_selection")
         graph.add_conditional_edges("topic_selection",lambda state:[Send("lane",state["slots"][slot.slot_id]) for slot in self.plan])
-        graph.add_edge("lane","export_summary")
-        graph.add_edge("export_summary",END)
-        return graph.compile(checkpointer=checkpointer)
+        graph.add_edge("lane","export")
+        graph.add_edge("export","advisor")
+        graph.add_edge("advisor","summary")
+        graph.add_edge("summary",END)
+        return graph.compile(checkpointer=checkpointer,interrupt_after=[name for name in interrupts if not name.startswith("lane:")])
 
 
-async def run_pipeline(root: Path,slots: list[ResolvedSlot],output: Path | None=None,settings: Settings | None=None,model_factory=None,search_factory=None,renderer=None) -> RunSummary:
+class RunInterrupted(RuntimeError):
+    """A deliberately interrupted graph has durable unfinished nodes."""
+
+
+async def run_pipeline(root: Path,slots: list[ResolvedSlot] | None=None,output: Path | None=None,settings: Settings | None=None,model_factory=None,search_factory=None,renderer=None,*,resume: Path | None=None,budget_overrides=None,interrupt_after=None) -> RunSummary:
     root=root.resolve()
-    settings=settings or Settings.load(root)
-    validate_inputs(root,slots,settings)
-    run_dir=(output or root/"output"/(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")+"-"+uuid4().hex[:8])).resolve()
-    if run_dir.exists(): raise ValueError("output run already exists; choose a new directory")
-    run_dir.mkdir(parents=True,exist_ok=False)
-    snapshot_root=snapshot(root,run_dir,slots,settings)
-    (run_dir/"usage.jsonl").write_text("",encoding="utf-8")
-    ledger=Ledger(run_dir/"ledger.json",settings.run_token_budget,settings.run_cost_budget_usd)
-    prices=Prices(update=model_factory is None)
-    context=RunContext(snapshot_root,root,run_dir,settings,ledger,prices,asyncio.Lock())
-    try:
+    if resume is not None:
+        if slots is not None or output is not None or settings is not None:
+            raise ValueError("resume uses saved plan/settings; only budget increases allowed")
+        run_dir=resume.resolve()
+        snapshot_root,slots,settings,identity=resume_inputs(run_dir,budget_overrides)
+        validate_inputs(snapshot_root,slots,settings)
+    else:
+        if budget_overrides: raise ValueError("budget overrides are for resume")
+        settings=settings or Settings.load(root)
+        validate_inputs(root,slots,settings)
+        run_dir=(output or root/"output"/(datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")+"-"+uuid4().hex[:8])).resolve()
+        if run_dir.exists(): raise ValueError("output run already exists; choose a new directory")
+        run_dir.mkdir(parents=True,exist_ok=False)
+    with RunLock(run_dir,create=resume is None):
+        if resume is None:
+            snapshot_root=snapshot(root,run_dir,slots,settings)
+            identity=RunIdentity(thread_id=uuid4().hex,run_id=run_dir.name,snapshot_files=snapshot_hashes(snapshot_root))
+            atomic_json(run_dir/"run_identity.json",identity.model_dump())
+            atomic_json(run_dir/"runtime-settings.json",settings.model_dump())
+            atomic_json(run_dir/"external-usage.json",ExternalUsage().model_dump())
+            (run_dir/"usage.jsonl").write_text("",encoding="utf-8")
+        else:
+            snapshot_root,slots,settings,identity=resume_inputs(run_dir,budget_overrides)
+        context=RunContext(snapshot_root,root,run_dir,settings,None,None,asyncio.Lock(),identity)
         pipeline=Pipeline(context,slots,model_factory or default_model_factory,search_factory or configured_web_search,renderer or render_card)
         async with AsyncSqliteSaver.from_conn_string(str(run_dir/"checkpoint.sqlite")) as saver:
-            graph=pipeline.graph(saver)
-            config={"configurable":{"thread_id":run_dir.name},"recursion_limit":50}
-            result=await graph.ainvoke({"slots":{slot.slot_id:SlotState(slot=slot).model_dump(mode="json") for slot in slots},"warnings":[]},config)
-            saved=await graph.aget_state(config)
-            (run_dir/"state.json").write_text(WeekSnapshot.model_validate(saved.values).model_dump_json(indent=2),encoding="utf-8")
-        return RunSummary.model_validate(result["summary"])
-    finally:
-        prices.close()
+            graph=pipeline.graph(saver,interrupt_after)
+            config={"configurable":{"thread_id":identity.thread_id},"recursion_limit":50}
+            if resume is not None:
+                saved=await graph.aget_state(config)
+                state=WeekSnapshot.model_validate(saved.values)
+                if list(state.slots)!=[slot.slot_id for slot in slots]: raise ValueError("checkpoint plan mismatch")
+                if not saved.next and state.summary is not None:
+                    return state.summary
+                if not saved.next: raise ValueError("checkpoint has no unfinished nodes")
+            context.ledger=Ledger(run_dir/"ledger.json",settings.run_token_budget,settings.run_cost_budget_usd)
+            atomic_json(run_dir/"runtime-settings.json",settings.model_dump())
+            context.prices=Prices(update=model_factory is None)
+            try:
+                result=await graph.ainvoke(None if resume is not None else {"slots":{slot.slot_id:SlotState(slot=slot).model_dump(mode="json") for slot in slots},"warnings":[]},config)
+                if "summary" not in result: raise RunInterrupted("graph interrupted; resume saved run")
+                return RunSummary.model_validate(result["summary"])
+            finally:
+                saved=await graph.aget_state(config)
+                atomic_json(run_dir/"state.json",WeekSnapshot.model_validate(saved.values).model_dump(mode="json"))
+                context.prices.close()
