@@ -215,6 +215,7 @@ class Pipeline:
         self.external=ExternalUsage.model_validate_json(external.read_text(encoding="utf-8")) if external.exists() else ExternalUsage()
         self.external_lock=asyncio.Lock()
         self.search_seen={}
+        self.research_replay_lock=asyncio.Lock()
         self.trails={name:Trail(context.run_dir/(name+".json")) for name in ["research_log","drafts","review_report","visuals","final","advisor"]}
         for trail in self.trails.values():
             if not trail.path.exists(): trail.path.write_text("[]",encoding="utf-8")
@@ -251,16 +252,71 @@ class Pipeline:
             setattr(self.external,key,getattr(self.external,key)+1)
             atomic_json(self.context.run_dir/"external-usage.json",self.external.model_dump())
 
+    @staticmethod
+    def replay_digest(value):
+        return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False).encode("utf-8")).hexdigest()
+
+    def research_request_digest(self,request):
+        value=request.model_dump(mode="json")
+        if request.slot.focus:
+            # Focused research writes its resolved topic back to the slot; compare with the snapshot input.
+            planned=next(slot for slot in self.plan if slot.slot_id==request.slot.slot_id)
+            value["slot"]["topic_id"]=planned.topic_id
+        return self.replay_digest(value)
+
+    async def saved_research(self,record_id,request):
+        path=self.trails["research_log"].path
+        raw=next((item for item in json.loads(path.read_text(encoding="utf-8")) if item["record_id"]==record_id),None)
+        if raw is None:
+            return None
+        record=ResearchRecord.model_validate(raw)
+        if record.slot_id!=request.slot.slot_id or record.attempt!=request.attempt:
+            raise ModelFailure("failed_research")
+        if record.pack is None:
+            return record
+        receipt_path=self.context.run_dir/"research-replay.json"
+        receipts=json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
+        receipt=receipts.get(record_id)
+        expected_request=self.research_request_digest(request)
+        expected_snapshot=self.replay_digest(self.context.identity.snapshot_files)
+        expected_pack=self.replay_digest(record.pack.model_dump(mode="json"))
+        if (record.action!="resolved" or record.failure is not None or record.pack.slot_id!=request.slot.slot_id
+                or record.evidence!=record.pack.sources or not receipt
+                or receipt!={"request_sha256":expected_request,"snapshot_sha256":expected_snapshot,"pack_sha256":expected_pack}):
+            raise ModelFailure("failed_research")
+        return record
+
+    async def save_research_receipt(self,record_id,request,pack):
+        receipt={"request_sha256":self.research_request_digest(request),
+                 "snapshot_sha256":self.replay_digest(self.context.identity.snapshot_files),
+                 "pack_sha256":self.replay_digest(pack.model_dump(mode="json"))}
+        async with self.research_replay_lock:
+            path=self.context.run_dir/"research-replay.json"
+            receipts=json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+            receipts[record_id]=receipt
+            atomic_json(path,receipts)
+
     async def research_slot(self,state):
         slot=state.slot
         agent=None
         try:
+            spec=load_type(self.root,slot.type)
+            hints=local_file(self.root/"post_types"/slot.type,spec.research.hints).read_text(encoding="utf-8")
+            request=ResearchRequest(slot=slot,hints=hints)
+            record_id=f"{slot.slot_id}/research/1/1"
+            saved=await self.saved_research(record_id,request)
+            if saved is not None:
+                if saved.pack is None:
+                    state.outcome=failure(ModelFailure(saved.failure or "failed_research"),research=True)
+                    state.reasons=[state.outcome.value]
+                else:
+                    state.pack=saved.pack
+                    state.slot.topic_id=saved.pack.topic_id
+                return state.model_dump(mode="json")
             searcher=self.search_factory(self.context.credential_root)
             self.searchers.append(searcher)
             agent=ResearchAgent(self.root,self.client("research",slot.slot_id),self.kb,searcher,self.save_search_usage)
-            spec=load_type(self.root,slot.type)
-            hints=local_file(self.root/"post_types"/slot.type,spec.research.hints).read_text(encoding="utf-8")
-            pack=await agent(ResearchRequest(slot=slot,hints=hints))
+            pack=await agent(request)
             if pack.slot_id!=slot.slot_id: raise ModelFailure("failed_output")
             state.pack=pack
             state.slot.topic_id=pack.topic_id
@@ -269,7 +325,10 @@ class Pipeline:
             state.reasons=[state.outcome.value]
         for record in agent.records if agent else []:
             await self.record("research_log",record)
-        await self.record("research_log",ResearchRecord(record_id=f"{slot.slot_id}/research/1/1",slot_id=slot.slot_id,attempt=1,pack=state.pack,evidence=state.pack.sources if state.pack else [],action="resolved" if state.pack else "failed",failure=state.outcome.value if state.outcome else None))
+        record_id=f"{slot.slot_id}/research/1/1"
+        await self.record("research_log",ResearchRecord(record_id=record_id,slot_id=slot.slot_id,attempt=1,pack=state.pack,evidence=state.pack.sources if state.pack else [],action="resolved" if state.pack else "failed",failure=state.outcome.value if state.outcome else None))
+        if state.pack is not None:
+            await self.save_research_receipt(record_id,request,state.pack)
         return state.model_dump(mode="json")
 
     async def focused(self,week):

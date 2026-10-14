@@ -164,7 +164,7 @@ async def test_unfinished_research_gather_can_repeat_saved_sibling_call(tmp_path
     summary=await run_pipeline(ROOT,resume=output,model_factory=factory,search_factory=search_factory)
     assert summary.shipped==2 and summary.uncertain_tokens>0
     usage=[json.loads(line) for line in (output/"usage.jsonl").read_text().splitlines()]
-    assert [(entry["call_id"],entry["status"]) for entry in usage if entry["call_id"].startswith("a/research_step_1/")]==[("a/research_step_1/1/1","confirmed"),("a/research_step_1/1/2","confirmed")]
+    assert [(entry["call_id"],entry["status"]) for entry in usage if entry["call_id"].startswith("a/research_step_1/")]==[("a/research_step_1/1/1","confirmed")]
     trail=records(output,"research_log")
     assert len({entry["record_id"] for entry in trail})==len(trail)
 
