@@ -3,9 +3,12 @@ import math
 from types import SimpleNamespace
 
 import pytest
+import httpx
+from langchain_core.messages import AIMessage
+from langchain_openai import ChatOpenAI
 
 from content_pipeline.ledger import Ledger
-from content_pipeline.model_client import ModelClient
+from content_pipeline.model_client import ModelClient, ModelFailure
 from content_pipeline.models import Draft
 
 
@@ -146,3 +149,57 @@ async def test_malformed_repair_calls_are_estimated_and_billed_separately(tmp_pa
     assert records[0]["output_tokens"] == math.ceil(len(malformed.content) / 3.5)
     assert (records[1]["input_tokens"], records[1]["output_tokens"], records[1]["estimated"]) == (0, 0, False)
     assert ledger.totals()["tokens"] == sum(record["input_tokens"] + record["output_tokens"] for record in records)
+
+
+async def test_installed_openai_adapter_invalid_tool_arguments_are_billed(tmp_path):
+    arguments = '{"tweets":[' + 'broken ' * 100
+
+    def handler(request):
+        return httpx.Response(200, json={
+            "id": "chatcmpl-offline", "object": "chat.completion", "created": 1,
+            "model": "gpt-4.1-mini", "choices": [{"index": 0,
+                "finish_reason": "tool_calls", "message": {"role": "assistant", "content": None,
+                "tool_calls": [{"id": "offline", "type": "function", "function": {
+                    "name": "Draft", "arguments": arguments}}]}}]})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+        class AdapterTransport:
+            def prepare(self, schema, max_tokens):
+                return ChatOpenAI(
+                    model="gpt-4.1-mini", api_key="synthetic-offline", max_tokens=max_tokens,
+                    max_retries=0, http_async_client=http,
+                ).with_structured_output(schema, method="function_calling", include_raw=True)
+
+        ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
+        usage_path = tmp_path / "usage.jsonl"
+        client = ModelClient("openai:gpt-4.1-mini", ledger, usage_path, AdapterTransport(), FixedPrices())
+        with pytest.raises(ModelFailure, match="failed_output"):
+            await client.call(Draft, [{"role": "user", "content": "write"}], "s", "writer", 1, 1000)
+
+    records = [json.loads(line) for line in usage_path.read_text().splitlines()]
+    assert len(records) == 2
+    assert [record["output_tokens"] for record in records] == [math.ceil(len(arguments) / 3.5)] * 2
+    assert all(record["estimated"] and record["status"] == "confirmed" for record in records)
+
+
+async def test_native_tool_content_block_and_tool_calls_are_counted_once(tmp_path):
+    args = _draft()
+    raw = AIMessage(content_blocks=[{"type": "tool_call", "id": "call-1", "name": "Draft", "args": args}])
+    assert len(raw.tool_calls) == 1
+    content = json.dumps(raw.content, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil(len(content) / 3.5)
+
+
+async def test_distinct_tool_calls_with_identical_arguments_are_both_counted(tmp_path):
+    arguments = json.dumps(_draft(), separators=(",", ":"))
+    raw = _raw("", tool_calls=[
+        {"id": "call-1", "function": {"arguments": arguments}},
+        {"id": "call-2", "function": {"arguments": arguments}},
+    ])
+
+    _, [record], _ = await _call(tmp_path, raw)
+
+    assert record["output_tokens"] == math.ceil((len(arguments) * 2) / 3.5)

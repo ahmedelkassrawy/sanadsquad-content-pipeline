@@ -45,6 +45,20 @@ def _visible_output(raw, parsed):
     """Estimate from returned model payloads, counting duplicate representations once."""
     parts = []
     seen = set()
+    call_identities = {}
+
+    def call_id(call):
+        return call.get("id") if isinstance(call, dict) else getattr(call, "id", None)
+
+    def content_tool_call_ids(content):
+        if not isinstance(content, list):
+            return set()
+        return {
+            block.get("id") for block in content
+            if isinstance(block, dict)
+            and block.get("type") in {"tool_call", "server_tool_call", "tool_use"}
+            and block.get("id") is not None
+        }
 
     def add(value):
         text = _payload_text(value)
@@ -55,20 +69,38 @@ def _visible_output(raw, parsed):
                 parts.append(text)
 
     add(getattr(raw, "content", ""))
-    for call in getattr(raw, "tool_calls", None) or []:
+    mirrored_ids = content_tool_call_ids(getattr(raw, "content", None))
+    calls = [*(getattr(raw, "tool_calls", None) or []), *(getattr(raw, "invalid_tool_calls", None) or [])]
+    additional = getattr(raw, "additional_kwargs", None) or {}
+    if isinstance(additional, dict):
+        calls.extend(additional.get("tool_calls") or [])
+    for call in calls:
+        if call_id(call) is not None and call_id(call) in mirrored_ids:
+            continue
         if isinstance(call, dict):
             function = call.get("function") or {}
             arguments = call.get("args", function.get("arguments"))
             if arguments is not None:
-                add(arguments)
+                text = _payload_text(arguments)
         else:
             function = getattr(call, "function", None)
             arguments = getattr(call, "args", None)
             if arguments is None and function is not None:
                 arguments = getattr(function, "arguments", None)
             if arguments is not None:
-                add(arguments)
+                text = _payload_text(arguments)
+        if arguments is not None and text.strip():
+            identity = _payload_identity(text)
+            current_id = call_id(call)
+            previous_id = call_identities.get(identity)
+            if identity not in seen or (current_id is not None and previous_id is not None and current_id != previous_id):
+                parts.append(text)
+                seen.add(identity)
+            if current_id is not None:
+                call_identities[identity] = current_id
     function_call = getattr(raw, "function_call", None)
+    if function_call is None and isinstance(additional, dict):
+        function_call = additional.get("function_call")
     if function_call is not None:
         arguments = function_call.get("arguments") if isinstance(function_call, dict) else getattr(function_call, "arguments", None)
         add(arguments if arguments is not None else function_call)
