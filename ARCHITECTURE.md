@@ -101,7 +101,8 @@ It cannot resume. Both original and packaged outputs retain fictional-stat label
 ## Extension and limits
 
 Add a type by adding a `post_types/<name>` folder with `type.yaml`, `writer.md`, rubric,
-research hints and optional angles, plus a configured writer agent folder. A one-post
+research hints and optional angles. Reference an existing writer or add a writer agent
+folder. A one-post
 third type was exercised without changing graph code. This promise covers existing
 research/write/validate/review/visual contracts; an extra stage needs code.
 
