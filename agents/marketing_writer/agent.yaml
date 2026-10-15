@@ -1,4 +1,4 @@
-model: openrouter:nvidia/nemotron-3-super-120b-a12b:free
+model: nvidia:nvidia/nemotron-3-super-120b-a12b
 max_output_tokens: 6000
 reasoning_effort: low
 skills:
