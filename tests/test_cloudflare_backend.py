@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -218,19 +219,79 @@ async def test_cloudflare_failure_keeps_visual_fallback_detail(tmp_path, monkeyp
 
 async def test_request_url_and_token_never_reach_logs(tmp_path, monkeypatch, caplog):
     caplog.set_level("DEBUG")
-    logging.getLogger("httpx").setLevel(logging.DEBUG)
-    logging.getLogger("httpcore").setLevel(logging.DEBUG)
+    http_loggers = [logging.getLogger("httpx"), logging.getLogger("httpcore")]
+    previous_levels = [logger.level for logger in http_loggers]
+
+    for logger in http_loggers:
+        logger.setLevel(logging.DEBUG)
 
     def handler(request):
         return httpx.Response(
             200, json={"result": {"image": base64.b64encode(image_bytes()).decode()}}
         )
 
-    mock_cloudflare(monkeypatch, handler)
-    _, record = await run_image(tmp_path)
-    assert record["result"]["backend"] == "cloudflare_flux"
-    assert ACCOUNT_ID not in caplog.text
-    assert TOKEN not in caplog.text
+    try:
+        mock_cloudflare(monkeypatch, handler)
+        _, record = await run_image(tmp_path)
+        assert record["result"]["backend"] == "cloudflare_flux"
+        assert ACCOUNT_ID not in caplog.text
+        assert TOKEN not in caplog.text
+        assert [logger.level for logger in http_loggers] == [logging.DEBUG, logging.DEBUG]
+    finally:
+        for logger, level in zip(http_loggers, previous_levels):
+            logger.setLevel(level)
+
+
+async def test_cloudflare_url_filter_keeps_unrelated_logs_and_levels(tmp_path, monkeypatch, caplog):
+    caplog.set_level("DEBUG")
+    http_loggers = [logging.getLogger("httpx"), logging.getLogger("httpcore")]
+    previous_levels = [logger.level for logger in http_loggers]
+
+    for logger in http_loggers:
+        logger.setLevel(logging.DEBUG)
+
+    entered = asyncio.Event()
+    release = asyncio.Event()
+
+    async def cloudflare(request):
+        entered.set()
+        await release.wait()
+        return httpx.Response(
+            200, json={"result": {"image": base64.b64encode(image_bytes()).decode()}}
+        )
+
+    def unrelated(request):
+        return httpx.Response(200, json={"ok": True})
+
+    client_class = httpx.AsyncClient
+
+    async def call_unrelated(moment):
+        transport = httpx.MockTransport(unrelated)
+        async with client_class(transport=transport) as client:
+            return await client.get(f"https://model-provider.invalid/{moment}")
+
+    async def call_during():
+        await entered.wait()
+        await call_unrelated("during")
+        release.set()
+
+    try:
+        mock_cloudflare(monkeypatch, cloudflare)
+        await call_unrelated("before")
+        during = asyncio.create_task(call_during())
+        _, record = await asyncio.wait_for(run_image(tmp_path), 30)
+        await asyncio.wait_for(during, 30)
+        await call_unrelated("after")
+
+        assert record["result"]["backend"] == "cloudflare_flux"
+        for moment in ["before", "during", "after"]:
+            assert f"HTTP Request: GET https://model-provider.invalid/{moment}" in caplog.text
+        assert ACCOUNT_ID not in caplog.text
+        assert TOKEN not in caplog.text
+        assert [logger.level for logger in http_loggers] == [logging.DEBUG, logging.DEBUG]
+    finally:
+        for logger, level in zip(http_loggers, previous_levels):
+            logger.setLevel(level)
 
 
 async def test_oversized_response_body_falls_back_to_card(tmp_path, monkeypatch):

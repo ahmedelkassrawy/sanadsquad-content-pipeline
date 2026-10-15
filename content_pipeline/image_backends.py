@@ -16,6 +16,7 @@ from PIL import Image, ImageOps
 from .images import CARD_SIZE, render_card
 
 ACCOUNT_ID_PATTERN = re.compile(r"[0-9a-f]{32}")
+CLOUDFLARE_ACCOUNTS_URL = "https://api.cloudflare.com/client/v4/accounts/"
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_SIDE = 4096
 
@@ -30,22 +31,33 @@ def image_prompt(spec):
     )
 
 
-def _silence_http_logs():
-    """Keep request URLs and headers out of the host application's log stream.
+class _CloudflareUrlFilter(logging.Filter):
+    """Drop log records that reproduce the Cloudflare account request URL."""
 
-    The Cloudflare URL carries the account id, so the library loggers stay
-    pinned: restoring an earlier level could re-enable the line while a
-    concurrent lane is still mid-request.
+    def filter(self, record):
+        return CLOUDFLARE_ACCOUNTS_URL not in record.getMessage()
+
+
+_HTTP_LOG_FILTER = _CloudflareUrlFilter()
+
+
+def _hide_cloudflare_url():
+    """Attach the Cloudflare URL filter to the shared httpx logger once.
+
+    The filter matches only this backend's account URL, so unrelated httpx
+    records and all logger levels stay untouched for the host application.
     """
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logger = logging.getLogger("httpx")
+
+    if _HTTP_LOG_FILTER not in logger.filters:
+        logger.addFilter(_HTTP_LOG_FILTER)
 
 
 async def _cloudflare_image(spec, account_id, token):
-    _silence_http_logs()
+    _hide_cloudflare_url()
 
     url = (
-        "https://api.cloudflare.com/client/v4/accounts/"
+        CLOUDFLARE_ACCOUNTS_URL
         + quote(account_id, safe="")
         + "/ai/run/@cf/black-forest-labs/flux-1-schnell"
     )
