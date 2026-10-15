@@ -10,6 +10,10 @@ from .ledger import Ledger
 from .models import CallFailureKind, CallFinishReason, UsageRecord
 
 
+def valid_provider(name: str) -> bool:
+    return re.fullmatch(r"[a-z][a-z0-9_]*", name) is not None
+
+
 def _valid_token_count(value):
     return isinstance(value, int) and not isinstance(value, bool) and value >= 0
 
@@ -267,7 +271,7 @@ class LangChainTransport:
         provider, name = self.model.split(":", 1)
         key_name = {"openrouter":"OPENROUTER_API_KEY","opencode":"OPENCODE_API_KEY","openai":"OPENAI_API_KEY","google_genai":"GEMINI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}.get(provider)
         if not key_name:
-            if not re.fullmatch(r"[a-z][a-z0-9_]*", provider):
+            if not valid_provider(provider):
                 raise ValueError("unsupported configured model provider")
             key_name = provider.upper() + "_API_KEY"
         key = env.get(key_name)

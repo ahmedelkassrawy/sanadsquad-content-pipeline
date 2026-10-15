@@ -16,7 +16,7 @@ from .config import Settings, load_agent, load_angles, load_brand, load_type, lo
 from .contracts import DraftAudit, DraftRecord, Estimate, ExportPost, ExternalUsage, FinalPiece, ResearchRecord, ResearchRequest, ResolvedPlan, ReviewRecord, ReviewRequest, RunSummary, SlotState, TerminalSlot, TopicChoiceRequest, VisualRecord, VisualRequest, WeekSnapshot, WriteRequest
 from .images import fallback_spec, overlay_errors, render_card
 from .ledger import BudgetExhausted, Ledger
-from .model_client import ModelFailure, Prices, configured_client
+from .model_client import ModelFailure, Prices, configured_client, valid_provider
 from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .research import KnowledgeBase, assign_topics
 from .tools import configured_web_search
@@ -70,7 +70,7 @@ def validate_inputs(root,slots,settings=None):
             if settings:
                 model=resolve_model(settings,agent)
                 provider,separator,reference=model.partition(":")
-                if not separator or provider not in {"openrouter","opencode","openai","google_genai","anthropic"} or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:-]*",reference) or (provider=="openrouter" and "/" not in reference):
+                if not separator or not valid_provider(provider) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_./:-]*",reference) or (provider=="openrouter" and "/" not in reference):
                     raise ValueError("invalid configured model reference")
     for name in ["agents/research/loop.md","agents/research/topics.md","config/repair.md","config/visual.yaml"]:
         local_file(root,name)
