@@ -25,9 +25,13 @@ def research_tools(root: Path, kb: KnowledgeBase, searcher: WebSearch):
 
 def configured_web_search(root: Path):
     import os
+
     from dotenv import dotenv_values
+
     from ddgs import DDGS
+
     from tavily import TavilyClient
 
     key = os.environ.get("TAVILY_API_KEY") or dotenv_values(root / ".env").get("TAVILY_API_KEY")
+
     return WebSearch(tavily=TavilyClient(api_key=key) if key else None, ddgs=DDGS())

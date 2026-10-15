@@ -17,10 +17,13 @@ def words(text):
 class KnowledgeBase:
     def __init__(self, path: Path):
         data = json.loads(path.read_text(encoding="utf-8"))
+
         self.entries = data["entries"]
         ids = [e["id"] for e in self.entries]
+
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate KB ids")
+
         for entry in self.entries:
             for field in (
                 "id",
@@ -34,6 +37,7 @@ class KnowledgeBase:
             ):
                 if not entry.get(field):
                     raise ValueError("incomplete KB entry: " + field)
+
         self.index = BM25Okapi(
             [
                 words(" ".join([e["name"], e["category"], e["description"], *e["aliases"]]))
@@ -44,10 +48,12 @@ class KnowledgeBase:
     def search(self, query: str, top_k: int = 5):
         scores = self.index.get_scores(words(query))
         ranked = sorted(enumerate(self.entries), key=lambda pair: (-scores[pair[0]], pair[0]))
+
         return [e for _, e in ranked[:top_k]]
 
     def source(self, topic_id):
         entry = next(e for e in self.entries if e["id"] == topic_id)
+
         return SourceRecord(
             source_id=entry["id"],
             kind="kb",
@@ -71,19 +77,26 @@ def assign_topics(
     used = set()
     result = {}
     warnings = []
+
     for slot in slots:
         if slot.focus:
             if slot.topic_id:
                 if slot.topic_id in used:
                     warnings.append("explicit_duplicate:" + slot.topic_id)
+
                 used.add(slot.topic_id)
+
             result[slot.slot_id] = slot.topic_id or slot.focus
+
     pools = {}
+
     for slot in slots:
         if slot.focus:
             continue
+
         spec = load_type(root, slot.type)
         folder = root / "post_types" / slot.type
+
         if spec.research.topic_source == "kb":
             pool = [
                 e["id"]
@@ -94,36 +107,52 @@ def assign_topics(
             ]
         else:
             pool = [angle.id for angle in load_angles(root, spec)]
+
         pools[slot.slot_id] = pool
+
         candidate = proposals.get(slot.slot_id)
+
         if candidate in pool and candidate not in used and candidate not in historical:
             result[slot.slot_id] = candidate
+
             used.add(candidate)
+
     for slot in slots:
         if slot.slot_id in result:
             continue
+
         pool = pools[slot.slot_id]
         available = [id for id in pool if id not in used and id not in historical]
+
         if not available:
             available = [id for id in pool if id not in used]
+
             available.sort(
                 key=lambda id: max((i for i, run in enumerate(history) if id in run), default=-1)
             )
+
             if available:
                 warnings.append("history_exhausted:" + slot.slot_id)
+
         if not available:
             if allow_partial:
                 warnings.append("topic_pool_exhausted:" + slot.slot_id)
+
                 continue
+
             raise ValueError("topic pool exhausted within week")
+
         candidate = available[0]
         result[slot.slot_id] = candidate
+
         used.add(candidate)
+
     return result, warnings
 
 
 def public_url(url: str, resolver=socket.getaddrinfo) -> str:
     parsed = urlparse(url)
+
     if (
         parsed.scheme not in {"http", "https"}
         or not parsed.hostname
@@ -131,54 +160,74 @@ def public_url(url: str, resolver=socket.getaddrinfo) -> str:
         or parsed.password
     ):
         raise ValueError("public HTTP(S) URL required")
+
     if parsed.hostname.lower() in {"localhost", "localhost.localdomain"}:
         raise ValueError("private target")
+
     addresses = resolver(
         parsed.hostname,
         parsed.port or (443 if parsed.scheme == "https" else 80),
         type=socket.SOCK_STREAM,
     )
+
     if not addresses or any(not ipaddress.ip_address(item[4][0]).is_global for item in addresses):
         raise ValueError("private target")
+
     return url
 
 
 def fetch_page(url: str) -> str:
     # Each redirect is checked; a public DNS answer is pinned for the request.
     import http.client
+
     import ssl
+
     import trafilatura
 
     for _ in range(6):
         public_url(url)
+
         parsed = urlparse(url)
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
         addresses = socket.getaddrinfo(parsed.hostname, port, type=socket.SOCK_STREAM)
+
         if any(not ipaddress.ip_address(a[4][0]).is_global for a in addresses):
             raise ValueError("private target")
+
         connection = http.client.HTTPConnection(parsed.hostname, port, timeout=15)
         sock = socket.create_connection((addresses[0][4][0], port), timeout=15)
+
         if parsed.scheme == "https":
             sock = ssl.create_default_context().wrap_socket(sock, server_hostname=parsed.hostname)
+
         connection.sock = sock
+
         try:
             connection.request(
                 "GET",
                 (parsed.path or "/") + ("?" + parsed.query if parsed.query else ""),
                 headers={"Host": parsed.netloc, "User-Agent": "ContentPipeline/0.1"},
             )
+
             response = connection.getresponse()
+
             if response.status in {301, 302, 303, 307, 308}:
                 url = urljoin(url, response.getheader("Location") or "")
+
                 continue
+
             if response.status != 200:
                 raise ValueError("page fetch failed")
+
             body = response.read(2_000_001)
+
             if len(body) > 2_000_000:
                 raise ValueError("page too large")
+
             return trafilatura.extract(body.decode("utf-8", errors="replace")) or ""
         finally:
             connection.close()
+
     raise ValueError("too many redirects")
 
 
@@ -201,49 +250,65 @@ class WebSearch:
     def search(self, query: str):
         if self.calls >= 4:
             raise ValueError("research search-step limit")
+
         self.calls += 1
         hits = []
         provider = "ddgs"
+
         if self.tavily:
             self.tavily_calls += 1
+
             try:
                 response = self.tavily.search(
                     query=query, include_raw_content=True, include_usage=True, max_results=5
                 )
+
                 credits = (response.get("usage") or {}).get("credits")
+
                 self.tavily_credits += credits if credits is not None else 1
                 self.tavily_credits_estimated |= credits is None
+
                 hits = response.get("results", [])
                 provider = "tavily"
             except Exception:
                 self.tavily_credits += 1
                 self.tavily_credits_estimated = True
                 hits = []
+
         if not hits and self.ddgs:
             self.ddgs_calls += 1
             provider = "ddgs"
             hits = list(self.ddgs.text(query, max_results=5))
+
         records = []
+
         for hit in hits:
             url = hit.get("url") or hit.get("href")
+
             if not url:
                 continue
+
             try:
                 self.check_url(url)
             except (ValueError, OSError):
                 continue
+
             raw = hit.get("raw_content") if provider == "tavily" else None
             status = "ok"
             evidence = raw
+
             if not evidence:
                 self.fetch_calls += 1
+
                 try:
                     evidence = self.fetch(url)
+
                     if not evidence:
                         status = "fetch_failed"
                 except Exception:
                     status = "fetch_failed"
                     evidence = ""
+
             records.append(
                 SourceRecord(
                     source_id="WEB-" + hashlib.sha256(url.encode()).hexdigest()[:16],
@@ -254,4 +319,5 @@ class WebSearch:
                     status=status,
                 )
             )
+
         return list({r.source_id: r for r in records}.values())

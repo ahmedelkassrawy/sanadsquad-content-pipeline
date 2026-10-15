@@ -15,27 +15,36 @@ BASE = "bc9cc75dbd78806ace0e6c4e953cc91e1e06e45b"
 
 def main():
     parser = argparse.ArgumentParser()
+
     parser.add_argument("--evidence-dir", required=True, type=Path)
+
     args = parser.parse_args()
     evidence = args.evidence_dir.resolve()
+
     if evidence.is_relative_to(ROOT) or evidence.exists():
         raise ValueError("new external evidence directory required")
+
     evidence.mkdir(parents=True)
+
     env = {**os.environ, "LANGSMITH_TRACING": "false"}
     checks = {}
     site = Path(sys.executable).resolve().parents[1] / "Lib/site-packages"
 
     def archive(ref, name):
         folder = evidence / name
+
         folder.mkdir()
+
         with zipfile.ZipFile(
             io.BytesIO(subprocess.check_output(["git", "archive", "--format=zip", ref], cwd=ROOT))
         ) as bundle:
             bundle.extractall(folder)
+
         return folder
 
     def run(name, command, cwd, expected):
         result = subprocess.run(command, cwd=cwd, env=env, text=True, capture_output=True)
+
         checks[name] = {
             "command": command,
             "cwd": str(cwd),
@@ -43,6 +52,7 @@ def main():
             "expected": expected,
             "output": result.stdout + result.stderr,
         }
+
         return result
 
     def pytest_prefix(folder, extra=""):
@@ -55,11 +65,14 @@ def main():
             + extra
             + "raise SystemExit(pytest.main(sys.argv[1:]))"
         )
+
         return [sys.executable, "-S", "-c", bootstrap]
 
     base = archive(BASE, "base")
+
     for name in ["test_day3_delivery.py", "test_day3_gemini.py"]:
         (base / "tests" / name).write_bytes((ROOT / "tests" / name).read_bytes())
+
     for name, file, selection in [
         ("base-resume", "test_day3_delivery.py", "resume_actual_graph or completed_resume"),
         ("base-advisor", "test_day3_delivery.py", "advisor_suggests"),
@@ -80,11 +93,13 @@ def main():
             base,
             1,
         )
+
         if (
             "unexpected keyword argument 'interrupt_after'" not in result.stdout
             and name == "base-resume"
         ):
             raise ValueError("base resume did not fail for capability absence")
+
     result = run(
         "base-cli",
         [
@@ -98,12 +113,16 @@ def main():
         base,
         2,
     )
+
     if "unrecognized arguments: --resume" not in result.stderr:
         raise ValueError("wrong CLI base failure")
+
     adapter_prior = archive("42e4778dc3099ba4c3ffe8b2fabcbd51a7967e59", "adapter-prior")
+
     (adapter_prior / "tests/test_day3_gemini.py").write_bytes(
         (ROOT / "tests/test_day3_gemini.py").read_bytes()
     )
+
     run(
         "prior-google429",
         [
@@ -119,9 +138,11 @@ def main():
         adapter_prior,
         1,
     )
+
     (adapter_prior / "tests/test_day3_delivery.py").write_bytes(
         (ROOT / "tests/test_day3_delivery.py").read_bytes()
     )
+
     run(
         "prior-saved-stage",
         [
@@ -137,10 +158,13 @@ def main():
         adapter_prior,
         1,
     )
+
     metadata_prior = archive("84b988ed29ff01616dd2ff6d8d059a373270a885", "metadata-prior")
+
     (metadata_prior / "tests/test_day3_delivery.py").write_bytes(
         (ROOT / "tests/test_day3_delivery.py").read_bytes()
     )
+
     run(
         "prior-inline-metadata",
         [
@@ -185,13 +209,17 @@ def main():
         ROOT,
         0,
     )
+
     if (evidence / "not-created").exists():
         raise ValueError("ungated live created output")
+
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     mutants = archive(head, "mutants")
     path = mutants / "content_pipeline/pipeline.py"
     original = path.read_text(encoding="utf-8")
+
     path.write_text(original.replace("None if resume is not None else ", ""), encoding="utf-8")
+
     run(
         "resume-bypass",
         [
@@ -207,8 +235,11 @@ def main():
         mutants,
         1,
     )
+
     path.write_text(original, encoding="utf-8")
+
     extra = "import content_pipeline.advisor as a,content_pipeline.pipeline as p; a.advice_patch=p.advice_patch=lambda *args:'bypassed\\n'; "
+
     run(
         "advisor-guard-bypass",
         [
@@ -230,11 +261,14 @@ def main():
         ROOT,
         0,
     )
+
     actual = {p.name: json.loads(p.read_text()) for p in (evidence / "schemas").glob("*.json")}
     committed = {p.name: json.loads(p.read_text()) for p in (ROOT / "schemas").glob("*.json")}
+
     passed = (
         all(check["exit"] == check["expected"] for check in checks.values()) and actual == committed
     )
+
     (evidence / "report.json").write_text(
         json.dumps(
             {
@@ -248,6 +282,7 @@ def main():
         ),
         encoding="utf-8",
     )
+
     print(
         json.dumps(
             {
@@ -258,6 +293,7 @@ def main():
             }
         )
     )
+
     return 0 if passed else 1
 
 

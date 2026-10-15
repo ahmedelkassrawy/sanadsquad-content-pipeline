@@ -36,14 +36,19 @@ async def reviewer_control(
         allow_unpriced=allow_unpriced,
         max_concurrency=max_concurrency,
     )
+
     controls = json.loads(
         local_file(root, "config/live-review-controls.json").read_text(encoding="utf-8")
     )
+
     spec = load_type(root, controls["post_type"])
     kb = KnowledgeBase(root / "inputs/kb.json")
     source = kb.source(controls["topic_id"])
+
     rules, _ = load_brand(root / "inputs/brand-voice.md")
+
     prepared = []
+
     for name, text in [
         ("supported", controls["supported_text"]),
         ("unsupported", controls["unsupported_text"]),
@@ -51,13 +56,17 @@ async def reviewer_control(
         pack = ResearchPack(
             slot_id=name, topic_id=source.source_id, topic_name=source.title, sources=[source]
         )
+
         draft = Draft(
             slot_id=name,
             tweets=[Tweet(text=text, source_ids=[source.source_id]) for _ in range(spec.units.min)],
         )
+
         checked = validate(draft, pack, spec, rules)
+
         if not checked.accepted:
             raise ValueError("live control does not pass code validation")
+
         prepared.append(
             (
                 name,
@@ -71,17 +80,21 @@ async def reviewer_control(
                 ),
             )
         )
+
     output.mkdir(parents=True, exist_ok=False)
+
     ledger = Ledger(output / "ledger.json", token_budget, cost_budget)
     prices = Prices(update=False)
     requests = []
     reviews = []
+
     try:
         limiter = (
             asyncio.Semaphore(settings.max_concurrency)
             if settings.max_concurrency is not None
             else None
         )
+
         client = configured_client(
             root,
             "reviewer",
@@ -91,24 +104,32 @@ async def reviewer_control(
             prices=prices,
             **({"limiter": limiter} if limiter is not None else {}),
         )
+
         agent = Reviewer(root, spec.name, client)
+
         for name, request in prepared:
             requests.append(request.model_dump(mode="json"))
+
             atomic_json(output / "requests.json", requests)
+
             try:
                 review = await agent(request)
+
                 reviews.append({"control": name, "review": review.model_dump(mode="json")})
             except Exception as error:
                 reviews.append(
                     {"control": name, "failure": getattr(error, "outcome", "failed_api")}
                 )
+
             atomic_json(output / "reviews.json", reviews)
+
         passed = (
             len(reviews) == 2
             and reviews[0].get("review", {}).get("accepted") is True
             and reviews[1].get("review", {}).get("accepted") is False
             and "unsupported_claim" in reviews[1]["review"]["hard_fail"]
         )
+
         report = {
             "provenance": "live configured provider; no synthetic transport",
             "model": model,
@@ -127,7 +148,9 @@ async def reviewer_control(
                 ]
             },
         }
+
         atomic_json(output / "report.json", report)
+
         return passed
     finally:
         prices.close()
@@ -135,6 +158,7 @@ async def reviewer_control(
 
 async def execute(args):
     slots = load_plan(args.root, args.root / "inputs/plan.json")
+
     settings = Settings(
         model_override=args.model,
         reasoning_effort_override=args.reasoning_effort,
@@ -143,11 +167,16 @@ async def execute(args):
         allow_unpriced=args.allow_unpriced,
         max_concurrency=args.max_concurrency,
     )
+
     validate_inputs(args.root, slots, settings)
+
     if args.output.exists():
         raise ValueError("proof output already exists")
+
     args.output.mkdir(parents=True, exist_ok=False)
+
     passed = True
+
     if args.mode in {"reviewer", "both"}:
         passed = await reviewer_control(
             args.root,
@@ -159,8 +188,10 @@ async def execute(args):
             args.max_concurrency,
             reasoning_effort_override=args.reasoning_effort,
         )
+
     if args.mode in {"sample", "both"} and passed:
         summary = await run_pipeline(args.root, slots, args.output / "sample-week", settings)
+
         atomic_json(
             args.output / "sample-provenance.json",
             {
@@ -172,7 +203,9 @@ async def execute(args):
                 "note": "Brand statistics are fictional demo fixtures; KB owner approval remains pending.",
             },
         )
+
         passed = summary.shipped == len(slots) == 6
+
     return 0 if passed else 1
 
 
@@ -180,6 +213,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Explicit real reviewer control and six-slot sample; paid/network calls require --live."
     )
+
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--allow-unpriced", action="store_true")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -191,12 +225,16 @@ def main(argv=None):
     parser.add_argument("--max-concurrency", type=int)
     parser.add_argument("--cost-budget", type=float, default=1.0)
     parser.add_argument("--grounding-cost-budget", type=float, default=0.1)
+
     args = parser.parse_args(argv)
+
     if not args.live:
         print(
             "NOT_RUN: explicit --live and a new --output directory required; no clients initialized."
         )
+
         return 0
+
     if (
         args.output is None
         or not 0 < args.cost_budget <= 1
@@ -206,10 +244,12 @@ def main(argv=None):
         parser.error(
             "live requires new output, positive token budget, sample USD cap <=1 and grounding cap <=0.1"
         )
+
     try:
         return asyncio.run(execute(args))
     except Exception as error:
         print("live_proof_error:" + type(error).__name__)
+
         return 2
 
 

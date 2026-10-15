@@ -23,10 +23,12 @@ class Angle(Contract):
     def nonempty_name(self):
         if not self.name.strip():
             raise ValueError("angle needs a nonempty name")
+
         if self.source_ids is not None and (
             not self.source_ids or len(self.source_ids) != len(set(self.source_ids))
         ):
             raise ValueError("configured angle evidence needs unique source ids")
+
         return self
 
 
@@ -37,6 +39,7 @@ class AnglesFile(Contract):
     def unique_ids(self):
         if len({angle.id for angle in self.angles}) != len(self.angles):
             raise ValueError("duplicate angle ids")
+
         return self
 
 
@@ -91,6 +94,7 @@ class Rubric(Contract):
     def unique(self):
         if len(self.criteria) != len(set(self.criteria)):
             raise ValueError("duplicate rubric criteria")
+
         return self
 
 
@@ -142,6 +146,7 @@ class DraftAudit(Contract):
     def approved(self):
         if not self.accepted:
             raise ValueError("draft has not passed validation")
+
         return Draft(
             slot_id=self.original.slot_id,
             attempt=self.original.attempt,
@@ -299,6 +304,7 @@ class AdvisorOutput(Contract):
     def bounded_recommendations(self):
         if any(not line.strip() or len(line) > 600 for line in self.recommendations):
             raise ValueError("advice recommendations must be concise")
+
         return self
 
 

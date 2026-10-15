@@ -65,8 +65,10 @@ class SourceRecord(Contract):
     def source_kind(self):
         if not self.source_id.startswith({"kb": "KB-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
             raise ValueError("source id must match kind")
+
         if self.status == "ok" and not self.evidence_text.strip():
             raise ValueError("citable evidence cannot be empty")
+
         return self
 
 
@@ -79,10 +81,13 @@ class ResearchPack(Contract):
     @model_validator(mode="after")
     def unique_sources(self):
         ids = [s.source_id for s in self.sources]
+
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate source ids")
+
         if not any(s.status == "ok" for s in self.sources):
             raise ValueError("failed_research: no citable evidence")
+
         return self
 
 
@@ -116,8 +121,10 @@ class Review(Contract):
     def score_range(self):
         if not self.scores or any(not 1 <= s <= 5 for s in self.scores.values()):
             raise ValueError("review scores must be 1..5")
+
         if self.hard_fail and self.accepted:
             raise ValueError("hard failure cannot approve")
+
         return self
 
 
@@ -165,6 +172,7 @@ class Units(Contract):
     def ordered(self):
         if self.max < self.min:
             raise ValueError("units max below min")
+
         return self
 
 
@@ -177,6 +185,7 @@ class ResearchConfig(Contract):
     def angle_file(self):
         if self.topic_source == "angles" and not self.angles:
             raise ValueError("angles source needs angles file")
+
         return self
 
 

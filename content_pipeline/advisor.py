@@ -11,9 +11,12 @@ class InvalidAdvice(ValueError):
 
 def instruction_files(root, slots):
     names = {"inputs/brand-voice.md"}
+
     for slot in slots:
         spec = load_type(root, slot.type)
+
         names.update([f"post_types/{slot.type}/writer.md", f"post_types/{slot.type}/{spec.rubric}"])
+
     return {
         name: InstructionFile(
             sha256=hashlib.sha256(local_file(root, name).read_bytes()).hexdigest(),
@@ -25,24 +28,33 @@ def instruction_files(root, slots):
 
 def advice_patch(request, output):
     identity(request.slot_id, request.attempt, output)
+
     texts = {name: file.text for name, file in request.instructions.items()}
     changed = set()
+
     for edit in output.edits:
         if edit.path not in texts or edit.source_sha256 != request.instructions[edit.path].sha256:
             raise InvalidAdvice("invalid advice source")
+
         text = texts[edit.path]
+
         if text.count(edit.before) != 1:
             raise InvalidAdvice("ambiguous advice replacement")
+
         if text.startswith("---\n") and edit.before in text.split("---", 2)[1]:
             raise InvalidAdvice("advice cannot edit machine rules")
+
         candidate = text.replace(edit.before, edit.after, 1)
+
         if text.startswith("---\n") and (
             not candidate.startswith("---\n")
             or candidate.split("---", 2)[:2] != text.split("---", 2)[:2]
         ):
             raise InvalidAdvice("advice cannot edit machine rules")
+
         before_lines = text.splitlines()
         after_lines = candidate.splitlines()
+
         for operation, start, end, new_start, new_end in difflib.SequenceMatcher(
             a=before_lines, b=after_lines, autojunk=False
         ).get_opcodes():
@@ -52,8 +64,11 @@ def advice_patch(request, output):
                 for character in line
             ):
                 raise InvalidAdvice("advice cannot add or modify numeric-bearing lines")
+
         texts[edit.path] = candidate
+
         changed.add(edit.path)
+
     patch = "".join(
         "".join(
             difflib.unified_diff(
@@ -65,8 +80,10 @@ def advice_patch(request, output):
         )
         for name in sorted(changed)
     )
+
     if len(patch) > 16000:
         raise InvalidAdvice("advice patch too large")
+
     return patch
 
 
@@ -76,5 +93,7 @@ class Advisor(Agent):
 
     async def __call__(self, request):
         output = await self.invoke(AdvisorOutput, request, request.slot_id, request.attempt)
+
         advice_patch(request, output)
+
         return output

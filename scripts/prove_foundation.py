@@ -14,6 +14,7 @@ BASE = "438120aa42ff9ec1904435a71485333ba0eedeba"
 
 def run(command, cwd):
     result = subprocess.run(command, cwd=cwd, text=True, capture_output=True)
+
     return {
         "command": command,
         "cwd": str(cwd),
@@ -26,16 +27,20 @@ def main():
     head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     archive = subprocess.check_output(["git", "archive", "--format=zip", BASE], cwd=ROOT)
     base_dir = Path(tempfile.mkdtemp(prefix="sanadsquad-base-red-"))
+
     with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
         bundle.extractall(base_dir)
+
     # -S prevents an editable head installation from masking the absent base capability.
     baseline = run(
         [sys.executable, "-S", "-m", "content_pipeline.schemas", "--output", "schemas"], base_dir
     )
+
     mutant = "import pytest; import content_pipeline.validation as v; v.check_citations=lambda draft,pack: []; raise SystemExit(pytest.main(['-q','tests/test_foundation.py::test_citation_acceptance_guard']))"
     bypass = run([sys.executable, "-c", mutant], ROOT)
     green = run([sys.executable, "-m", "pytest", "-q"], ROOT)
     schemas = run([sys.executable, "-m", "content_pipeline.schemas", "--output", "schemas"], ROOT)
+
     report = {
         "head": head,
         "base": BASE,
@@ -57,9 +62,11 @@ def main():
             "later pipeline implementation and live sample",
         ],
     }
+
     (ROOT / "scripts/verification-report.json").write_text(
         json.dumps(report, indent=2), encoding="utf-8"
     )
+
     valid = (
         baseline["exit"] == 1
         and "No module named 'content_pipeline'" in baseline["output"]
@@ -68,6 +75,7 @@ def main():
         and green["exit"] == 0
         and schemas["exit"] == 0
     )
+
     print(
         json.dumps(
             {
@@ -83,6 +91,7 @@ def main():
             }
         )
     )
+
     return 0 if valid else 1
 
 
