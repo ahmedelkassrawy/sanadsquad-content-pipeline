@@ -1,16 +1,14 @@
 import asyncio
 from pathlib import Path
-import yaml
 from pydantic import ValidationError
 from . import record_ids
-from .config import load_agent, load_angles, load_prompt, load_type, local_file
+from .config import local_file
 from .contracts import (
     ResearchAction,
     ResearchRecord,
     ResearchRequest,
     ResearchTurn,
     ReviewRequest,
-    Rubric,
     TopicChoiceRequest,
     TopicChoices,
     VisualOutput,
@@ -19,6 +17,7 @@ from .contracts import (
 )
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
+from .post_types import PostTypes, load_rubric
 from .tools import research_tools
 from .review_scoring import (
     canonical_review,
@@ -28,27 +27,29 @@ from .review_scoring import (
 )
 
 
+__all__ = ["load_rubric"]
+
+
 def identity(slot_id, attempt, output):
     if output.slot_id != slot_id or output.attempt != attempt:
         raise ModelFailure("failed_output")
 
 
-def load_rubric(root: Path, spec):
-    text = local_file(root / "post_types" / spec.name, spec.rubric).read_text(encoding="utf-8")
-
-    if not text.startswith("---\n"):
-        raise ValueError("rubric needs criteria front matter")
-
-    return Rubric.model_validate(yaml.safe_load(text.split("---", 2)[1]))
-
-
 class Agent:
-    def __init__(self, root: Path, name: str, client, post_type: str | None = None):
+    def __init__(
+        self,
+        root: Path,
+        name: str,
+        client,
+        post_type: str | None = None,
+        types: PostTypes | None = None,
+    ):
         self.root = root
         self.name = name
         self.client = client
-        self.config = load_agent(root, name)
-        self.prompt = load_prompt(root, name, post_type)
+        self.types = types or PostTypes(root)
+        self.config = self.types.agent(name)
+        self.prompt = self.types.prompt(name, post_type)
 
     async def invoke(
         self, schema, payload, slot_id, attempt, node=None, instructions="", output_validator=None
@@ -70,8 +71,8 @@ class Agent:
 
 
 class ResearchAgent(Agent):
-    def __init__(self, root, client, kb, searcher, usage_callback=None):
-        super().__init__(root, "research", client)
+    def __init__(self, root, client, kb, searcher, usage_callback=None, types=None):
+        super().__init__(root, "research", client, types=types)
 
         self.kb = kb
         self.searcher = searcher
@@ -81,36 +82,10 @@ class ResearchAgent(Agent):
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
-        spec = load_type(self.root, slot.type)
+        assigned = self.types.assigned_pack(slot, self.kb)
 
-        if slot.topic_id and spec.research.topic_source == "kb" and not slot.focus:
-            source = self.kb.source(slot.topic_id)
-
-            return ResearchPack(
-                slot_id=slot.slot_id,
-                topic_id=source.source_id,
-                topic_name=source.title,
-                sources=[source],
-            )
-
-        if slot.topic_id and spec.research.topic_source == "angles" and not slot.focus:
-            angle = next(a for a in load_angles(self.root, spec) if a.id == slot.topic_id)
-
-            from .config import load_brand
-
-            rules, _ = load_brand(self.root / "inputs/brand-voice.md")
-
-            sources = [
-                SourceRecord(source_id=id, kind="stat", title=rules.brand_name, evidence_text=text)
-                for id, text in rules.approved_stats.items()
-            ]
-
-            if angle.source_ids is not None:
-                sources = [self.kb.source(source_id) for source_id in angle.source_ids] + sources
-
-            return ResearchPack(
-                slot_id=slot.slot_id, topic_id=slot.topic_id, topic_name=angle.name, sources=sources
-            )
+        if assigned is not None:
+            return assigned
 
         evidence = {}
         searches = 0
@@ -203,8 +178,8 @@ class ResearchAgent(Agent):
 
 
 class TopicSelector(Agent):
-    def __init__(self, root, client):
-        super().__init__(root, "research", client)
+    def __init__(self, root, client, types=None):
+        super().__init__(root, "research", client, types=types)
 
     async def __call__(self, request: TopicChoiceRequest) -> TopicChoices:
         instructions = local_file(self.root / "agents/research", "topics.md").read_text(
@@ -226,10 +201,10 @@ class TopicSelector(Agent):
 
 
 class Writer(Agent):
-    def __init__(self, root, post_type, client):
-        spec = load_type(root, post_type)
+    def __init__(self, root, post_type, client, types=None):
+        types = types or PostTypes(root)
 
-        super().__init__(root, spec.writer, client, post_type)
+        super().__init__(root, types.writer(post_type), client, post_type, types)
 
     async def __call__(self, request: WriteRequest) -> Draft:
         if request.research.slot_id != request.slot_id:
@@ -243,8 +218,8 @@ class Writer(Agent):
 
 
 class Reviewer(Agent):
-    def __init__(self, root, post_type, client):
-        super().__init__(root, "reviewer", client, post_type)
+    def __init__(self, root, post_type, client, types=None):
+        super().__init__(root, "reviewer", client, post_type, types)
 
     async def __call__(self, request: ReviewRequest) -> Review:
         if (
@@ -273,8 +248,8 @@ class Reviewer(Agent):
 
 
 class VisualAgent(Agent):
-    def __init__(self, root, client):
-        super().__init__(root, "visual", client)
+    def __init__(self, root, client, types=None):
+        super().__init__(root, "visual", client, types=types)
 
     async def __call__(self, request: VisualRequest, feedback: list[str] | None = None):
         instructions = (

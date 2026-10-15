@@ -12,17 +12,8 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from . import record_ids
-from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent, load_rubric
-from .config import (
-    Settings,
-    load_agent,
-    load_angles,
-    load_brand,
-    load_type,
-    load_visual_backends,
-    local_file,
-    resolve_model,
-)
+from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent
+from .config import Settings, load_visual_backends, local_file, resolve_model
 from .contracts import (
     DraftAudit,
     DraftRecord,
@@ -49,6 +40,7 @@ from .image_backends import render_image
 from .ledger import BudgetExhausted, Ledger
 from .model_client import ModelFailure, Prices, configured_client, valid_provider
 from .models import ImageResult, ResolvedSlot, SlotOutcome
+from .post_types import PostTypes
 from .research import KnowledgeBase, assign_topics
 from .tools import configured_web_search
 from .trail import Trail, export_posts
@@ -99,14 +91,15 @@ def parse_sets(slots, values):
     return list(indexed.values())
 
 
-def validate_inputs(root, slots, settings=None):
+def validate_inputs(root, slots, settings=None, types=None):
     """Validate the plan and required configuration before starting a run."""
     if not slots or len({slot.slot_id.casefold() for slot in slots}) != len(slots):
         raise ValueError("plan needs case-insensitive unique slots")
 
     from PIL import ImageColor
 
-    rules, _ = load_brand(root / "inputs/brand-voice.md")
+    types = types or PostTypes(root)
+    rules, _ = types.brand()
 
     if len(rules.palette) < 3:
         raise ValueError("brand palette needs three colors")
@@ -117,7 +110,7 @@ def validate_inputs(root, slots, settings=None):
     KnowledgeBase(root / "inputs/kb.json")
 
     for slot in slots:
-        _validate_slot_inputs(root, slot, settings)
+        _validate_slot_inputs(root, slot, settings, types)
 
     for name in REQUIRED_RUN_FILES:
         local_file(root, name)
@@ -125,21 +118,21 @@ def validate_inputs(root, slots, settings=None):
     load_visual_backends(root)
 
 
-def _validate_slot_inputs(root, slot, settings):
+def _validate_slot_inputs(root, slot, settings, types):
     safe_name(slot.slot_id)
     safe_name(slot.type)
 
-    spec = load_type(root, slot.type)
+    spec = types.spec(slot.type)
 
     if spec.research.topic_source == "angles":
-        load_angles(root, spec)
+        types.angles(slot.type)
 
     if "unsupported_claim" not in spec.review.hard_fail:
         raise ValueError("rubric must hard-fail unsupported claims")
 
     safe_name(spec.writer)
 
-    load_rubric(root, spec)
+    types.rubric(slot.type)
 
     agent_names = [spec.writer, "research", "reviewer", "visual"]
 
@@ -147,11 +140,11 @@ def _validate_slot_inputs(root, slot, settings):
         agent_names.append("advisor")
 
     for name in agent_names:
-        _validate_agent_inputs(root, name, settings)
+        _validate_agent_inputs(root, name, settings, types)
 
 
-def _validate_agent_inputs(root, name, settings):
-    agent = load_agent(root, name)
+def _validate_agent_inputs(root, name, settings, types):
+    agent = types.agent(name)
 
     local_file(root / "agents", name + "/system.md")
 
@@ -175,20 +168,22 @@ def _validate_agent_inputs(root, name, settings):
 
 def estimate(root, slots, settings):
     """Estimate worst-case token and cost budgets without initializing clients."""
-    validate_inputs(root, slots, settings)
+    types = PostTypes(root)
+
+    validate_inputs(root, slots, settings, types)
 
     tokens = 0
     cost = 0.0
     unpriced = False
     warnings = []
     prices = Prices(update=False)
-    names = _estimate_agent_names(root, slots, settings)
+    names = _estimate_agent_names(types, slots, settings)
 
     for name in names:
-        config = load_agent(root, name)
+        config = types.agent(name)
         # Includes up to 4 search turns, two content attempts, parsing/truncation
         # allowances and three transient retries. Input is still an estimate.
-        calls = _estimated_agent_calls(root, slots, name)
+        calls = _estimated_agent_calls(types, slots, name)
         output = int(config.max_output_tokens * ESTIMATED_OUTPUT_MULTIPLIER)
         reserved = (ESTIMATED_INPUT_TOKENS + output) * calls * ESTIMATED_CALL_ALLOWANCE
         tokens += reserved
@@ -222,13 +217,11 @@ def estimate(root, slots, settings):
     )
 
 
-def _estimate_agent_names(root, slots, settings):
+def _estimate_agent_names(types, slots, settings):
     names = ["research"]
 
     for slot in slots:
-        writer = load_type(root, slot.type).writer
-
-        names.extend(["research", writer, "reviewer", "visual"])
+        names.extend(["research", types.writer(slot.type), "reviewer", "visual"])
 
     if settings.advisor_enabled:
         names.append("advisor")
@@ -236,11 +229,11 @@ def _estimate_agent_names(root, slots, settings):
     return names
 
 
-def _estimated_agent_calls(root, slots, name):
+def _estimated_agent_calls(types, slots, name):
     if name == "research":
         return 5
 
-    writers = {load_type(root, slot.type).writer for slot in slots}
+    writers = {types.writer(slot.type) for slot in slots}
 
     if name in writers | {"reviewer"}:
         return MAX_CONTENT_ATTEMPTS
@@ -288,7 +281,7 @@ def snapshot(root, run_dir, slots, settings):
 
         shutil.copyfile(source, destination)
 
-    files = _snapshot_files(root, slots)
+    files = _snapshot_files(PostTypes(root), slots)
 
     for name in sorted(files):
         source = local_file(root, name)
@@ -310,12 +303,12 @@ def snapshot(root, run_dir, slots, settings):
     return target
 
 
-def _snapshot_files(root, slots):
+def _snapshot_files(types, slots):
     files = set(REQUIRED_RUN_FILES)
     names = {"research", "reviewer", "visual", "advisor"}
 
     for slot in slots:
-        spec = load_type(root, slot.type)
+        spec = types.spec(slot.type)
 
         names.add(spec.writer)
 
@@ -332,7 +325,7 @@ def _snapshot_files(root, slots):
     for name in names:
         files.update([f"agents/{name}/agent.yaml", f"agents/{name}/system.md"])
 
-        for skill in load_agent(root, name).skills:
+        for skill in types.agent(name).skills:
             files.update([f"skills/{skill}.md", f"skills/{skill}.py"])
 
     return files
@@ -466,7 +459,8 @@ class Pipeline:
         self.root = context.root
         self.plan = slots
 
-        self.rules, _ = load_brand(self.root / "inputs/brand-voice.md")
+        self.types = PostTypes(self.root)
+        self.rules, _ = self.types.brand()
 
         self.kb = KnowledgeBase(self.root / "inputs/kb.json")
         self.model_factory = model_factory
@@ -655,13 +649,7 @@ class Pipeline:
             atomic_json(path, receipts)
 
     def _research_request(self, slot):
-        spec = load_type(self.root, slot.type)
-
-        hints = local_file(self.root / "post_types" / slot.type, spec.research.hints).read_text(
-            encoding="utf-8"
-        )
-
-        request = ResearchRequest(slot=slot, hints=hints)
+        request = ResearchRequest(slot=slot, hints=self.types.hints(slot.type))
 
         return request
 
@@ -718,6 +706,7 @@ class Pipeline:
                 self.kb,
                 searcher,
                 self.save_search_usage,
+                self.types,
             )
 
             pack = await agent(request)
@@ -755,12 +744,7 @@ class Pipeline:
         choices = {}
 
         for state in empty:
-            spec = load_type(self.root, state.slot.type)
-
-            if spec.research.topic_source == "kb":
-                choices[state.slot.slot_id] = [entry["id"] for entry in self.kb.entries]
-            else:
-                choices[state.slot.slot_id] = [angle.id for angle in load_angles(self.root, spec)]
+            choices[state.slot.slot_id] = self.types.topic_pool(state.slot.type, self.kb)
 
         excluded = [state.slot.topic_id for state in states if state.slot.topic_id]
 
@@ -769,7 +753,7 @@ class Pipeline:
 
         try:
             proposals = (
-                await TopicSelector(self.root, self.client("research", "_batch"))(
+                await TopicSelector(self.root, self.client("research", "_batch"), self.types)(
                     TopicChoiceRequest(choices=choices, exclude=excluded)
                 )
             ).assignments
@@ -829,6 +813,7 @@ class Pipeline:
             self.kb,
             prior,
             allow_partial=True,
+            types=self.types,
         )
 
         for state in empty:
@@ -893,7 +878,7 @@ class Pipeline:
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             research=state.pack,
-            post_type=load_type(self.root, state.slot.type),
+            post_type=self.types.spec(state.slot.type),
             feedback=state.feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
@@ -904,7 +889,8 @@ class Pipeline:
                 self.writers[state.slot.slot_id] = Writer(
                     self.root,
                     state.slot.type,
-                    self.client(load_type(self.root, state.slot.type).writer, state.slot.slot_id),
+                    self.client(self.types.writer(state.slot.type), state.slot.slot_id),
+                    self.types,
                 )
 
             state.draft = await self.writers[state.slot.slot_id](request)
@@ -920,7 +906,7 @@ class Pipeline:
         result = validate(
             state.draft,
             state.pack,
-            load_type(self.root, state.slot.type),
+            self.types.spec(state.slot.type),
             self.rules,
             self.context.settings.max_tweet_chars,
         )
@@ -960,15 +946,14 @@ class Pipeline:
     async def review(self, raw):
         """Review an approved draft or reuse its matching saved assessment."""
         state = lane_state(raw)
-        spec = load_type(self.root, state.slot.type)
 
         request = ReviewRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             draft=state.audit.approved(),
             research=state.pack,
-            post_type=spec,
-            rubric=load_rubric(self.root, spec),
+            post_type=self.types.spec(state.slot.type),
+            rubric=self.types.rubric(state.slot.type),
         )
 
         record_id = record_ids.record_id(state.slot.slot_id, "reviewer", state.attempt)
@@ -983,7 +968,10 @@ class Pipeline:
 
             if state.slot.slot_id not in self.reviewers:
                 self.reviewers[state.slot.slot_id] = Reviewer(
-                    self.root, state.slot.type, self.client("reviewer", state.slot.slot_id)
+                    self.root,
+                    state.slot.type,
+                    self.client("reviewer", state.slot.slot_id),
+                    self.types,
                 )
 
             state.review = await self.reviewers[state.slot.slot_id](request)
@@ -1060,7 +1048,7 @@ class Pipeline:
         try:
             if state.slot.slot_id not in self.visuals:
                 self.visuals[state.slot.slot_id] = VisualAgent(
-                    self.root, self.client("visual", state.slot.slot_id)
+                    self.root, self.client("visual", state.slot.slot_id), self.types
                 )
 
             spec = await self.visuals[state.slot.slot_id](request)
@@ -1148,7 +1136,7 @@ class Pipeline:
             attempt=state.attempt,
             draft=state.audit.approved(),
             research=state.pack,
-            post_type=load_type(self.root, state.slot.type),
+            post_type=self.types.spec(state.slot.type),
             severity=severity,
         )
 
