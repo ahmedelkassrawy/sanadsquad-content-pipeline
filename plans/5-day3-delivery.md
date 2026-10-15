@@ -131,3 +131,13 @@ Decision (Kassra, 2026-10-15): mechanical brand rules are enforced in Python in 
 Fix: a new safe fix `banned_characters` (added to the `BrandRules.safe_fixes` literal and listed first in `inputs/brand-voice.md` `safe_fixes`) runs before the other fixes: an em dash — with any surrounding whitespace becomes ", "; the non-breaking hyphen ‑ becomes "-"; any other configured banned character is removed. It is recorded as `tweet_N:banned_characters` in `fixes`, like `curly_quotes`. Length is measured after the fix.
 
 Acceptance: offline tests through `validate` show a draft whose only violation was an em dash is accepted with the fix recorded and the text rewritten, the non-breaking hyphen becomes "-", an over-length draft is still rejected for length, and a brand file without the fix in `safe_fixes` still rejects the em dash; they fail on 56a0b7c. Full suite green. Root reruns the Mistral live week.
+
+## S10 readability (compact lane, 2026-10-15)
+
+Ask (Kassra, 2026-10-15): the code is hard to read; the brief evaluates "Code and docs: easy to read and easy to run". Phase A (1f33cd0): `ruff format` at line length 100 across all Python files, AST-identical (`.runs/s10-ast-check.py`), suite green. Phase B: hand refactor of the hardest product modules, one module per slice, starting with `content_pipeline/pipeline.py`, then `model_client.py`, then `scripts/package_sample.py`.
+
+Invariant: pure refactor. Behaviour, public names and signatures imported by tests or other modules, file formats, trail contents and log lines are unchanged; existing tests are not edited; the full suite stays green and ruff format --check stays clean.
+
+Phase B style: a one-line docstring on every public function and class; descriptive names instead of one- or two-letter locals; long functions split into named helpers in the same module; no nested comprehension chains or semicolon statements; module-level constants for magic values; lines at most 100 characters.
+
+Acceptance per module: full suite passes unchanged before and after; independent review confirms behaviour preservation by reading the diff and rerunning the suite.
