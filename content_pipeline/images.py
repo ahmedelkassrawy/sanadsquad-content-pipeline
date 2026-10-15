@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from .models import ImageSpec
-from .validation import check_brand
+from skills.brand_rules import check_brand
 
 
 def overlay_errors(spec, request, rules):
