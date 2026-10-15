@@ -7,6 +7,7 @@ import io
 import logging
 import os
 import re
+import traceback
 from urllib.parse import quote
 
 import httpx
@@ -16,6 +17,7 @@ from PIL import Image, ImageOps
 from .images import CARD_SIZE, render_card
 
 ACCOUNT_ID_PATTERN = re.compile(r"[0-9a-f]{32}")
+CLOUDFLARE_ACCOUNTS_URL = "https://api.cloudflare.com/client/v4/accounts/"
 MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_SIDE = 4096
 
@@ -30,22 +32,81 @@ def image_prompt(spec):
     )
 
 
-def _silence_http_logs():
-    """Keep request URLs and headers out of the host application's log stream.
+class _CloudflareSecretFilter(logging.Filter):
+    """Drop log records that reproduce Cloudflare credentials or the account URL.
 
-    The Cloudflare URL carries the account id, so the library loggers stay
-    pinned: restoring an earlier level could re-enable the line while a
-    concurrent lane is still mid-request.
+    httpcore pre-formats its trace records with repr(), so each secret is also
+    matched in its escaped form: a token containing a newline still matches the
+    backslash-n rendering that h11 error text uses.
     """
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+    def __init__(self):
+        super().__init__()
+        self._forms = frozenset()
+
+    def watch(self, *secrets):
+        """Remember every form of a secret that must never reach a handler."""
+        forms = set()
+        for secret in secrets:
+            if secret:
+                forms.add(secret)
+                forms.add(ascii(secret)[1:-1])
+        self._forms |= forms
+
+    def filter(self, record):
+        text = _record_text(record)
+        return not any(form in text for form in self._forms)
+
+
+def _record_text(record):
+    """Render a record the way a formatter would, including exception text."""
+    text = record.getMessage()
+    exc_text = record.exc_text
+    if exc_text is None and record.exc_info:
+        exc_text = "".join(traceback.format_exception(*record.exc_info))
+    if exc_text:
+        text = text + "\n" + exc_text
+    return text
+
+
+_HTTP_LOG_FILTER = _CloudflareSecretFilter()
+
+
+def _http_logger_names():
+    """List the httpx and httpcore loggers that can emit secret-bearing records."""
+    return [
+        "httpx",
+        "httpcore",
+        *[
+            name
+            for name in logging.Logger.manager.loggerDict
+            if name.startswith(("httpx.", "httpcore."))
+        ],
+    ]
+
+
+def _hide_cloudflare_secrets(account_id, token):
+    """Keep the account, token and account URL out of library log records.
+
+    The filter is attached to the emitting loggers themselves, because a filter
+    on a parent logger never sees records created on a child such as
+    httpcore.http11. It is never removed, so concurrent requests cannot race a
+    suppression window, and it drops only records that reproduce these secrets,
+    so unrelated HTTP logging keeps working at every level.
+    """
+    _HTTP_LOG_FILTER.watch(account_id, token, CLOUDFLARE_ACCOUNTS_URL)
+
+    for name in _http_logger_names():
+        logger = logging.getLogger(name)
+        if _HTTP_LOG_FILTER not in logger.filters:
+            logger.addFilter(_HTTP_LOG_FILTER)
 
 
 async def _cloudflare_image(spec, account_id, token):
-    _silence_http_logs()
+    _hide_cloudflare_secrets(account_id, token)
 
     url = (
-        "https://api.cloudflare.com/client/v4/accounts/"
+        CLOUDFLARE_ACCOUNTS_URL
         + quote(account_id, safe="")
         + "/ai/run/@cf/black-forest-labs/flux-1-schnell"
     )
