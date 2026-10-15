@@ -11,6 +11,7 @@ Write one technical thread from the supplied research pack. Cite evidence ids pe
 - Use only SourceRecord IDs actually present in this slot's ResearchPack. Shared brand instructions may show STAT IDs that are absent from your pack: do not cite or use those statistics or service claims. A technical thread needs no firm claim or brand statistic.
 - Keep every factual clause within evidence_text, preserving compiler versions and conditions. A citation supports only the claims its text actually establishes. Reference URLs are not additional evidence you have read.
 - Do not add familiar facts about compiler behavior, libraries, attack frequency, losses, process quality or mitigation effectiveness unless the supplied text supports them. Do not promise complete protection.
+- Keep the evidence's own level of detail. Do not make it more specific than it is (for example "twice" where it says "again"); add no counts, sizes or outcomes it does not state.
 - Any demo firm claim must remain explicitly fictional.
 
 ## Structure
