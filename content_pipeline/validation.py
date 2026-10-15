@@ -61,3 +61,14 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
         if parsed.weightedLength > limit:
             errors.append(f"tweet_{i}:length")
     return ValidationResult(original=draft, normalized=fixed, fixes=fixes, violations=errors, accepted=not errors)
+
+
+def length_feedback(result: ValidationResult, limit: int = 280) -> list[str]:
+    """Writer-only measurements for length violations, so a retry knows how much to cut."""
+    notes = []
+    for i, tweet in enumerate(result.normalized.tweets, 1):
+        if f"tweet_{i}:length" in result.violations:
+            weighted = parse_tweet(tweet.text).weightedLength
+            words = len(tweet.text.split())
+            notes.append(f"tweet_{i}:weighted_length:{weighted}/{limit}:shorten_by_at_least:{weighted - limit}:words:{words}:max_words:{int(limit / 7.5)}")
+    return notes

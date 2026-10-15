@@ -5,6 +5,10 @@ from .config import load_type, local_file
 from .contracts import AdvisorOutput, InstructionFile
 
 
+class InvalidAdvice(ValueError):
+    """The model returned advice the code refuses: recorded as failed_output, not an API failure."""
+
+
 def instruction_files(root,slots):
     names={"inputs/brand-voice.md"}
     for slot in slots:
@@ -19,23 +23,23 @@ def advice_patch(request,output):
     changed=set()
     for edit in output.edits:
         if edit.path not in texts or edit.source_sha256!=request.instructions[edit.path].sha256:
-            raise ValueError("invalid advice source")
+            raise InvalidAdvice("invalid advice source")
         text=texts[edit.path]
-        if text.count(edit.before)!=1: raise ValueError("ambiguous advice replacement")
+        if text.count(edit.before)!=1: raise InvalidAdvice("ambiguous advice replacement")
         if text.startswith("---\n") and edit.before in text.split("---",2)[1]:
-            raise ValueError("advice cannot edit machine rules")
+            raise InvalidAdvice("advice cannot edit machine rules")
         candidate=text.replace(edit.before,edit.after,1)
         if text.startswith("---\n") and (not candidate.startswith("---\n") or candidate.split("---",2)[:2]!=text.split("---",2)[:2]):
-            raise ValueError("advice cannot edit machine rules")
+            raise InvalidAdvice("advice cannot edit machine rules")
         before_lines=text.splitlines()
         after_lines=candidate.splitlines()
         for operation,start,end,new_start,new_end in difflib.SequenceMatcher(a=before_lines,b=after_lines,autojunk=False).get_opcodes():
             if operation!="equal" and any(character.isnumeric() for line in before_lines[start:end]+after_lines[new_start:new_end] for character in line):
-                raise ValueError("advice cannot add or modify numeric-bearing lines")
+                raise InvalidAdvice("advice cannot add or modify numeric-bearing lines")
         texts[edit.path]=candidate
         changed.add(edit.path)
     patch="".join("".join(difflib.unified_diff(request.instructions[name].text.splitlines(keepends=True),texts[name].splitlines(keepends=True),fromfile="a/"+name,tofile="b/"+name)) for name in sorted(changed))
-    if len(patch)>16000: raise ValueError("advice patch too large")
+    if len(patch)>16000: raise InvalidAdvice("advice patch too large")
     return patch
 
 

@@ -265,6 +265,7 @@ async def test_advisor_suggests_only_bounded_patch_and_never_sinks_export(tmp_pa
     summary=await run_pipeline(ROOT,one_slot(),output,model_factory=models.factory,search_factory=search_factory)
     assert summary.shipped==1
     assert summary.advisor==("completed" if mode=="valid" else "failed")
+    assert summary.advisor_reason=={"valid":None,"api":"failed_api"}.get(mode,"failed_output")
     assert (ROOT/"post_types/tech-thread/writer.md").read_bytes()==original
     assert (output/"snapshot/post_types/tech-thread/writer.md").read_bytes()==original
     assert records(output,"posts")[0]["tweets"]==[f"{i}/5 State before calls." for i in range(1,6)]

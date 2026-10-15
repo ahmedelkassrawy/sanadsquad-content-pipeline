@@ -21,8 +21,8 @@ from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .research import KnowledgeBase, assign_topics
 from .tools import configured_web_search
 from .trail import Trail, export_posts
-from .validation import validate
-from .advisor import Advisor, advice_patch, instruction_files
+from .validation import length_feedback, validate
+from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
 from .contracts import AdvisorRecord, AdvisorRequest, RunIdentity
 from .durability import RunLock, atomic_json, resume_inputs, snapshot_hashes
 
@@ -398,7 +398,7 @@ class Pipeline:
         state=lane_state(raw)
         result=validate(state.draft,state.pack,load_type(self.root,state.slot.type),self.rules,self.context.settings.max_tweet_chars)
         state.audit=DraftAudit(original=result.original,normalized=[tweet.model_dump() for tweet in result.normalized.tweets],fixes=result.fixes,violations=result.violations,accepted=result.accepted)
-        state.feedback=result.violations
+        state.feedback=result.violations+length_feedback(result,self.context.settings.max_tweet_chars)
         await self.record("drafts",DraftRecord(record_id=f"{state.slot.slot_id}/validator/{state.attempt}/1",slot_id=state.slot.slot_id,attempt=state.attempt,audit=state.audit))
         return state.model_dump(mode="json")
 
@@ -529,7 +529,7 @@ class Pipeline:
                 status="completed"
             except Exception as error:
                 status="failed"
-                reason=failure(error).value
+                reason=SlotOutcome.failed_output.value if isinstance(error,InvalidAdvice) else failure(error).value
         (self.context.run_dir/"advice.md").write_text("# Run advice\n\n"+("\n".join("- "+line for line in output.recommendations) if status=="completed" else "Advisor "+status+(": "+reason if reason else ""))+"\n",encoding="utf-8")
         (self.context.run_dir/"advice.patch").write_text(patch,encoding="utf-8")
         await self.record("advisor",AdvisorRecord(record_id="_run/advisor/1/1",slot_id="_run",attempt=1,status=status,output=output if status=="completed" else None,reason=reason,input_sha256=input_hash))
