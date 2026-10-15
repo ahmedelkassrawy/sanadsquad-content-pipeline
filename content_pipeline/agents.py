@@ -2,6 +2,7 @@ import asyncio
 from pathlib import Path
 import yaml
 from pydantic import ValidationError
+from . import record_ids
 from .config import load_agent, load_angles, load_prompt, load_type, local_file
 from .contracts import (
     ResearchAction,
@@ -138,7 +139,9 @@ class ResearchAgent(Agent):
 
             self.records.append(
                 ResearchRecord(
-                    record_id=f"{slot.slot_id}/research_search/{request.attempt}/{searches}",
+                    record_id=record_ids.record_id(
+                        slot.slot_id, "research_search", request.attempt, searches
+                    ),
                     slot_id=slot.slot_id,
                     attempt=request.attempt,
                     evidence=records,

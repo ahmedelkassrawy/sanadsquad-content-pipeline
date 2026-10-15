@@ -11,6 +11,7 @@ from uuid import uuid4
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from . import record_ids
 from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent, load_rubric
 from .config import (
     Settings,
@@ -670,7 +671,7 @@ class Pipeline:
 
     async def _record_research_outcome(self, state):
         slot = state.slot
-        record_id = f"{slot.slot_id}/research/1/1"
+        record_id = record_ids.record_id(slot.slot_id, "research", 1)
 
         await self.record(
             "research_log",
@@ -694,7 +695,7 @@ class Pipeline:
 
         try:
             request = self._research_request(slot)
-            record_id = f"{slot.slot_id}/research/1/1"
+            record_id = record_ids.record_id(slot.slot_id, "research", 1)
 
             saved = await self.saved_research(record_id, request)
 
@@ -777,7 +778,7 @@ class Pipeline:
         await self.record(
             "research_log",
             ResearchRecord(
-                record_id=f"{state.slot.slot_id}/research/1/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "research", 1),
                 slot_id=state.slot.slot_id,
                 attempt=1,
                 evidence=[],
@@ -795,7 +796,11 @@ class Pipeline:
             resolved.append(ResolvedSlot.model_validate(updated["slot"]))
 
         record = ResolvedPlan(
-            record_id="_run/plan/1/1", slot_id="_run", attempt=1, slots=resolved, warnings=warnings
+            record_id=record_ids.record_id("_run", "plan", 1),
+            slot_id="_run",
+            attempt=1,
+            slots=resolved,
+            warnings=warnings,
         )
 
         (self.context.run_dir / "plan.resolved.json").write_text(
@@ -863,7 +868,7 @@ class Pipeline:
         await self.record(
             "drafts",
             DraftRecord(
-                record_id=f"{state.slot.slot_id}/writer/{state.attempt}/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "writer", state.attempt),
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 failure=outcome.value,
@@ -930,7 +935,7 @@ class Pipeline:
         await self.record(
             "drafts",
             DraftRecord(
-                record_id=f"{state.slot.slot_id}/validator/{state.attempt}/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "validator", state.attempt),
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 audit=state.audit,
@@ -962,7 +967,7 @@ class Pipeline:
             rubric=load_rubric(self.root, spec),
         )
 
-        record_id = f"{state.slot.slot_id}/reviewer/{state.attempt}/1"
+        record_id = record_ids.record_id(state.slot.slot_id, "reviewer", state.attempt)
 
         try:
             saved = self.saved_record("review_report", record_id, ReviewRecord, request)
@@ -1122,7 +1127,7 @@ class Pipeline:
             severity=severity,
         )
 
-        record_id = f"{state.slot.slot_id}/visual/{state.attempt}/1"
+        record_id = record_ids.record_id(state.slot.slot_id, "visual", state.attempt)
         saved = self.saved_record("visuals", record_id, VisualRecord, request)
 
         if saved:
@@ -1162,7 +1167,7 @@ class Pipeline:
 
         if state.outcome == SlotOutcome.shipped:
             piece = FinalPiece(
-                record_id=f"{state.slot.slot_id}/final/{state.attempt}/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "final", state.attempt),
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 topic_id=state.pack.topic_id,
@@ -1184,7 +1189,7 @@ class Pipeline:
             if state.outcome == SlotOutcome.shipped:
                 accepted.append(
                     ExportPost(
-                        record_id=f"{state.slot.slot_id}/export/{state.attempt}/1",
+                        record_id=record_ids.record_id(state.slot.slot_id, "export", state.attempt),
                         slot_id=state.slot.slot_id,
                         attempt=state.attempt,
                         type=state.slot.type,
@@ -1216,7 +1221,7 @@ class Pipeline:
         await self.record(
             "advisor",
             AdvisorRecord(
-                record_id="_run/advisor/1/1",
+                record_id=record_ids.record_id("_run", "advisor", 1),
                 slot_id="_run",
                 attempt=1,
                 status=status,
@@ -1246,7 +1251,9 @@ class Pipeline:
                 )
 
                 input_hash = hashlib.sha256(request.model_dump_json().encode()).hexdigest()
-                saved = self.saved_record("advisor", "_run/advisor/1/1", AdvisorRecord, request)
+                saved = self.saved_record(
+                    "advisor", record_ids.record_id("_run", "advisor", 1), AdvisorRecord, request
+                )
 
                 if saved:
                     if saved.output is not None:
@@ -1299,7 +1306,7 @@ class Pipeline:
         ]
 
         return RunSummary(
-            record_id="_run/summary/1/1",
+            record_id=record_ids.record_id("_run", "summary", 1),
             slot_id="_run",
             attempt=1,
             run_id=self.context.identity.run_id
