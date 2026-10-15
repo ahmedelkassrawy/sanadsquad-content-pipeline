@@ -112,8 +112,8 @@ inputs/
 ### 2.6 Quality gates
 
 **Validator (code, not an agent)** runs after every draft:
-- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted by X's rules via `twitter-text-parser`** (weighted Unicode, URLs = 23), with the `1/7` numbering added by code **before** validation. `MAX_TWEET_CHARS` comes from `.env` and may only **lower** the limit (§6.11).
-- **Safe fixes** (listed in config, never meaning-changing: whitespace, curly quotes, a trailing hashtag block) are applied and **logged** in the drafts trail.
+- Hard rules from `brand-voice.md` front matter + `type.yaml`: banned characters (em dashes), hashtags, banned words, link allow-list, tweet count, **280 chars per tweet counted by X's rules via `twitter-text-parser`** (weighted Unicode, URLs = 23), with the `1/7` numbering added by code **after fixes and before hard checks and review**. `MAX_TWEET_CHARS` comes from `.env` and may only **lower** the limit (§6.11).
+- **Safe fixes** (listed in config: banned-character replacement, whitespace, curly quotes, a trailing hashtag block) are applied and **logged** in the drafts trail. Banned-character replacement handles configured banned characters as specified in §6.11 and leaves URL-like tokens unchanged; remaining violations go back to the writer.
 - **Real violations** skip the reviewer and go straight back to the writer as the one retry. A retry that still breaks a hard rule is dropped.
 
 **Reviewer**: 1–5 per rubric criterion (hook, technical accuracy, grounding, voice, clarity, CTA). Pass = average ≥ threshold (from `type.yaml`) and no hard-fail criterion (e.g. unsupported claim). Every rejection carries reasons.
@@ -263,7 +263,7 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 
 ### 6.5 Visual failure and accuracy
 - If the visual agent fails (error, invalid output, budget refusal), **code builds a fallback `ImageSpec`** from the accepted piece: title from the topic name, severity from the KB entry if any, brand palette.
-- Overlay text goes through the **same validator** (banned words and characters) and may only contain text from the accepted piece or its sources. No new statistics.
+- Overlay text shares **hard brand checks** with tweets, not normalisation or tweet numbering, and may only contain text from the accepted piece or its sources. No new statistics.
 - The **severity badge is optional**; it is drawn only when the source has a severity, so marketing posts have none.
 - The Pillow card is local code, so an accepted piece always ships with an image. If even that fails, the piece ships with its written spec and the CSV `Image` cell points to the spec JSON. That is recorded.
 
@@ -284,7 +284,7 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 - `posts.csv` is **the brief's export format**: `Post Text, Image`, one row per accepted piece, rows in plan order.
 - **Scope (Kassra, 2026-10-14):** the deliverable is the CSV the brief specifies. We don't target or test any particular scheduler's import format, and the docs don't claim compatibility with one.
 - `Image` = path **relative to the run folder** (`images/thread_1.png`).
-- The `1/7` numbering is added by code **before** the validator runs. The text the reviewer approved is byte-for-byte the text exported. Nothing edits text after approval.
+- The `1/7` numbering is added by code **after fixes and before hard checks and review**. The text the reviewer approved is byte-for-byte the text exported. Nothing edits text after approval.
 
 ### 6.9 The `type.yaml` contract
 ```yaml
@@ -323,7 +323,8 @@ visual:
 - Length: **`twitter-text-parser`** (X's weighted counting: Unicode weights, URLs = 23). `MAX_TWEET_CHARS` in `.env` may set a **lower** editorial limit (default 280). A value above 280 is a startup error: longer posts would be a future platform capability (e.g. Premium), declared explicitly, not a config tweak.
 - Links: **domain** allow-list (subdomains allowed only if listed).
 - Banned words and phrases: **case-insensitive, word-boundary** matching. Banned characters: exact.
-- Safe fixes are only: whitespace normalisation, curly to straight quotes, and removing **a trailing block of hashtags**. A hashtag inside a sentence is a violation, not a fix.
+- Safe fixes are only: **banned-character replacement**, whitespace normalisation, curly to straight quotes, and removing **a trailing block of hashtags**. A hashtag inside a sentence is a violation, not a fix.
+- Banned-character replacement (Kassra, 2026-10-15; supersedes the earlier rule that banned characters always go back to the writer): when `banned_characters` is listed in `safe_fixes`, configured banned em dash runs (including surrounding whitespace) are removed at tweet boundaries; internal runs become ", ", except beside punctuation (`, . ; : ! ? ) (` and quotes), where the run is removed with a single space where needed. Consecutive em dashes form one run. Configured banned U+2011 becomes "-"; other configured banned characters are removed. Empty or punctuation-only results are rejected before numbering. URL-like whitespace-delimited tokens (containing "://", starting with "www.", or matching a bare domain with a path) are never changed by this replacement; a banned character inside one goes back to the writer. Replacement runs before other fixes, then numbering, hard checks and review. In the live Mistral week at 56a0b7c, two of the dropped threads, thread_1 and thread_3, failed only for em dashes. Without the fix configured, a banned character is still a violation. Banned words, hashtags inside text, links and length are never auto-fixed.
 - The original draft is kept beside the fixed one in `drafts.json`. Fixes happen before review. Approved text is never modified afterwards.
 
 ### 6.12 Tests that back the claims

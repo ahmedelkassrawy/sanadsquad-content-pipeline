@@ -77,7 +77,7 @@ def test_normalization_keeps_original_and_numbers_before_review():
     assert result.accepted is True
 
 
-@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("State—calls.","banned_character:—"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("界"*139,"length"),("a"*277,"length")])
+@pytest.mark.parametrize("text,error",[("Guaranteed safety.","banned_phrase:guaranteed"),("Use #audit inside text.","hashtag"),("https://sub.example.com/path","link_domain:sub.example.com"),("界"*139,"length"),("a"*277,"length")])
 def test_brand_and_weighted_length_rejections(text,error):
     result=validate_thread(draft(text))
     assert result.accepted is False

@@ -1,7 +1,75 @@
 import re
+import unicodedata
+from functools import partial
 from urllib.parse import urlparse
 from twitter_text import parse_tweet, extract_urls_with_indices
 from .models import BrandRules, Draft, PostType, ResearchPack, ValidationResult
+
+
+_QUOTES = "\"'\u201c\u201d\u2018\u2019"
+_OPENING_BRACKETS = "([{"
+_CLOSING_PUNCTUATION = ",.;:!?)]}"
+_PUNCTUATION = _CLOSING_PUNCTUATION + _OPENING_BRACKETS + _QUOTES
+_DASH_RUN = re.compile(r"\s*\u2014(?:\s*\u2014)*\s*")
+_BARE_DOMAIN_URL = re.compile(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/\S*")
+
+
+def _is_url_token(token: str) -> bool:
+    """Recognize URL tokens whose banned characters must stay unchanged."""
+    return (
+        "://" in token
+        or token.startswith("www.")
+        or _BARE_DOMAIN_URL.fullmatch(token) is not None
+    )
+
+
+def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
+    """Choose a separator from the dash run's surrounding text and spacing."""
+    if not left or not right:
+        return ""
+    if right[0] in _QUOTES and dash_run.startswith("\u2014"):
+        if dash_run.endswith("\u2014") and not left[-1].isspace():
+            return ""
+    if left[-1] in _PUNCTUATION or right[0] in _PUNCTUATION:
+        if left[-1] in _OPENING_BRACKETS or right[0] in _CLOSING_PUNCTUATION:
+            return ""
+        return " "
+    return ", "
+
+
+def _fix_plain_text(plain: str, banned: list[str], before: str, after: str) -> str:
+    """Replace configured banned characters in prose between protected URL tokens."""
+    for char in banned:
+        if char != "\u2014":
+            plain = plain.replace(char, "-" if char == "\u2011" else "")
+            continue
+        pieces = []
+        start = 0
+        for match in _DASH_RUN.finditer(plain):
+            left = plain[:match.start()] or before
+            right = plain[match.end():] or after
+            pieces.append(plain[start:match.start()])
+            pieces.append(_replace_dash_run(left, right, match.group()))
+            start = match.end()
+        pieces.append(plain[start:])
+        plain = "".join(pieces)
+    return plain
+
+
+def fix_banned_characters(text: str, banned: list[str]) -> str:
+    """Fix banned punctuation in prose while preserving whitespace-delimited URLs."""
+    pieces = []
+    start = 0
+    for match in re.finditer(r"\S+", text):
+        if not _is_url_token(match.group()):
+            continue
+        pieces.append(_fix_plain_text(
+            text[start:match.start()], banned, text[:start], text[match.start():],
+        ))
+        pieces.append(match.group())
+        start = match.end()
+    pieces.append(_fix_plain_text(text[start:], banned, text[:start], ""))
+    return "".join(pieces)
 
 
 def check_brand(text: str, rules: BrandRules) -> list[str]:
@@ -35,19 +103,21 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
     fixed = draft.model_copy(deep=True)
     fixes = []
     empty_content = []
+
     for i, tweet in enumerate(fixed.tweets, 1):
         text = tweet.text
         operations = {
+            "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
             "whitespace": lambda t: " ".join(t.split()),
             "curly_quotes": lambda t: t.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})),
             "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
         }
-        for fix in rules.safe_fixes:
+        for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
             changed = operations[fix](text)
             if changed != text:
                 fixes.append(f"tweet_{i}:{fix}")
             text = changed
-        if not text.strip():
+        if not any(not ch.isspace() and not unicodedata.category(ch).startswith("P") for ch in text):
             empty_content.append(f"tweet_{i}:invalid_text")
         tweet.text = f"{i}/{len(fixed.tweets)} {text}" if spec.numbering else text
     errors = check_citations(fixed, pack) + empty_content

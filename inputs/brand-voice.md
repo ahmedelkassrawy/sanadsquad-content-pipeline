@@ -13,6 +13,7 @@ allowed_links:
 - scs.owasp.org
 - swcregistry.io
 safe_fixes:
+- banned_characters
 - whitespace
 - curly_quotes
 - trailing_hashtags
