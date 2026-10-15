@@ -1,1 +1,5 @@
-Prefer concrete smart contract vulnerability root causes and mitigations. Reentrancy, access control, oracle manipulation and economic security are useful topics. For an angle with configured `source_ids`, use those knowledge-base records as the evidence for its mechanism and mitigation. Keep the angle ID as the topic identity. Missing or malformed configured sources must fail closed; do not replace them with invented evidence. Angles without configured sources keep the existing approved-stat research behavior.
+Prefer concrete smart contract vulnerability root causes and mitigations. Reentrancy, access control, oracle manipulation and economic security are useful topics.
+
+- For an angle with configured `source_ids`, use those knowledge-base records as the evidence for its mechanism and mitigation. Keep the angle ID as the topic identity.
+- Missing or malformed configured sources must fail closed; do not replace them with other or invented evidence.
+- Angles without configured sources keep the existing approved-stat research behavior.

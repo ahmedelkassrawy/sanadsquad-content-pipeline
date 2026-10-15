@@ -1,1 +1,1 @@
-Prefer concrete smart contract vulnerability root causes and mitigations. Reentrancy, access control, oracle manipulation and economic security are useful topics.
+Prefer topics where the knowledge base gives a concrete root cause and a mitigation, because a thread needs both. Reentrancy, access control, oracle manipulation and economic security are useful topics.

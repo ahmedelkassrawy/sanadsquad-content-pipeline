@@ -141,3 +141,15 @@ Invariant: pure refactor. Behaviour, public names and signatures imported by tes
 Phase B style: a one-line docstring on every public function and class; descriptive names instead of one- or two-letter locals; long functions split into named helpers in the same module; no nested comprehension chains or semicolon statements; module-level constants for magic values; lines at most 100 characters.
 
 Acceptance per module: full suite passes unchanged before and after; independent review confirms behaviour preservation by reading the diff and rerunning the suite.
+
+## S11 agent prompt rewrite (compact lane, 2026-10-15)
+
+Ask (Kassra, 2026-10-15): Opus rewrites agent prompts that are too thin or badly written. Author: Opus 5.5 coordinator; reviewer: Codex.
+
+Evidence: two mixed-model weeks at d4dda99 dropped marketing_3 (education angle) at 378-395 weighted characters twice; the writer had been asked for hook, mechanism, mitigation, CTA and a fictional label within 37 words. marketing_1 repeated "fictional" four times and the Mistral reviewer rejected it citing a non-existent prohibition and scored a service post down for having no technical detail. Both rubrics were 43 words with no score anchors and no hard-fail definitions; research, visual and skill prompts were single run-on notes written for developers.
+
+Change: rubrics gain per-criterion 1/3/5 anchors and definitions of unsupported_claim and off_brand (a fictional/demo label is required, never off-brand; a service post with no technical claim is not penalized on technical_accuracy). The marketing writer gets a three-sentence recipe per angle; the education angle uses the mechanism OR the mitigation, not both; the fictional label is used once. Writers are told the banned_characters list and (marketing) exactly one tweet. Reviewer, research, topic, visual, writer system and skill prompts are restructured into headed sections or short lists with the same rules.
+
+Invariant: no rule is removed or weakened: grounding, citation, fictional-label, hard-fail, length and evidence rules keep their meaning; every phrase pinned by existing tests is kept verbatim; rubric criteria front matter and type.yaml are unchanged; code is unchanged.
+
+Acceptance: full suite green unchanged; independent review compares old and new prompts rule by rule; one final live week at the reviewed head.
