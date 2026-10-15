@@ -43,7 +43,8 @@ class PostTypes:
         self._brand = None
         self._texts = {}
 
-    def _read(self, path: Path) -> str:
+    def text(self, path: Path) -> str:
+        """Return a run file as UTF-8 text, reading it at most once."""
         if path not in self._texts:
             self._texts[path] = read_utf8(path)
 
@@ -106,7 +107,7 @@ class PostTypes:
                 agent_name,
                 self.agent(agent_name),
                 self.spec(slot_type) if slot_type else None,
-                self._read,
+                self.text,
             )
 
         return self._prompts[key]
@@ -114,7 +115,7 @@ class PostTypes:
     def rubric(self, slot_type: str) -> Rubric:
         """Return the scoring criteria the reviewer applies to this post type."""
         if slot_type not in self._rubrics:
-            self._rubrics[slot_type] = load_rubric(self.root, self.spec(slot_type), self._read)
+            self._rubrics[slot_type] = load_rubric(self.root, self.spec(slot_type), self.text)
 
         return self._rubrics[slot_type]
 
@@ -123,7 +124,7 @@ class PostTypes:
         if slot_type not in self._hints:
             spec = self.spec(slot_type)
 
-            self._hints[slot_type] = self._read(
+            self._hints[slot_type] = self.text(
                 local_file(self.root / "post_types" / slot_type, spec.research.hints)
             )
 
@@ -139,7 +140,7 @@ class PostTypes:
     def brand(self) -> tuple[BrandRules, str]:
         """Return the brand rules and voice prose."""
         if self._brand is None:
-            self._brand = parse_brand(self._read(self.root / "inputs/brand-voice.md"))
+            self._brand = parse_brand(self.text(self.root / "inputs/brand-voice.md"))
 
         return self._brand
 

@@ -7,9 +7,10 @@ import pytest
 import yaml
 from test_pipeline import OfflineModels, search_factory
 
+from content_pipeline import model_client
 from content_pipeline.config import Settings, load_prompt, load_type
 from content_pipeline.models import ResolvedSlot
-from content_pipeline.pipeline import run_pipeline, validate_inputs
+from content_pipeline.pipeline import default_model_factory, run_pipeline, validate_inputs
 from content_pipeline.research import KnowledgeBase
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -90,6 +91,23 @@ async def test_post_type_files_are_parsed_once_per_run(tmp_path, monkeypatch):
 
     models = OfflineModels()
     output = tmp_path / "run"
+    current = {}
+
+    class OfflineTransport:
+        """Stand in for the network transport only; the client itself is the real one."""
+
+        def __init__(self, *args):
+            self.send = models.factory(*current["call"]).transport
+
+        async def __call__(self, messages, schema, max_tokens):
+            return await self.send(messages, schema, max_tokens)
+
+    monkeypatch.setattr(model_client, "LangChainTransport", OfflineTransport)
+
+    def factory(name, slot_id, context):
+        current["call"] = (name, slot_id, context)
+
+        return default_model_factory(name, slot_id, context)
 
     summary = await run_pipeline(
         root,
@@ -100,8 +118,8 @@ async def test_post_type_files_are_parsed_once_per_run(tmp_path, monkeypatch):
             ResolvedSlot(slot_id="d", type="tech-thread"),
         ],
         output,
-        settings=Settings(advisor_enabled=False),
-        model_factory=models.factory,
+        settings=Settings(allow_unpriced=True),
+        model_factory=factory,
         search_factory=search_factory,
     )
 

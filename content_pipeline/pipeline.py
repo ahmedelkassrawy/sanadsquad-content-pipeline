@@ -343,6 +343,7 @@ class RunContext:
     prices: Prices
     usage_lock: asyncio.Lock
     identity: RunIdentity | None = None
+    types: PostTypes | None = None
     model_limiter: asyncio.Semaphore | None = field(init=False)
 
     def __post_init__(self):
@@ -365,6 +366,7 @@ def default_model_factory(name, slot_id, context):
         prices=context.prices,
         usage_lock=context.usage_lock,
         limiter=context.model_limiter,
+        types=context.types,
     )
 
 
@@ -460,6 +462,7 @@ class Pipeline:
         self.plan = slots
 
         self.types = PostTypes(self.root)
+        context.types = self.types
         self.rules, _ = self.types.brand()
 
         self.kb = KnowledgeBase(self.root / "inputs/kb.json")
@@ -1260,7 +1263,8 @@ class Pipeline:
                 }
 
                 request = AdvisorRequest(
-                    evidence=evidence, instructions=instruction_files(self.root, self.plan)
+                    evidence=evidence,
+                    instructions=instruction_files(self.root, self.plan, self.types),
                 )
 
                 input_hash = hashlib.sha256(request.model_dump_json().encode()).hexdigest()
@@ -1277,7 +1281,9 @@ class Pipeline:
 
                     return {"advisor": saved.status, "advisor_reason": saved.reason}
 
-                output = await Advisor(self.root, self.client("advisor", "_run"))(request)
+                output = await Advisor(self.root, self.client("advisor", "_run"), self.types)(
+                    request
+                )
 
                 patch = advice_patch(request, output)
                 status = "completed"

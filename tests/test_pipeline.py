@@ -281,7 +281,11 @@ async def test_public_six_slot_run_produces_schema_valid_trails_png_and_order(tm
     assert (
         saved.slots["thread_1"].audit.approved().model_dump()
         == contracts.FinalPiece.model_validate(
-            json.loads((folder / "final.json").read_text())[0]
+            next(
+                piece
+                for piece in json.loads((folder / "final.json").read_text())
+                if piece["slot_id"] == "thread_1"
+            )
         ).draft.model_dump()
     )
     assert (folder / "run.log").read_text() == "export: complete\nsummary: complete\n"

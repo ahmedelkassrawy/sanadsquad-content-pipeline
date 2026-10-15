@@ -165,6 +165,7 @@ def load_prompt(root: Path, agent_name: str, post_type: str | None = None) -> st
 
 
 def read_utf8(path: Path) -> str:
+    """Read a text file as UTF-8."""
     return path.read_text(encoding="utf-8")
 
 
