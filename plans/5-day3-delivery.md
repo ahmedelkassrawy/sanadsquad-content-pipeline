@@ -163,3 +163,13 @@ Invariant: every other validator check, safe fix, reviewer, threshold and retry 
 Fix: `validate` reports `tweet_N:leaked_source_id:<id>` when the normalized text contains, as a whole token, any source_id of the slot's ResearchPack (KB-xx, STAT-xx, WEB-xx or any other id present in the pack). It is a real violation: the draft goes back to the writer, not auto-fixed.
 
 Acceptance: offline tests through `validate`: a tweet containing a pack source id (bare, in parentheses, case as written) is rejected with that violation; an id-like token not in the pack and ordinary text are not; it fails on the base. Full suite green.
+
+## S13 NVIDIA through the OpenAI-compatible endpoint (compact lane, 2026-10-15)
+
+Symptom: the hand audit of the final sample at 1ef45d1 found two unsupported clauses in thread_3 and a leaked STAT-03 that the free Mistral 14B reviewer (reasoning none) approved. Kassra asked for another provider. NVIDIA build.nvidia.com free API: LangChain's `nvidia` provider (`ChatNVIDIA`, langchain-nvidia-ai-endpoints 1.5.0) raises `NotImplementedError: include_raw=True is not implemented` for structured output, which the client needs for usage. The same API is OpenAI-compatible: `.runs/s7p-diag/smoke_openai_compat.py` shows `nvidia/nemotron-3-super-120b-a12b` returning parsed function-calling output with usage at efforts none, low and medium.
+
+Invariant: other providers unchanged; key read from `NVIDIA_API_KEY`; no new dependency (langchain-openai already declared).
+
+Fix: `LangChainTransport.prepare` treats `nvidia` like `openrouter` and `opencode`: base_url `https://integrate.api.nvidia.com/v1`, LangChain provider `openai`, structured method `function_calling`. OpenRouter-only options (reasoning disabled via extra_body) stay OpenRouter-only.
+
+Acceptance: offline test through `LangChainTransport.prepare` with a faked `init_chat_model` shows `nvidia:<model>` reads `NVIDIA_API_KEY`, calls provider `openai` with that base_url and function_calling; it fails on e3e27fc (provider `nvidia`, no base_url). Full suite green. Root then runs one final live week with the reviewer and marketing writer on NVIDIA.
