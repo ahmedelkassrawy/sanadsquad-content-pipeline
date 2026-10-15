@@ -89,3 +89,13 @@ Open low findings, queued as S6 for a Sonnet worker: measurement notes also land
 ## S6 review follow-ups for length feedback (compact lane, 2026-10-15)
 
 Implementer: Codex gpt-6.1-sol, medium (Kassra, 2026-10-15). Fix: a dropped slot's summary `reasons` exclude the writer-only `weighted_length` notes (DESIGN 2.6: validator violations plus reviewer reasons); `max_words` is at least one; tests cover a multi-tweet numbered thread measurement, a lowered limit, and a non-InvalidAdvice advisor ValueError still recording `failed_api`. Acceptance: red on base for the reasons and floor tests, focused tests green, full suite green.
+
+## S7 provider-agnostic credential lookup (compact lane, 2026-10-15)
+
+Ask (Kassra, 2026-10-15): switching providers should be a LangChain `provider:model` string plus a key in `.env`, not new code per provider. Today `LangChainTransport.prepare` refuses any provider missing from a hard-coded key-name map, and picks the structured-output method from a second hard-coded map, so Groq cannot run even with `langchain-groq` installed.
+
+Invariant: existing providers behave exactly as before (same key names, OpenRouter/OpenCode base URLs and reasoning handling, Gemini thinking options, structured-output methods); `.env` values are never logged or written; a missing or blank key still raises `missing credential for selected provider`.
+
+Fix: keep the explicit key-name overrides (`google_genai` -> `GEMINI_API_KEY`, and the current entries); any other provider whose name matches `^[a-z][a-z0-9_]*$` reads `<PROVIDER>_API_KEY` (for example `groq` -> `GROQ_API_KEY`); a provider name outside that pattern raises `unsupported configured model provider`. Providers without an explicit structured-output method use `function_calling`. Add `langchain-groq` to `pyproject.toml` dependencies and pin it in `requirements.txt`.
+
+Acceptance: a public-interface offline test through `LangChainTransport.prepare` with a faked `init_chat_model` shows `groq:<model>` reads `GROQ_API_KEY`, passes it as `api_key`, and requests `function_calling`; it fails on the base with `unsupported configured model provider`. Existing provider tests stay green; full suite green. Root then runs a live free-model probe on Groq.
