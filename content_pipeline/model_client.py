@@ -478,12 +478,13 @@ def configured_client(
     usage_path: Path,
     settings=None,
     credential_root: Path | None = None,
+    types=None,
     **kwargs,
 ):
     from .config import Settings, load_agent, resolve_model
 
     settings = settings or Settings.load(root)
-    agent = load_agent(root, agent_name)
+    agent = types.agent(agent_name) if types else load_agent(root, agent_name)
     model = resolve_model(settings, agent)
 
     return ModelClient(

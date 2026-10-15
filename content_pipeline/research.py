@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlparse, urljoin
 from skills.search_kb import KnowledgeBase
 from .models import ResolvedSlot
-from .config import load_type, load_angles, local_file
+from .post_types import PostTypes
 
 
 def __getattr__(name):
@@ -25,7 +25,9 @@ def assign_topics(
     history: list[list[str]] | None = None,
     *,
     allow_partial=False,
+    types: PostTypes | None = None,
 ):
+    types = types or PostTypes(root)
     history = (history or [])[-4:]
     historical = {id for run in history for id in run}
     used = set()
@@ -48,19 +50,7 @@ def assign_topics(
         if slot.focus:
             continue
 
-        spec = load_type(root, slot.type)
-        folder = root / "post_types" / slot.type
-
-        if spec.research.topic_source == "kb":
-            pool = [
-                e["id"]
-                for e in kb.search(
-                    local_file(folder, spec.research.hints).read_text(encoding="utf-8"),
-                    len(kb.entries),
-                )
-            ]
-        else:
-            pool = [angle.id for angle in load_angles(root, spec)]
+        pool = types.topic_pool(slot.type, kb, ranked=True)
 
         pools[slot.slot_id] = pool
 
