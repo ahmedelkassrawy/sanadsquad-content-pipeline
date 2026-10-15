@@ -121,6 +121,8 @@ def validate_inputs(root, slots, settings=None):
     for name in REQUIRED_RUN_FILES:
         local_file(root, name)
 
+    load_visual_backends(root)
+
 
 def _validate_slot_inputs(root, slot, settings):
     safe_name(slot.slot_id)

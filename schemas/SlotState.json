@@ -119,6 +119,21 @@
           ],
           "default": null,
           "title": "Fallback Reason"
+        },
+        "fallback_detail": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fallback Detail"
         }
       },
       "required": [

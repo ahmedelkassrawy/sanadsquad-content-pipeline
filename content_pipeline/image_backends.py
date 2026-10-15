@@ -4,7 +4,9 @@ import asyncio
 import base64
 import binascii
 import io
+import logging
 import os
+import re
 from urllib.parse import quote
 
 import httpx
@@ -12,6 +14,10 @@ from dotenv import dotenv_values
 from PIL import Image, ImageOps
 
 from .images import CARD_SIZE, render_card
+
+ACCOUNT_ID_PATTERN = re.compile(r"[0-9a-f]{32}")
+MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_SIDE = 4096
 
 
 def image_prompt(spec):
@@ -24,7 +30,20 @@ def image_prompt(spec):
     )
 
 
+def _silence_http_logs():
+    """Keep request URLs and headers out of the host application's log stream.
+
+    The Cloudflare URL carries the account id, so the library loggers stay
+    pinned: restoring an earlier level could re-enable the line while a
+    concurrent lane is still mid-request.
+    """
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
 async def _cloudflare_image(spec, account_id, token):
+    _silence_http_logs()
+
     url = (
         "https://api.cloudflare.com/client/v4/accounts/"
         + quote(account_id, safe="")
@@ -48,6 +67,9 @@ async def _cloudflare_image(spec, account_id, token):
     if not 200 <= response.status_code < 300:
         return None, ["http_error", *status]
 
+    if len(response.content) > MAX_RESPONSE_BYTES:
+        return None, ["response_too_large", *status]
+
     try:
         payload = response.json()
         encoded = payload["result"]["image"]
@@ -64,6 +86,9 @@ async def _cloudflare_image(spec, account_id, token):
 
     try:
         with Image.open(io.BytesIO(data)) as image:
+            if max(image.size) > MAX_IMAGE_SIDE:
+                return None, ["image_too_large", *status]
+
             image.load()
             background = ImageOps.fit(image.convert("RGB"), CARD_SIZE)
     except (OSError, ValueError, Image.DecompressionBombError):
@@ -85,6 +110,10 @@ async def render_image(spec, path, backends, credential_root, renderer, image_co
         token = (env.get("CLOUDFLARE_API_TOKEN") or "").strip()
 
         if not account_id or not token:
+            continue
+
+        if not ACCOUNT_ID_PATTERN.fullmatch(account_id):
+            detail = ["invalid_account_id"]
             continue
 
         await image_count("cloudflare_images")

@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+import logging
 import shutil
 from types import SimpleNamespace
 
@@ -10,23 +11,25 @@ from PIL import Image, ImageChops
 from test_pipeline import ROOT, OfflineModels, run, search_factory
 from test_visual_fallback import VisualModels
 
+from content_pipeline.image_backends import MAX_IMAGE_SIDE, MAX_RESPONSE_BYTES
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import Pipeline, run_pipeline
 
 TOKEN = "synthetic-cloudflare-token-must-not-leak"
+ACCOUNT_ID = "0f1e2d3c4b5a69788796a5b4c3d2e1f0"
 
 
-def image_bytes(format="PNG"):
+def image_bytes(format="PNG", size=(800, 800)):
     """Build a plain source image for checking code-drawn overlays."""
     stream = io.BytesIO()
-    Image.new("RGB", (800, 800), (50, 80, 90)).save(stream, format=format)
+    Image.new("RGB", size, (50, 80, 90)).save(stream, format=format)
     return stream.getvalue()
 
 
 def mock_cloudflare(monkeypatch, handler, credentials=True):
     """Route all image HTTP requests through a deterministic transport."""
     if credentials:
-        monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "account123")
+        monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", ACCOUNT_ID)
         monkeypatch.setenv("CLOUDFLARE_API_TOKEN", TOKEN)
     else:
         monkeypatch.delenv("CLOUDFLARE_ACCOUNT_ID", raising=False)
@@ -70,7 +73,7 @@ async def test_cloudflare_image_ships_with_code_overlay(tmp_path, monkeypatch, f
     assert len(requests) == 1
     request = requests[0]
     assert str(request.url) == (
-        "https://api.cloudflare.com/client/v4/accounts/account123/ai/run/"
+        "https://api.cloudflare.com/client/v4/accounts/" + ACCOUNT_ID + "/ai/run/"
         "@cf/black-forest-labs/flux-1-schnell"
     )
     assert request.headers["authorization"] == "Bearer " + TOKEN
@@ -83,6 +86,7 @@ async def test_cloudflare_image_ships_with_code_overlay(tmp_path, monkeypatch, f
     with Image.open(tmp_path / "run" / record["result"]["path"]) as image:
         assert image.format == "PNG"
         assert image.size == (1200, 675)
+        assert image.getpixel((1199, 674)) == (50, 80, 90)
         plain = Image.new("RGB", image.size, image.getpixel((1199, 674)))
         assert ImageChops.difference(image, plain).crop((80, 110, 1120, 500)).getbbox()
         assert (255, 255, 255) in image.crop((80, 110, 1120, 500)).get_flattened_data()
@@ -137,6 +141,7 @@ async def test_cloudflare_failure_falls_back_without_secret(
     assert summary.external_usage.pillow_cards == 1
     assert summary.external_usage.image_calls == 1
     assert TOKEN not in caplog.text
+    assert ACCOUNT_ID not in caplog.text
     for path in (tmp_path / "run").rglob("*"):
         if path.is_file():
             assert TOKEN.encode() not in path.read_bytes(), path
@@ -209,3 +214,92 @@ async def test_cloudflare_failure_keeps_visual_fallback_detail(tmp_path, monkeyp
         "http_error",
         "http_status:500",
     ]
+
+
+async def test_request_url_and_token_never_reach_logs(tmp_path, monkeypatch, caplog):
+    caplog.set_level("DEBUG")
+    logging.getLogger("httpx").setLevel(logging.DEBUG)
+    logging.getLogger("httpcore").setLevel(logging.DEBUG)
+
+    def handler(request):
+        return httpx.Response(
+            200, json={"result": {"image": base64.b64encode(image_bytes()).decode()}}
+        )
+
+    mock_cloudflare(monkeypatch, handler)
+    _, record = await run_image(tmp_path)
+    assert record["result"]["backend"] == "cloudflare_flux"
+    assert ACCOUNT_ID not in caplog.text
+    assert TOKEN not in caplog.text
+
+
+async def test_oversized_response_body_falls_back_to_card(tmp_path, monkeypatch):
+    def handler(request):
+        return httpx.Response(200, content=b"x" * (MAX_RESPONSE_BYTES + 1))
+
+    mock_cloudflare(monkeypatch, handler)
+    summary, record = await run_image(tmp_path)
+    assert record["result"]["backend"] == "pillow_card"
+    assert record["result"]["fallback_reason"] == "cloudflare_failed"
+    assert record["result"]["fallback_detail"] == ["response_too_large", "http_status:200"]
+    assert summary.external_usage.cloudflare_images == 1
+    assert summary.external_usage.image_calls == 1
+    assert summary.external_usage.pillow_cards == 1
+
+
+@pytest.mark.parametrize(
+    ("size", "backend", "detail"),
+    [
+        ((MAX_IMAGE_SIDE + 1, 64), "pillow_card", ["image_too_large", "http_status:200"]),
+        ((MAX_IMAGE_SIDE, 64), "cloudflare_flux", None),
+    ],
+)
+async def test_oversized_image_falls_back_to_card(tmp_path, monkeypatch, size, backend, detail):
+    def handler(request):
+        return httpx.Response(
+            200, json={"result": {"image": base64.b64encode(image_bytes(size=size)).decode()}}
+        )
+
+    mock_cloudflare(monkeypatch, handler)
+    _, record = await run_image(tmp_path)
+    assert record["result"]["backend"] == backend
+    assert record["result"]["fallback_detail"] == detail
+
+
+async def test_invalid_account_id_makes_no_request_and_falls_back(tmp_path, monkeypatch):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(
+            200, json={"result": {"image": base64.b64encode(image_bytes()).decode()}}
+        )
+
+    mock_cloudflare(monkeypatch, handler)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "Account123")
+    summary, record = await run_image(tmp_path)
+    assert requests == []
+    assert record["result"]["backend"] == "pillow_card"
+    assert record["result"]["fallback_reason"] == "cloudflare_failed"
+    assert record["result"]["fallback_detail"] == ["invalid_account_id"]
+    assert summary.external_usage.cloudflare_images == 0
+    assert summary.external_usage.pillow_cards == 1
+    assert "Account123" not in json.dumps(record)
+    for path in (tmp_path / "run").rglob("*"):
+        if path.is_file():
+            assert b"Account123" not in path.read_bytes(), path
+
+
+async def test_malformed_visual_config_fails_preflight(tmp_path):
+    root = tmp_path / "root"
+    for folder in ["inputs", "post_types", "agents", "skills", "config"]:
+        shutil.copytree(ROOT / folder, root / folder)
+    (root / "config/visual.yaml").write_text("backends: [cloudflare-flux]\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="invalid visual backends"):
+        await run_pipeline(
+            root,
+            [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")],
+            tmp_path / "run",
+            model_factory=OfflineModels().factory,
+            search_factory=search_factory,
+        )
