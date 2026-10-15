@@ -7,6 +7,7 @@ banned_words:
 - source_ids
 banned_characters:
 - —
+- ‑
 allowed_links:
 - example.com
 - scs.owasp.org
