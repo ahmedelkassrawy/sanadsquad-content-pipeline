@@ -142,6 +142,7 @@ class ImageResult(Contract):
     path: str
     backend: str
     fallback_reason: str | None = None
+    fallback_detail: list[str] | None = None
 
 
 class UsageRecord(Contract):

@@ -18,6 +18,7 @@ from .config import (
     load_angles,
     load_brand,
     load_type,
+    load_visual_backends,
     local_file,
     resolve_model,
 )
@@ -43,6 +44,7 @@ from .contracts import (
     WriteRequest,
 )
 from .images import fallback_spec, overlay_errors, render_card
+from .image_backends import render_image
 from .ledger import BudgetExhausted, Ledger
 from .model_client import ModelFailure, Prices, configured_client, valid_provider
 from .models import ImageResult, ResolvedSlot, SlotOutcome
@@ -1035,7 +1037,7 @@ class Pipeline:
         if saved.result.slot_id != state.slot.slot_id:
             raise ValueError("saved visual identity mismatch")
 
-        if saved.result.backend == "pillow_card":
+        if saved.result.backend in {"pillow_card", "cloudflare_flux"}:
             from PIL import Image
 
             with Image.open(path) as image:
@@ -1046,6 +1048,7 @@ class Pipeline:
 
     async def _visual_spec(self, state, request):
         reason = None
+        detail = None
 
         try:
             if state.slot.slot_id not in self.visuals:
@@ -1055,18 +1058,27 @@ class Pipeline:
 
             spec = await self.visuals[state.slot.slot_id](request)
 
-            if overlay_errors(spec, request, self.rules):
-                raise ValueError("invalid_overlay")
-        except Exception:
+            detail = overlay_errors(spec, request, self.rules)
+
+            if detail:
+                repair = request.model_copy(update={"attempt": 2})
+                spec = await self.visuals[state.slot.slot_id](repair, feedback=detail)
+                detail = overlay_errors(spec, request, self.rules)
+
+            if detail:
+                reason = "visual_fallback"
+                spec = fallback_spec(request, self.rules)
+        except Exception as error:
             reason = "visual_fallback"
+            detail = [type(error).__name__]
             spec = fallback_spec(request, self.rules)
 
         if overlay_errors(spec, request, self.rules):
             raise ValueError("fallback overlay failed grounding")
 
-        return spec, reason
+        return spec, reason, detail or None
 
-    async def _render_visual(self, state, spec, reason):
+    async def _render_visual(self, state, spec, reason, detail=None):
         filename = "slot-" + safe_name(state.slot.slot_id)
         spec_path = self.context.run_dir / "images" / (filename + ".json")
 
@@ -1079,7 +1091,18 @@ class Pipeline:
         await self.image_count("image_calls")
 
         try:
-            await asyncio.to_thread(self.renderer, spec, path)
+            backend, backend_reason, backend_detail = await render_image(
+                spec,
+                path,
+                load_visual_backends(self.root),
+                self.context.credential_root,
+                self.renderer,
+                self.image_count,
+            )
+
+            if backend_reason:
+                reason = backend_reason
+                detail = [*(detail or []), *(backend_detail or [])]
 
             from PIL import Image
 
@@ -1089,9 +1112,8 @@ class Pipeline:
 
                 image.verify()
 
-            await self.image_count("pillow_cards")
-
-            backend = "pillow_card"
+            if backend == "pillow_card":
+                await self.image_count("pillow_cards")
         except Exception:
             path = spec_path
             backend = "spec_json"
@@ -1102,6 +1124,7 @@ class Pipeline:
             path=path.relative_to(self.context.run_dir).as_posix(),
             backend=backend,
             fallback_reason=reason,
+            fallback_detail=detail,
         )
 
     async def visual(self, raw):
@@ -1133,9 +1156,9 @@ class Pipeline:
 
             return state.model_dump(mode="json")
 
-        spec, reason = await self._visual_spec(state, request)
+        spec, reason, detail = await self._visual_spec(state, request)
 
-        state.image = await self._render_visual(state, spec, reason)
+        state.image = await self._render_visual(state, spec, reason, detail)
 
         state.outcome = SlotOutcome.shipped
 

@@ -363,9 +363,20 @@ class VisualAgent(Agent):
     def __init__(self, root, client):
         super().__init__(root, "visual", client)
 
-    async def __call__(self, request: VisualRequest):
+    async def __call__(self, request: VisualRequest, feedback: list[str] | None = None):
+        instructions = (
+            "\nRepair the previous visual spec. Validation errors: " + ", ".join(feedback)
+            if feedback
+            else ""
+        )
+
         output = await self.invoke(
-            VisualOutput, request, request.slot_id, request.attempt, node="visual"
+            VisualOutput,
+            request,
+            request.slot_id,
+            request.attempt,
+            node="visual",
+            instructions=instructions,
         )
 
         identity(request.slot_id, request.attempt, output)
