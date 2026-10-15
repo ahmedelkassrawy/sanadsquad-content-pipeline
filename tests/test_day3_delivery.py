@@ -634,4 +634,6 @@ async def test_inline_source_ids_metadata_is_rejected_before_review_and_export(t
     assert summary.slots["a"].attempts == 2
     assert not any(call[2] == "ReviewAssessment" for call in models.calls)
     assert (tmp_path / "run/posts.csv").read_bytes() == b"Post Text,Image\r\n"
-    assert all("source_ids" in reason for reason in summary.slots["a"].reasons)
+    reasons = summary.slots["a"].reasons
+    assert any("banned_phrase:source_ids" in reason for reason in reasons)
+    assert any("leaked_source_id:KB-01" in reason for reason in reasons)

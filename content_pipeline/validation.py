@@ -93,6 +93,15 @@ def check_brand(text: str, rules: BrandRules) -> list[str]:
     return errors
 
 
+def check_leaked_source_ids(text: str, pack: ResearchPack) -> list[str]:
+    """Report pack source ids that appear as whole tokens in tweet text."""
+    return [
+        f"leaked_source_id:{source.source_id}"
+        for source in pack.sources
+        if re.search(r"(?<![\w-])" + re.escape(source.source_id) + r"(?![\w-])", text)
+    ]
+
+
 def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     if draft.slot_id != pack.slot_id:
         return ["slot_mismatch"]
@@ -138,6 +147,7 @@ def validate(
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
         errors.append("tweet_count")
     for i, tweet in enumerate(fixed.tweets, 1):
+        errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))
         errors.extend(f"tweet_{i}:{e}" for e in check_brand(tweet.text, rules))
         parsed = parse_tweet(tweet.text)
         if not parsed.valid and f"tweet_{i}:invalid_text" not in errors:
