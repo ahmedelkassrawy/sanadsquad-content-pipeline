@@ -10,6 +10,13 @@ from .ledger import Ledger
 from .models import CallFailureKind, CallFinishReason, UsageRecord
 
 
+OPENAI_COMPATIBLE_BASE_URLS = {
+    "openrouter": "https://openrouter.ai/api/v1",
+    "opencode": "https://opencode.ai/zen/v1",
+    "nvidia": "https://integrate.api.nvidia.com/v1",
+}
+
+
 def valid_provider(name: str) -> bool:
     return re.fullmatch(r"[a-z][a-z0-9_]*", name) is not None
 
@@ -329,12 +336,8 @@ class LangChainTransport:
             options["reasoning_effort"] = self.reasoning_effort
         elif provider == "openrouter":
             options["extra_body"] = {"reasoning": {"enabled": False}}
-        if provider in {"openrouter", "opencode"}:
-            options["base_url"] = (
-                "https://openrouter.ai/api/v1"
-                if provider == "openrouter"
-                else "https://opencode.ai/zen/v1"
-            )
+        if provider in OPENAI_COMPATIBLE_BASE_URLS:
+            options["base_url"] = OPENAI_COMPATIBLE_BASE_URLS[provider]
             provider = "openai"
         if provider == "google_genai":
             options.pop("max_tokens")
