@@ -16,6 +16,7 @@ class Settings(Contract):
     run_cost_budget_usd: float = Field(default=1.0, gt=0)
     allow_unpriced: bool = False
     advisor_enabled: bool = True
+    max_concurrency: int | None = Field(default=None, ge=1)
 
     @classmethod
     def load(cls, root: Path, overrides: dict | None = None):

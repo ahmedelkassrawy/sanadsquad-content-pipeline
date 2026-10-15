@@ -3,7 +3,7 @@ import hashlib
 import json
 import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, TypedDict
@@ -155,10 +155,14 @@ class RunContext:
     prices: Prices
     usage_lock: asyncio.Lock
     identity: RunIdentity | None = None
+    model_limiter: asyncio.Semaphore | None = field(init=False)
+
+    def __post_init__(self):
+        self.model_limiter = asyncio.Semaphore(self.settings.max_concurrency) if self.settings.max_concurrency is not None else None
 
 
 def default_model_factory(name,slot_id,context):
-    return configured_client(context.root,name,context.ledger,context.run_dir/"usage.jsonl",settings=context.settings,credential_root=context.credential_root,prices=context.prices,usage_lock=context.usage_lock)
+    return configured_client(context.root,name,context.ledger,context.run_dir/"usage.jsonl",settings=context.settings,credential_root=context.credential_root,prices=context.prices,usage_lock=context.usage_lock,limiter=context.model_limiter)
 
 
 def merge_slots(left,right):

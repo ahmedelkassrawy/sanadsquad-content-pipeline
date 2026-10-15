@@ -16,8 +16,8 @@ from .research import KnowledgeBase
 from .validation import validate
 
 
-async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpriced=False):
-    settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False,allow_unpriced=allow_unpriced)
+async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpriced=False,max_concurrency=None):
+    settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False,allow_unpriced=allow_unpriced,max_concurrency=max_concurrency)
     controls=json.loads(local_file(root,"config/live-review-controls.json").read_text(encoding="utf-8"))
     spec=load_type(root,controls["post_type"])
     kb=KnowledgeBase(root/"inputs/kb.json")
@@ -36,7 +36,8 @@ async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpr
     requests=[]
     reviews=[]
     try:
-        client=configured_client(root,"reviewer",ledger,output/"usage.jsonl",settings=settings,prices=prices)
+        limiter=asyncio.Semaphore(settings.max_concurrency) if settings.max_concurrency is not None else None
+        client=configured_client(root,"reviewer",ledger,output/"usage.jsonl",settings=settings,prices=prices,**({"limiter":limiter} if limiter is not None else {}))
         agent=Reviewer(root,spec.name,client)
         for name,request in prepared:
             requests.append(request.model_dump(mode="json"))
@@ -56,13 +57,13 @@ async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpr
 
 async def execute(args):
     slots=load_plan(args.root,args.root/"inputs/plan.json")
-    settings=Settings(model_override=args.model,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget,allow_unpriced=args.allow_unpriced)
+    settings=Settings(model_override=args.model,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget,allow_unpriced=args.allow_unpriced,max_concurrency=args.max_concurrency)
     validate_inputs(args.root,slots,settings)
     if args.output.exists(): raise ValueError("proof output already exists")
     args.output.mkdir(parents=True,exist_ok=False)
     passed=True
     if args.mode in {"reviewer","both"}:
-        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget,args.allow_unpriced)
+        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget,args.allow_unpriced,args.max_concurrency)
     if args.mode in {"sample","both"} and passed:
         summary=await run_pipeline(args.root,slots,args.output/"sample-week",settings)
         atomic_json(args.output/"sample-provenance.json",{"provenance":"live configured model/search; no injected factory","model":args.model,"complete_six":len(slots)==6 and summary.shipped==6,"summary":summary.model_dump(mode="json"),"note":"Brand statistics are fictional demo fixtures; KB owner approval remains pending."})
@@ -79,6 +80,7 @@ def main(argv=None):
     parser.add_argument("--mode",choices=["reviewer","sample","both"],default="both")
     parser.add_argument("--model",default="google_genai:gemini-2.5-flash")
     parser.add_argument("--token-budget",type=int,default=250000)
+    parser.add_argument("--max-concurrency",type=int)
     parser.add_argument("--cost-budget",type=float,default=1.0)
     parser.add_argument("--grounding-cost-budget",type=float,default=0.1)
     args=parser.parse_args(argv)

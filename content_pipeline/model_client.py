@@ -1,6 +1,7 @@
 import asyncio
 import json
 import math
+from contextlib import nullcontext
 from importlib.metadata import version
 from pathlib import Path
 from pydantic import BaseModel
@@ -27,6 +28,20 @@ def _safe_http_status(*values):
         if isinstance(value, int) and not isinstance(value, bool) and 100 <= value <= 599:
             return value
     return None
+
+
+def _retry_delay(error, status, transient):
+    delay = 2 ** (transient - 1)
+    if status != 429:
+        return delay
+    headers = getattr(getattr(error, "response", None), "headers", None) or {}
+    try:
+        retry_after = float(headers.get("Retry-After", headers.get("retry-after", 0)))
+    except (TypeError, ValueError):
+        retry_after = 0
+    if not math.isfinite(retry_after):
+        retry_after = 0
+    return max(5 * delay, min(retry_after, 60))
 
 
 def _safe_finish_reason(value):
@@ -298,7 +313,7 @@ def configured_client(root: Path, agent_name: str, ledger: Ledger, usage_path: P
 
 
 class ModelClient:
-    def __init__(self, model: str, ledger: Ledger, usage_path: Path, transport=None, prices=None, allow_unpriced=False, repair_prompt: Path | None = None, sleep=asyncio.sleep, usage_lock=None):
+    def __init__(self, model: str, ledger: Ledger, usage_path: Path, transport=None, prices=None, allow_unpriced=False, repair_prompt: Path | None = None, sleep=asyncio.sleep, usage_lock=None, limiter=None):
         self.model = model
         self.ledger = ledger
         self.usage_path = usage_path
@@ -308,6 +323,7 @@ class ModelClient:
         self.repair_prompt = repair_prompt or Path(__file__).resolve().parents[1] / "config" / "repair.md"
         self.sleep = sleep
         self.usage_lock = usage_lock or asyncio.Lock()
+        self.limiter = limiter
 
     def quote(self, inputs, outputs, cached=0, cache_creation=0):
         try:
@@ -343,7 +359,8 @@ class ModelClient:
             await self.ledger.reserve(call_id, reserve_tokens, cost)
             await self.ledger.dispatch(call_id)
             try:
-                result = await prepared.ainvoke(messages) if prepared is not None else await self.transport(messages, schema, max_output_tokens)
+                async with self.limiter if self.limiter is not None else nullcontext():
+                    result = await prepared.ainvoke(messages) if prepared is not None else await self.transport(messages, schema, max_output_tokens)
             except BaseException as error:
                 await self.ledger.uncertain(call_id)
                 status = getattr(error, "status_code", None) or getattr(error,"code",None)
@@ -362,7 +379,7 @@ class ModelClient:
                 retryable = isinstance(error, (TimeoutError, ConnectionError, APIConnectionError, AnthropicConnectionError)) or status in {408, 429, 500, 502, 503, 504}
                 if retryable and transient < 3:
                     transient += 1
-                    await self.sleep(2 ** (transient - 1))
+                    await self.sleep(_retry_delay(error, diagnostic_status, transient))
                     continue
                 raise ModelFailure("failed_api") from None
             if not isinstance(result, dict) or "raw" not in result:
