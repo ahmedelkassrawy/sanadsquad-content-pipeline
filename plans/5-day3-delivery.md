@@ -69,3 +69,13 @@ Invariant (unchanged): the advisor is suggest-only and fail-closed; `advice_patc
 Fix: `agents/advisor/system.md` states that `edits[].path` must be one of the keys of the request's `instructions` map and `source_sha256` its `sha256`; evidence record ids, slot ids and shipped or draft text are never edit targets; observations about shipped text (for example an encoding glitch) belong in `recommendations`. A public-interface offline test proves the instruction reaches the advisor's system message and that an edit targeting an evidence record id still fails closed with `failed_output`.
 
 Acceptance: focused pytest for the new test, then the full suite; root then reruns the advisor probe live and confirms `advisor: completed` on a fresh live week.
+
+## S5 KB-04..20 evidence enrichment (compact lane, 2026-10-15)
+
+Symptom: a live week shipped 6/6 but the coordinator content audit found approved unsupported claims (thread_2 on KB-06: "drain funds", "immutable", "verified on-chain"; thread_1: "often occur"). KB-04..20 carry about 50 characters each, while a tech thread needs at least five tweets, so writers pad beyond evidence. Free reviewer models also accepted the padding, so the fix belongs at the evidence source. Kassra chose this fix on 2026-10-15.
+
+Invariant: KB schema, ids, names, severity, category, aliases and the review_status label are unchanged; entries stay `pending_kassra_review`; severity remains an editorial label. Code, prompts, thresholds and tests are unchanged.
+
+Fix: rewrite `description` and `root_cause` of KB-04..20 to the depth of KB-01..03 (mechanism, a concrete example where the source gives one, version or chain conditions, mitigation), using only facts stated in the entry's primary references (SWC Registry entry, Solidity documentation, EIPs, OWASP Smart Contract Top 10). A reference may be added only if it is a primary source actually read. No statistics, prevalence words, incident names or monetary figures. Outdated SWC behaviour is stated with its version or chain condition (for example constructor naming before Solidity 0.4.22, selfdestruct after EIP-6780). A claim ledger outside the repo maps every added sentence to a quoted source line.
+
+Acceptance: kb.json loads through `KnowledgeBase`, the full suite passes, an independent reviewer spot-checks the claim ledger against the sources, then a fresh live week on a free OpenRouter model is audited by hand.
