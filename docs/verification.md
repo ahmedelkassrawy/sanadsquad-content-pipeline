@@ -78,8 +78,9 @@ and categories are not official ratings. Kassra owner review is still pending.
 Brand statistics remain deliberately fictional demo fixtures.
 
 Known limits: checkpoint windows can repeat billed work; unsaved external counters can
-be lost; local pre-call estimates can overshoot billing; USD covers LLM only; no Cloudflare
-adapter or scheduler-specific import/publishing is built. A sample package cannot resume.
+be lost; local pre-call estimates can overshoot billing; USD covers LLM only; the Cloudflare
+image adapter is built but tested offline only, with no real call yet; no
+scheduler-specific import or publishing is built. A sample package cannot resume.
 The pinned twitter-text parser emits the documented pkg_resources deprecation warning;
 setuptools is pinned below81 for compatibility. Live adapter coverage differs by provider;
 supporting an adapter does not claim every model/account combination was called live.

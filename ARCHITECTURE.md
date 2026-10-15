@@ -157,7 +157,8 @@ Every model call goes through one wrapper, `model_client.py`. It does four thing
 
 After each attempt, one function (`_decide_attempt`) decides both the money and the next
 step. Money: settle to the real usage, release the reservation, or keep it as an uncertain
-charge. Next step: return, retry, expand, repair or fail. A provider answer with HTTP 400 to
+charge. Next step: return, retry, expand, repair, fail, or raise the error again (cancellation, or
+an error that cannot be repaired). A provider answer with HTTP 400 to
 499 (except 408) is a definite refusal, so its reservation is released and the call is
 recorded as confirmed with zero tokens and zero cost. 401 and 403 end the slot
 `failed_api`, and 402 ends it `failed_budget`. Timeouts, connection errors, 408, 5xx,
@@ -208,8 +209,8 @@ numbering, research topic source, review threshold and hard-fail keys, visual te
 Name an existing writer agent, or add `agents/<writer>/` with `agent.yaml` and
 `system.md`. Then use the type in a plan. The orchestrator never names a post type. Tests
 copy `marketing-post` to a `case-study` type and run it with no Python change
-(`tests/test_pipeline.py:461`, and `tests/test_post_type_module.py:42`, which also checks
-that each file is read once per run). This covers types that fit research, write, validate,
+(`tests/test_pipeline.py:461` and `tests/test_post_type_module.py:42`;
+`tests/test_post_type_module.py:77` checks that each snapshot file is read once per run). This covers types that fit research, write, validate,
 review and visual. A new stage needs code.
 
 **Add a skill.** Add both `skills/<name>.md` and `skills/<name>.py` (start-up needs both),
