@@ -85,3 +85,7 @@ Acceptance: kb.json loads through `KnowledgeBase`, the full suite passes, an ind
 Live gpt-4.1-mini weeks dropped marketing posts at 293-445 weighted characters after the single content retry because the writer only received `tweet_N:length`. The validator node now appends writer-only measurements (`weighted_length`, overshoot, word count, `max_words` = limit / 7.5) to feedback, and the marketing writer budgets by words. Violations themselves are unchanged. Advice that code refuses now records `failed_output` instead of `failed_api` (DESIGN 6.10); fail-closed policy is unchanged. Independent Opus review of c1df937..fd608e7: CLEAN, red on base and green on head (2026-10-15).
 
 Open low findings, queued as S6 for a Sonnet worker: measurement notes also land in a dropped slot's summary `reasons` (free-form list, beyond DESIGN 2.6 wording); `max_words` floors to 0 below a limit of 8; no tests for a multi-tweet numbered thread, a lowered limit, or a non-InvalidAdvice advisor error still mapping to `failed_api`.
+
+## S6 review follow-ups for length feedback (compact lane, 2026-10-15)
+
+Implementer: Codex gpt-6.1-sol, medium (Kassra, 2026-10-15). Fix: a dropped slot's summary `reasons` exclude the writer-only `weighted_length` notes (DESIGN 2.6: validator violations plus reviewer reasons); `max_words` is at least one; tests cover a multi-tweet numbered thread measurement, a lowered limit, and a non-InvalidAdvice advisor ValueError still recording `failed_api`. Acceptance: red on base for the reasons and floor tests, focused tests green, full suite green.
