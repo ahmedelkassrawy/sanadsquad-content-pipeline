@@ -79,3 +79,10 @@ class Ledger:
             self.entries[call_id]["status"] = "uncertain"
 
             self._save()
+
+    async def release(self, call_id):
+        """Release a reservation after a definite provider refusal."""
+        async with self.lock:
+            self.entries[call_id]["status"] = "released"
+
+            self._save()
