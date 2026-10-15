@@ -18,6 +18,24 @@
       "default": null,
       "title": "Model Override"
     },
+    "reasoning_effort_override": {
+      "anyOf": [
+        {
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reasoning Effort Override"
+    },
     "max_tweet_chars": {
       "default": 280,
       "maximum": 280,
@@ -46,6 +64,19 @@
       "default": true,
       "title": "Advisor Enabled",
       "type": "boolean"
+    },
+    "max_concurrency": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Concurrency"
     }
   },
   "title": "Settings",
