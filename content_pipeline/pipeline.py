@@ -430,7 +430,7 @@ class Pipeline:
         state=lane_state(raw)
         if state.attempt>=2:
             state.outcome=SlotOutcome.dropped_quality
-            state.reasons=state.feedback or ["quality_rejected"]
+            state.reasons=[reason for reason in state.feedback if not (reason.startswith("tweet_") and ":weighted_length:" in reason)] or ["quality_rejected"]
         return state.model_dump(mode="json")
 
     async def visual(self,raw):
