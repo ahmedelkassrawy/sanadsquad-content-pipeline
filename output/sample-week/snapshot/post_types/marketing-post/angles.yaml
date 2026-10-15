@@ -1,0 +1,9 @@
+angles:
+- id: ANGLE-service
+  name: service
+- id: ANGLE-credibility
+  name: credibility
+- id: ANGLE-education
+  name: education-to-cta
+  source_ids:
+  - KB-01

@@ -1,0 +1,43 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "scores": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Scores",
+      "type": "object"
+    },
+    "reasons": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "object"
+    },
+    "hard_fail": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Hard Fail",
+      "type": "object"
+    }
+  },
+  "required": [
+    "slot_id",
+    "attempt",
+    "scores",
+    "reasons",
+    "hard_fail"
+  ],
+  "title": "ReviewAssessment",
+  "type": "object"
+}

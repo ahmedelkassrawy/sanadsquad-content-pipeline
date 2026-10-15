@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "CallFailureKind": {
+      "enum": [
+        "rate_limit",
+        "auth",
+        "payment",
+        "timeout",
+        "connection",
+        "server",
+        "provider_error",
+        "truncated",
+        "malformed_output",
+        "malformed_envelope",
+        "output_rejected",
+        "unknown"
+      ],
+      "title": "CallFailureKind",
+      "type": "string"
+    },
+    "CallFinishReason": {
+      "enum": [
+        "stop",
+        "end_turn",
+        "stop_sequence",
+        "tool_calls",
+        "function_call",
+        "length",
+        "max_tokens",
+        "error",
+        "content_filter",
+        "unknown"
+      ],
+      "title": "CallFinishReason",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "title": "Call Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Slot Id"
+    },
+    "node": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Node"
+    },
+    "attempt": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Attempt"
+    },
+    "model": {
+      "title": "Model",
+      "type": "string"
+    },
+    "input_tokens": {
+      "minimum": 0,
+      "title": "Input Tokens",
+      "type": "integer"
+    },
+    "output_tokens": {
+      "minimum": 0,
+      "title": "Output Tokens",
+      "type": "integer"
+    },
+    "cached_input_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Cached Input Tokens",
+      "type": "integer"
+    },
+    "reasoning_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Reasoning Tokens",
+      "type": "integer"
+    },
+    "estimated": {
+      "default": false,
+      "title": "Estimated",
+      "type": "boolean"
+    },
+    "cost_usd": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cost Usd"
+    },
+    "cost_source": {
+      "title": "Cost Source",
+      "type": "string"
+    },
+    "status": {
+      "default": "confirmed",
+      "enum": [
+        "confirmed",
+        "uncertain"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "overshoot_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Overshoot Tokens",
+      "type": "integer"
+    },
+    "failure_kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CallFailureKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "http_status": {
+      "anyOf": [
+        {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Http Status"
+    },
+    "finish_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CallFinishReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "call_id",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "cost_source"
+  ],
+  "title": "UsageRecord",
+  "type": "object"
+}

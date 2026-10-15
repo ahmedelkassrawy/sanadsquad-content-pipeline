@@ -1,0 +1,12 @@
+{
+  "concept": "Write to arbitrary storage location",
+  "scene": "Write to arbitrary storage location",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Write to arbitrary storage location",
+  "alt_text": "Write to arbitrary storage location",
+  "severity": "high"
+}

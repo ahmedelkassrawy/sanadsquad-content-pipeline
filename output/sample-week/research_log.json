@@ -1,0 +1,394 @@
+[
+  {
+    "record_id": "thread_1/research_search/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "KB-01",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+        "title": "Reentrancy",
+        "retrieved_at": "2026-10-15T14:47:55.585944Z",
+        "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-20",
+        "kind": "kb",
+        "url": "https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
+        "title": "Business logic errors",
+        "retrieved_at": "2026-10-15T14:47:55.585985Z",
+        "evidence_text": "Business logic vulnerabilities are design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. OWASP describes them as cases where intended economic or functional behavior can be subverted even though low-level checks such as type safety, reentrancy guards and access control are correct: the code does what it says, but what it says permits exploitable outcomes. OWASP lists invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions as areas to focus on. Its vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance, so the check enforces no economic invariant.\nRoot cause: The implementation omits or misapplies a required business invariant. OWASP recommends modeling protocol economics explicitly, for example with adversarial simulations, and expressing core invariants in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield. It also recommends formal verification and property-based fuzzing for key accounting paths, rolling out new strategies behind caps while monitoring metrics and on-chain invariants, and making sure governance and operations teams understand the invariants, not just auditors.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-02",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
+        "title": "Integer overflow and underflow",
+        "retrieved_at": "2026-10-15T14:47:55.585999Z",
+        "evidence_text": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.\nRoot cause: Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-03",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
+        "title": "Unchecked call return value",
+        "retrieved_at": "2026-10-15T14:47:55.586007Z",
+        "evidence_text": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.\nRoot cause: The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-04",
+        "kind": "kb",
+        "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
+        "title": "Unprotected Ether withdrawal",
+        "retrieved_at": "2026-10-15T14:47:55.586015Z",
+        "evidence_text": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. The SWC entry notes that this bug is sometimes caused by unintentionally exposing initialization functions: if a function intended to be a constructor is named wrongly, its code ends up in the runtime bytecode and can be called by anyone to re-initialize the contract. Before Solidity 0.4.22 a constructor was a function named exactly like its contract, so a name mismatch left it a normal callable function.\nRoot cause: Withdrawal functions lack effective caller authorization, so the contract does not check who may trigger a transfer of Ether out. Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system. Also check that initialization code cannot be called again by an arbitrary account. Since Solidity 0.4.22 the constructor keyword makes constructor definitions clearer than the old same-name rule. The SWC registry is no longer actively maintained, so treat its text as historical guidance.",
+        "status": "ok"
+      }
+    ],
+    "action": "search_kb",
+    "query": "reentrancy",
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/research/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_1",
+      "topic_id": "KB-01",
+      "topic_name": "Reentrancy",
+      "sources": [
+        {
+          "source_id": "KB-01",
+          "kind": "kb",
+          "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+          "title": "Reentrancy",
+          "retrieved_at": "2026-10-15T14:47:55.585944Z",
+          "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "KB-01",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+        "title": "Reentrancy",
+        "retrieved_at": "2026-10-15T14:47:55.585944Z",
+        "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/research/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_2",
+      "topic_id": "KB-08",
+      "topic_name": "Transaction order dependence",
+      "sources": [
+        {
+          "source_id": "KB-08",
+          "kind": "kb",
+          "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-114.md",
+          "title": "Transaction order dependence",
+          "retrieved_at": "2026-10-15T14:47:59.670189Z",
+          "evidence_text": "A race condition arises when code depends on the order of the transactions submitted to it. The SWC entry explains that miners choose which transactions go into a block based on gas price, and that someone running a node can see transactions before they are finalized. Example: a contract gives 1 token to the first person who solves a math problem. Alice submits the answer with a standard gas price, Eve sees it and submits the same answer with a much higher gas price, and Eve's transaction is processed first. Another example is the ERC20 approve function. Alice changes Eve's allowance from n to m, Eve submits a transferFrom of n with a higher gas price, and after Alice's transaction sets the allowance to m, Eve spends m as well, getting n + m instead of at most max(n,m).\nRoot cause: Shared state transitions rely on ordering that block producers can influence; the SWC text describes this in terms of miners and gas price. For reward-for-information cases, SWC suggests a commit-reveal hash scheme: the sender submits hash(salt, address, answer), the contract stores the hash and the sender's address, and later the sender submits the salt and answer so the contract can recompute hash(salt, msg.sender, answer) and release the reward on a match. For the ERC20 case, the best fix is to add the expected current allowance to approve and revert on a mismatch, but then the contract no longer conforms to ERC20. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "KB-08",
+        "kind": "kb",
+        "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-114.md",
+        "title": "Transaction order dependence",
+        "retrieved_at": "2026-10-15T14:47:59.670189Z",
+        "evidence_text": "A race condition arises when code depends on the order of the transactions submitted to it. The SWC entry explains that miners choose which transactions go into a block based on gas price, and that someone running a node can see transactions before they are finalized. Example: a contract gives 1 token to the first person who solves a math problem. Alice submits the answer with a standard gas price, Eve sees it and submits the same answer with a much higher gas price, and Eve's transaction is processed first. Another example is the ERC20 approve function. Alice changes Eve's allowance from n to m, Eve submits a transferFrom of n with a higher gas price, and after Alice's transaction sets the allowance to m, Eve spends m as well, getting n + m instead of at most max(n,m).\nRoot cause: Shared state transitions rely on ordering that block producers can influence; the SWC text describes this in terms of miners and gas price. For reward-for-information cases, SWC suggests a commit-reveal hash scheme: the sender submits hash(salt, address, answer), the contract stores the hash and the sender's address, and later the sender submits the salt and answer so the contract can recompute hash(salt, msg.sender, answer) and release the reward on a match. For the ERC20 case, the best fix is to add the expected current allowance to approve and revert on a mismatch, but then the contract no longer conforms to ERC20. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/research/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_3",
+      "topic_id": "KB-13",
+      "topic_name": "Write to arbitrary storage location",
+      "sources": [
+        {
+          "source_id": "KB-13",
+          "kind": "kb",
+          "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-124.md",
+          "title": "Write to arbitrary storage location",
+          "retrieved_at": "2026-10-15T14:47:59.768391Z",
+          "evidence_text": "A contract's data, such as the owner of the contract, is persistently stored at a storage location (a key or address) at the EVM level. The contract is responsible for ensuring that only authorized user or contract accounts may write to sensitive storage locations. If an attacker can write to arbitrary storage locations of a contract, authorization checks can be circumvented and storage can be corrupted, for instance by overwriting the field that stores the address of the contract owner.\nRoot cause: Storage index calculations permit writing unintended locations. All data structures share the same storage (address) space, so make sure that writes to one data structure cannot inadvertently overwrite entries of another data structure.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "KB-13",
+        "kind": "kb",
+        "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-124.md",
+        "title": "Write to arbitrary storage location",
+        "retrieved_at": "2026-10-15T14:47:59.768391Z",
+        "evidence_text": "A contract's data, such as the owner of the contract, is persistently stored at a storage location (a key or address) at the EVM level. The contract is responsible for ensuring that only authorized user or contract accounts may write to sensitive storage locations. If an attacker can write to arbitrary storage locations of a contract, authorization checks can be circumvented and storage can be corrupted, for instance by overwriting the field that stores the address of the contract owner.\nRoot cause: Storage index calculations permit writing unintended locations. All data structures share the same storage (address) space, so make sure that writes to one data structure cannot inadvertently overwrite entries of another data structure.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/research/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_1",
+      "topic_id": "ANGLE-service",
+      "topic_name": "service",
+      "sources": [
+        {
+          "source_id": "STAT-01",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:47:59.872318Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-02",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:47:59.872341Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-03",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:47:59.872350Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "STAT-01",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:47:59.872318Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-02",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:47:59.872341Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-03",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:47:59.872350Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_2",
+      "topic_id": "ANGLE-credibility",
+      "topic_name": "credibility",
+      "sources": [
+        {
+          "source_id": "STAT-01",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.098799Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-02",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.098830Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-03",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.098843Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "STAT-01",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.098799Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-02",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.098830Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-03",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.098843Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_3",
+      "topic_id": "ANGLE-education",
+      "topic_name": "education-to-cta",
+      "sources": [
+        {
+          "source_id": "KB-01",
+          "kind": "kb",
+          "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+          "title": "Reentrancy",
+          "retrieved_at": "2026-10-15T14:48:00.284998Z",
+          "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-01",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.284941Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-02",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.284963Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-03",
+          "kind": "stat",
+          "url": null,
+          "title": "Sentinel Grove",
+          "retrieved_at": "2026-10-15T14:48:00.284971Z",
+          "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "KB-01",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+        "title": "Reentrancy",
+        "retrieved_at": "2026-10-15T14:48:00.284998Z",
+        "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-01",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.284941Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove completed 12 fictional audits.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-02",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.284963Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove has 3 fictional auditors.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-03",
+        "kind": "stat",
+        "url": null,
+        "title": "Sentinel Grove",
+        "retrieved_at": "2026-10-15T14:48:00.284971Z",
+        "evidence_text": "DEMO FIXTURE ONLY: Sentinel Grove is a fictional smart contract audit service. In this fictional offering, teams can request a review of their smart contract code.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  }
+]

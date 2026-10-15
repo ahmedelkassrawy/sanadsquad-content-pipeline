@@ -1,0 +1,48 @@
+{
+  "record_id": "_run/plan/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "slots": [
+    {
+      "slot_id": "thread_1",
+      "type": "tech-thread",
+      "focus": "reentrancy",
+      "topic_id": "KB-01"
+    },
+    {
+      "slot_id": "thread_2",
+      "type": "tech-thread",
+      "focus": null,
+      "topic_id": "KB-08"
+    },
+    {
+      "slot_id": "thread_3",
+      "type": "tech-thread",
+      "focus": null,
+      "topic_id": "KB-13"
+    },
+    {
+      "slot_id": "marketing_1",
+      "type": "marketing-post",
+      "focus": null,
+      "topic_id": "ANGLE-service"
+    },
+    {
+      "slot_id": "marketing_2",
+      "type": "marketing-post",
+      "focus": null,
+      "topic_id": "ANGLE-credibility"
+    },
+    {
+      "slot_id": "marketing_3",
+      "type": "marketing-post",
+      "focus": null,
+      "topic_id": "ANGLE-education"
+    }
+  ],
+  "warnings": [
+    "history_exhausted:marketing_1",
+    "history_exhausted:marketing_2",
+    "history_exhausted:marketing_3"
+  ]
+}

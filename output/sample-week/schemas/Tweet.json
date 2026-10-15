@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "text": {
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "source_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "title": "Tweet",
+  "type": "object"
+}

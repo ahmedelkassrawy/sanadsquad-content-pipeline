@@ -1,0 +1,12 @@
+{
+  "concept": "Transaction order dependence",
+  "scene": "Transaction order dependence",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Transaction order dependence",
+  "alt_text": "Transaction order dependence",
+  "severity": "medium"
+}

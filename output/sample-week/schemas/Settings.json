@@ -1,0 +1,84 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "default_model": {
+      "default": "openrouter:openai/gpt-4.1-mini",
+      "title": "Default Model",
+      "type": "string"
+    },
+    "model_override": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Override"
+    },
+    "reasoning_effort_override": {
+      "anyOf": [
+        {
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reasoning Effort Override"
+    },
+    "max_tweet_chars": {
+      "default": 280,
+      "maximum": 280,
+      "minimum": 1,
+      "title": "Max Tweet Chars",
+      "type": "integer"
+    },
+    "run_token_budget": {
+      "default": 250000,
+      "minimum": 1,
+      "title": "Run Token Budget",
+      "type": "integer"
+    },
+    "run_cost_budget_usd": {
+      "default": 1.0,
+      "exclusiveMinimum": 0,
+      "title": "Run Cost Budget Usd",
+      "type": "number"
+    },
+    "allow_unpriced": {
+      "default": false,
+      "title": "Allow Unpriced",
+      "type": "boolean"
+    },
+    "advisor_enabled": {
+      "default": true,
+      "title": "Advisor Enabled",
+      "type": "boolean"
+    },
+    "max_concurrency": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Concurrency"
+    }
+  },
+  "title": "Settings",
+  "type": "object"
+}

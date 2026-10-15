@@ -1,0 +1,52 @@
+{
+  "$defs": {
+    "SlotOutcome": {
+      "enum": [
+        "shipped",
+        "dropped_quality",
+        "failed_research",
+        "failed_api",
+        "failed_budget",
+        "failed_output"
+      ],
+      "title": "SlotOutcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "outcome": {
+      "$ref": "#/$defs/SlotOutcome"
+    },
+    "attempts": {
+      "title": "Attempts",
+      "type": "integer"
+    },
+    "topic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Topic Id"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "outcome",
+    "attempts",
+    "topic_id",
+    "reasons"
+  ],
+  "title": "TerminalSlot",
+  "type": "object"
+}

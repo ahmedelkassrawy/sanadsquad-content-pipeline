@@ -1,0 +1,23 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "template": {
+      "title": "Template",
+      "type": "string"
+    },
+    "severity_badge": {
+      "enum": [
+        "auto",
+        "never"
+      ],
+      "title": "Severity Badge",
+      "type": "string"
+    }
+  },
+  "required": [
+    "template",
+    "severity_badge"
+  ],
+  "title": "VisualConfig",
+  "type": "object"
+}

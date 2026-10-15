@@ -1,0 +1,11 @@
+{
+  "default_model": "mistralai:ministral-14b-latest",
+  "model_override": null,
+  "reasoning_effort_override": "none",
+  "max_tweet_chars": 280,
+  "run_token_budget": 250000,
+  "run_cost_budget_usd": 1.0,
+  "allow_unpriced": true,
+  "advisor_enabled": true,
+  "max_concurrency": 2
+}
