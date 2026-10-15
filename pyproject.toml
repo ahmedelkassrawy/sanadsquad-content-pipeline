@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "sanadsquad-content-pipeline"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["pydantic", "pyyaml", "rank-bm25", "twitter-text-parser", "setuptools>=75,<81", "genai-prices", "langchain", "langchain-openai", "langchain-google-genai", "langchain-anthropic", "langchain-groq", "langchain-mistralai", "langgraph", "langgraph-checkpoint-sqlite", "pillow", "tavily-python", "ddgs", "trafilatura", "python-dotenv"]
+dependencies = ["pydantic", "pyyaml", "rank-bm25", "twitter-text-parser", "setuptools>=75,<81", "genai-prices", "langchain", "langchain-openai", "langchain-google-genai", "langchain-anthropic", "langchain-groq", "langchain-mistralai", "langgraph", "langgraph-checkpoint-sqlite", "pillow", "tavily-python", "ddgs", "trafilatura", "python-dotenv", "httpx"]
 
 [project.optional-dependencies]
 dev = ["ruff==0.17.0"]
