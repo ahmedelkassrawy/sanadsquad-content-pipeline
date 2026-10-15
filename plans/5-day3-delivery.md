@@ -111,3 +111,13 @@ Fix: one shared provider-name rule. `content_pipeline/model_client.py` exposes t
 Acceptance: an offline test through `validate_inputs` with a `groq:` model fails on 72f8d84 with `invalid configured model reference` and passes after; a malformed provider and an OpenRouter reference without `/` still fail; full suite green. Root then reruns the Groq live sample.
 
 Open low findings from the S7 Opus review (not fixed here): F2 Groq/Gemini connection and timeout errors are not retried and record `unknown`; F3 Groq HTTP 400 `tool_use_failed` ends as `failed_api` without a repair attempt. F1 (reasoning_effort rejected on qwen) was disproved by a live call.
+
+## S7c run-wide reasoning-effort override and Mistral (compact lane, 2026-10-15)
+
+Symptom: Kassra needs the final sample today; free OpenRouter (50 requests/day), Gemini (20/day) and Groq (8,000 TPM) cannot finish a week. Mistral's free plan allows `ministral-14b-latest` at 937,500 TPM and 30 RPM. A real structured call through `LangChainTransport` (`.runs/s7p-diag/smoke_provider.py`) succeeds at effort `none` but returns HTTP 400 `reasoning_effort is not enabled for this model` at `low` and `medium`, and every agent config sets low or medium. `--model` already overrides every agent's model; there is no matching override for effort.
+
+Invariant: without the override, every agent keeps its configured `reasoning_effort` exactly as today, including Gemini thinking handling; reviewer, thresholds, retries and the grounding control are unchanged (the grounding control still has to PASS before the sample runs).
+
+Fix: `Settings.reasoning_effort_override` (`none|low|medium|high`, default unset; env `REASONING_EFFORT_OVERRIDE`) replaces each agent's `reasoning_effort` in `configured_client` when set. `live_proof` gets `--reasoning-effort` (applied to the grounding control and the sample, and recorded in `sample-provenance.json` and the grounding report); `cli` gets `--reasoning-effort-override`, refused on resume like the other overrides. Add `langchain-mistralai` to `pyproject.toml` and pin `langchain-mistralai==1.1.6` plus its new transitive pins in `requirements.txt`.
+
+Acceptance: an offline test shows the override reaches `LangChainTransport` for every agent and that without it agent efforts are unchanged; it fails on the base. Resume refuses the new flag. Full suite green. Root then runs the live sample with `--model mistralai:ministral-14b-latest --reasoning-effort none --allow-unpriced`.
