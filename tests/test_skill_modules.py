@@ -1,6 +1,10 @@
-"""The pipeline calls the skill modules: the brand validator, overlay check and research tools."""
+"""The pipeline calls the skill modules: the brand validator, overlay check, research tools.
 
-import importlib
+Each caller looks the skill function up on its module when it runs, so patching the skill changes
+the caller's result without reloading any consumer. The distribution ships the skill modules too.
+"""
+
+import tomllib
 from pathlib import Path
 
 import skills.brand_rules
@@ -42,6 +46,28 @@ def draft(text="State before calls.", count=5, slot_id="thread_1"):
     )
 
 
+def visual_request(severity=None, slot_id="thread_1"):
+    return VisualRequest(
+        slot_id=slot_id,
+        attempt=1,
+        draft=draft(slot_id=slot_id),
+        research=pack(slot_id=slot_id),
+        post_type=load_type(ROOT, "tech-thread"),
+        severity=severity,
+    )
+
+
+def image_spec(overlay_text="State before calls.", severity=None):
+    return ImageSpec(
+        concept="Reentrancy",
+        scene="Reentrancy",
+        palette=brand_rules().palette,
+        overlay_text=overlay_text,
+        alt_text=overlay_text,
+        severity=severity,
+    )
+
+
 def test_brand_rules_skill_is_the_mechanical_brand_check():
     rules = brand_rules()
     banned = rules.banned_words[0]
@@ -71,39 +97,46 @@ def test_validator_calls_the_brand_rules_skill(monkeypatch):
     assert len(seen) == 5
 
 
-def test_overlay_check_takes_the_brand_check_from_the_skill_module(monkeypatch):
-    assert images.check_brand is skills.brand_rules.check_brand
-
+def test_overlay_check_uses_the_brand_rules_skill_without_reload(monkeypatch):
     rules = brand_rules()
-    request = VisualRequest(
-        slot_id="thread_1",
-        attempt=1,
-        draft=draft(),
-        research=pack(),
-        post_type=load_type(ROOT, "tech-thread"),
-    )
-    spec = ImageSpec(
-        concept="Reentrancy",
-        scene="Reentrancy",
-        palette=rules.palette,
-        overlay_text="State before calls.",
-        alt_text="State before calls.",
-    )
+    request = visual_request()
+    spec = image_spec()
 
     assert images.overlay_errors(spec, request, rules) == []
 
-    monkeypatch.setattr(
-        skills.brand_rules, "check_brand", lambda text, brand: ["banned_phrase:synergy"]
-    )
+    monkeypatch.setattr(skills.brand_rules, "check_brand", lambda text, brand: ["review_marker"])
 
-    try:
-        # Re-run the overlay module's import line: it must bind the skill's function.
-        importlib.reload(images)
+    assert images.overlay_errors(spec, request, rules) == ["review_marker"]
 
-        assert images.overlay_errors(spec, request, rules) == ["banned_phrase:synergy"]
-    finally:
-        monkeypatch.undo()
-        importlib.reload(images)
+
+def test_overlay_check_uses_the_brand_rules_skill_for_the_severity_badge(monkeypatch):
+    rules = brand_rules()
+    request = visual_request(severity="High")
+    spec = image_spec(severity="High")
+
+    assert images.overlay_errors(spec, request, rules) == []
+
+    def fake_check_brand(text, brand):
+        return ["review_marker"] if text == "High" else []
+
+    monkeypatch.setattr(skills.brand_rules, "check_brand", fake_check_brand)
+
+    assert images.overlay_errors(spec, request, rules) == ["review_marker"]
+
+
+def test_fallback_spec_uses_the_brand_rules_skill_without_reload(monkeypatch):
+    rules = brand_rules()
+    request = visual_request(severity="High")
+
+    def fake_check_brand(text, brand):
+        return ["review_marker"] if text == "High" else []
+
+    monkeypatch.setattr(skills.brand_rules, "check_brand", fake_check_brand)
+
+    spec = images.fallback_spec(request, rules)
+
+    assert spec.overlay_text == request.research.topic_name
+    assert spec.severity is None
 
 
 def test_research_tools_call_the_skill_modules(monkeypatch):
@@ -137,7 +170,6 @@ def test_research_tools_call_the_skill_modules(monkeypatch):
 
 def test_old_import_paths_are_re_exports_of_the_skill_modules():
     assert validation.check_brand is skills.brand_rules.check_brand
-    assert images.check_brand is skills.brand_rules.check_brand
     assert research.KnowledgeBase is skills.search_kb.KnowledgeBase
     assert research.WebSearch is skills.web_search.WebSearch
 
@@ -146,3 +178,14 @@ def test_old_import_paths_are_re_exports_of_the_skill_modules():
     assert skills.search_kb.KnowledgeBase.__module__ == "skills.search_kb"
     assert skills.web_search.web_search.__module__ == "skills.web_search"
     assert skills.web_search.WebSearch.__module__ == "skills.web_search"
+
+
+def test_skills_package_ships_in_the_distribution():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    include = pyproject["tool"]["setuptools"]["packages"]["find"]["include"]
+
+    assert "skills*" in include
+    assert (ROOT / "skills/__init__.py").is_file()
+    assert (ROOT / "skills/brand_rules.py").is_file()
+    assert (ROOT / "skills/search_kb.py").is_file()
+    assert (ROOT / "skills/web_search.py").is_file()

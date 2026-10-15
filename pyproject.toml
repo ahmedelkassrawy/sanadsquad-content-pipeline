@@ -12,7 +12,7 @@ dependencies = ["pydantic", "pyyaml", "rank-bm25", "twitter-text-parser", "setup
 dev = ["ruff==0.17.0"]
 
 [tool.setuptools.packages.find]
-include = ["content_pipeline*"]
+include = ["content_pipeline*", "skills*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

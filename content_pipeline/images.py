@@ -2,11 +2,11 @@ import re
 from pathlib import Path
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from .models import ImageSpec
-from skills.brand_rules import check_brand
+from skills import brand_rules
 
 
 def overlay_errors(spec, request, rules):
-    errors = check_brand(spec.overlay_text, rules)
+    errors = brand_rules.check_brand(spec.overlay_text, rules)
 
     texts = (
         [tweet.text for tweet in request.draft.tweets]
@@ -46,7 +46,7 @@ def overlay_errors(spec, request, rules):
         errors.append("source_severity")
 
     if spec.severity:
-        errors.extend(check_brand(spec.severity, rules))
+        errors.extend(brand_rules.check_brand(spec.severity, rules))
 
     return errors
 
@@ -70,7 +70,7 @@ def fallback_spec(request, rules):
             else None,
         )
 
-        if spec.severity and check_brand(spec.severity, rules):
+        if spec.severity and brand_rules.check_brand(spec.severity, rules):
             spec.severity = None
 
         if not overlay_errors(spec, request, rules):
