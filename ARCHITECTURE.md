@@ -30,7 +30,7 @@ flowchart TD
 
   TS -.->|"slot with failed research skips the lane work"| C
   W -.->|"API or budget failure"| C
-  R -.->|"API or budget failure"| C
+  R -.->|"API or budget failure, or malformed review"| C
   W -.->|"writer output malformed"| RT
   C --> EX["export: posts.csv and posts.json, plan order"]
   EX --> AD["advisor: suggest only"]
@@ -158,7 +158,8 @@ result as a possible charge. Keep run folders and checkpoints private.
 After export, `advisor.py` asks a model for suggested edits to the brand voice and to each
 used type's writer instructions and rubric. It reads the saved research, drafts, reviews
 and final pieces. Code then checks every suggestion before it is kept. An edit must match
-the current file text, must not touch the brand rules at the top of `brand-voice.md`, and
+the current file text, must not touch the YAML front matter at the top of `brand-voice.md`
+or of a rubric file, and
 must not change any line that contains a number. The patch is size-capped. Code builds
 `advice.patch` itself and nothing is applied for you. If the advisor fails, the failure is
 recorded and the posts are unaffected.
