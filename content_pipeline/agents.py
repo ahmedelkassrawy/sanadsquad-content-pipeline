@@ -1,5 +1,4 @@
 import asyncio
-import json
 from pathlib import Path
 import yaml
 from pydantic import ValidationError
@@ -9,7 +8,6 @@ from .contracts import (
     ResearchRecord,
     ResearchRequest,
     ResearchTurn,
-    ReviewAssessment,
     ReviewRequest,
     Rubric,
     TopicChoiceRequest,
@@ -21,7 +19,12 @@ from .contracts import (
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
 from .tools import research_tools
-from .review_wire import canonical_review, review_wire_schema
+from .review_scoring import (
+    canonical_review,
+    review_contract_errors,
+    review_wire_schema,
+    score_review,
+)
 
 
 def identity(slot_id, attempt, output):
@@ -36,99 +39,6 @@ def load_rubric(root: Path, spec):
         raise ValueError("rubric needs criteria front matter")
 
     return Rubric.model_validate(yaml.safe_load(text.split("---", 2)[1]))
-
-
-def score_review(request: ReviewRequest, assessment: ReviewAssessment) -> Review:
-    identity(request.slot_id, request.attempt, assessment)
-
-    criteria = set(request.rubric.criteria)
-    hard = set(request.post_type.review.hard_fail)
-
-    if set(assessment.scores) != criteria or set(assessment.hard_fail) != hard:
-        raise ModelFailure("failed_output")
-
-    if any(not 1 <= score <= 5 for score in assessment.scores.values()):
-        raise ModelFailure("failed_output")
-
-    required_reasons = criteria | {key for key, value in assessment.hard_fail.items() if value}
-
-    if any(not assessment.reasons.get(key, "").strip() for key in required_reasons):
-        raise ModelFailure("failed_output")
-
-    hard_fail = [key for key, value in assessment.hard_fail.items() if value]
-    average = sum(assessment.scores.values()) / len(criteria)
-    accepted = average >= request.post_type.review.pass_avg and not hard_fail
-
-    reasons = [
-        assessment.reasons[key]
-        for key in request.rubric.criteria
-        if assessment.scores[key] < request.post_type.review.pass_avg
-    ]
-
-    reasons.extend(assessment.reasons[key] for key in hard_fail)
-
-    if not accepted and not reasons:
-        reasons = [assessment.reasons[key] for key in request.rubric.criteria]
-
-    return Review(
-        slot_id=request.slot_id,
-        scores=assessment.scores,
-        reasons=reasons,
-        hard_fail=hard_fail,
-        accepted=accepted,
-    )
-
-
-def review_contract_errors(request, assessment):
-    errors = []
-    criteria = set(request.rubric.criteria)
-    hard = set(request.post_type.review.hard_fail)
-
-    for field, required in [("scores", criteria), ("hard_fail", hard)]:
-        values = getattr(assessment, field)
-
-        errors.extend(
-            {"type": "missing", "loc": (field, key), "input": None}
-            for key in sorted(required - set(values))
-        )
-
-        if set(values) - required:
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": (field,),
-                    "input": None,
-                    "ctx": {"error": ValueError("unexpected rubric fields")},
-                }
-            )
-
-    for field in ["slot_id", "attempt"]:
-        if getattr(assessment, field) != getattr(request, field):
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": (field,),
-                    "input": None,
-                    "ctx": {"error": ValueError("identity mismatch")},
-                }
-            )
-
-    for key in criteria:
-        if key in assessment.scores and not 1 <= assessment.scores[key] <= 5:
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": ("scores", key),
-                    "input": None,
-                    "ctx": {"error": ValueError("score outside 1..5")},
-                }
-            )
-
-    for key in criteria | {key for key in hard if assessment.hard_fail.get(key)}:
-        if not assessment.reasons.get(key, "").strip():
-            errors.append({"type": "missing", "loc": ("reasons", key), "input": None})
-
-    return errors
 
 
 class Agent:
