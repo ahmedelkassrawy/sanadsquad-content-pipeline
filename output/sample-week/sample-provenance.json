@@ -1,27 +1,26 @@
 {
   "provenance": "live run of run_week.py against real providers; no injected or synthetic models",
-  "commit": "c234f25",
+  "commit": "9e19ac2",
   "command": "MODEL_OVERRIDE= python run_week.py --plan inputs/plan.json --output <run> --default-model mistralai:ministral-14b-latest --reasoning-effort-override none --allow-unpriced --max-concurrency 2",
   "models_by_agent_node": {
     "mistralai:ministral-14b-latest": {
       "research_step_1": 1,
       "research_topics": 1,
-      "writer": 4,
       "visual": 6,
-      "advisor": 1
+      "advisor": 2
     },
-    "nvidia:nvidia/nemotron-3-super-120b-a12b": {
-      "writer": 4,
-      "reviewer": 8
+    "anthropic:claude-sonnet-5-5": {
+      "writer": 6,
+      "reviewer": 6
     }
   },
   "reasoning_effort_override": "none",
   "complete_six": true,
   "summary": {
     "shipped": 6,
-    "confirmed_tokens": 100977,
+    "confirmed_tokens": 112378,
     "uncertain_tokens": 0,
-    "confirmed_cost_usd": 0.0,
+    "confirmed_cost_usd": 0.2377996,
     "unpriced": true,
     "advisor": "failed",
     "advisor_reason": "failed_output",
@@ -37,18 +36,18 @@
     "thread_2": {
       "outcome": "shipped",
       "attempts": 1,
-      "topic_id": "KB-08",
+      "topic_id": "KB-02",
       "reasons": []
     },
     "thread_3": {
       "outcome": "shipped",
-      "attempts": 2,
-      "topic_id": "KB-13",
+      "attempts": 1,
+      "topic_id": "KB-03",
       "reasons": []
     },
     "marketing_1": {
       "outcome": "shipped",
-      "attempts": 2,
+      "attempts": 1,
       "topic_id": "ANGLE-service",
       "reasons": []
     },
@@ -65,5 +64,5 @@
       "reasons": []
     }
   },
-  "note": "Free-tier models: costs are unpriced and reported as 0 USD. Brand statistics are fictional demo fixtures; KB owner approval remains pending. Every shipped post was checked by hand against research_log.json evidence before packaging (2026-10-15)."
+  "note": "Writers and reviewer on paid Claude Sonnet 5.5 (priced); research, visual and advisor on free Mistral (unpriced, 0 USD). Brand statistics are fictional demo fixtures; KB owner approval remains pending. Every shipped post was checked by hand against research_log.json evidence before packaging (2026-10-15)."
 }

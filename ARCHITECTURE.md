@@ -97,9 +97,12 @@ alone proves no claim, so the reviewer checks every factual clause, cited or not
 
 ## Model choice is configuration
 
-- `DEFAULT_MODEL` in `.env` (or `--default-model`) is used by every agent.
+- `DEFAULT_MODEL` in `.env` (or `--default-model`) is used by every agent that does not
+  set its own.
 - An agent's `agent.yaml` can set `model:` to override it. The committed config pins the
-  reviewer and marketing writer to `nvidia:nvidia/nemotron-3-super-120b-a12b`.
+  thread writer, marketing writer and reviewer to `anthropic:claude-sonnet-5-5`. The
+  earlier free sample pinned the reviewer and marketing writer to
+  `nvidia:nvidia/nemotron-3-super-120b-a12b` instead.
 - `MODEL_OVERRIDE` (or `--model-override`) replaces the model of every agent at once.
 - `REASONING_EFFORT_OVERRIDE` (or `--reasoning-effort-override`) replaces every agent's
   effort. There is no per-agent effort override yet.

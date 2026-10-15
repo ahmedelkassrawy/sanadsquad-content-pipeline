@@ -1,12 +1,12 @@
 {
-  "concept": "Smart Contract Audit Service",
-  "scene": "A clean, minimalist workspace with a focus on a code review interface on a monitor. Subtle abstract elements like interconnected nodes or a circuit-like pattern in the background symbolize security and precision.",
+  "concept": "service",
+  "scene": "service",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Request a review",
-  "alt_text": "Illustration of a secure code review process for smart contracts, emphasizing precision and audit readiness. The background features a workspace with a monitor displaying code, symbolizing Sentinel Grove's fictional smart contract audit service.",
+  "overlay_text": "service",
+  "alt_text": "service",
   "severity": null
 }

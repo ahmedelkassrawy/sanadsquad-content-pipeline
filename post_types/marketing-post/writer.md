@@ -12,6 +12,7 @@ Write one marketing post, exactly one tweet, from the supplied research pack. Ci
 - Use only IDs and evidence_text actually supplied in this slot's ResearchPack. Shared brand instructions do not add sources.
 - Keep every independently factual clause supported; a real citation ID does not support unrelated claims in the same tweet. Reference URLs do not supply unseen evidence.
 - Do not add prevalence claims ("most vulnerabilities", "often stem from logic errors"), new technical explanations, or an audit's ability to catch or prevent problems unless the supplied evidence supports them.
+- Keep the evidence's own level of detail. Do not make it more specific than it is: if the evidence says a callback can withdraw "again", do not write "twice"; add no counts, sizes or outcomes it does not state.
 
 ## The firm is fictional
 
@@ -20,7 +21,7 @@ Write one marketing post, exactly one tweet, from the supplied research pack. Ci
 
 ## How to write it
 
-Write a finished, reader-facing post around one supported point, not a list of brand facts. Open with a specific question or contrast tied to the supplied angle and evidence; avoid generic hooks. Develop only what the evidence says, then end with a direct next step that the supplied evidence supports. Do not force a service CTA onto a technical post or add a claim to make the CTA sound stronger.
+Write a finished, reader-facing post around one supported point, not a list of brand facts. Open with a specific question or contrast tied to the supplied angle and evidence; avoid generic hooks. Develop only what the evidence says, then end with a direct next step that the supplied evidence supports. Do not force a service CTA onto a technical post or add a claim to make the CTA sound stronger. If you open with a question, the next sentence must answer it; never leave the opening question hanging.
 
 Use at most three sentences:
 

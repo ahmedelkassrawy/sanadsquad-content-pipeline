@@ -1,117 +1,5 @@
 [
   {
-    "record_id": "thread_2/validator/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "audit": {
-      "original": {
-        "slot_id": "thread_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "What happens when your smart contract\u2019s logic depends on the order of transactions\u2014and miners or attackers can influence that order? This is transaction order dependence, a race condition risk.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "Miners prioritize transactions by gas price, not submission time. If Alice submits a transaction with a low gas fee, an attacker like Eve can front-run it by submitting the same action with a higher fee. The miner picks Eve\u2019s transaction first.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "Example: A contract rewards the first solver of a math problem. Alice submits her answer, but Eve sees it, submits the same answer with higher gas, and claims the reward instead. The contract\u2019s logic assumed Alice would go first.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "Another case: ERC20\u2019s approve function. Alice sets Eve\u2019s allowance to *m*, but Eve front-runs by transferring *n* (the old allowance) before Alice\u2019s update takes effect. Eve ends up with *n + m*\u2014more than intended.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "Root cause: Shared state transitions assume a fixed order, but miners (or malicious actors) can rearrange transactions. The fix depends on the use case: commit-reveal schemes for reward systems, or stricter checks for approvals.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "For ERC20, one fix is to add a check comparing the expected allowance to the current one\u2014but this breaks ERC20 compliance. A safer alternative is a custom approve function or resetting allowances to zero before updates.",
-            "source_ids": [
-              "KB-08"
-            ]
-          },
-          {
-            "text": "Key takeaway: If your contract relies on transaction order, assume it can be manipulated. Design for unpredictability\u2014use commit-reveal patterns or enforce strict preconditions to mitigate front-running risks.",
-            "source_ids": [
-              "KB-08"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/7 What happens when your smart contract's logic depends on the order of transactions, and miners or attackers can influence that order? This is transaction order dependence, a race condition risk.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "2/7 Miners prioritize transactions by gas price, not submission time. If Alice submits a transaction with a low gas fee, an attacker like Eve can front-run it by submitting the same action with a higher fee. The miner picks Eve's transaction first.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "3/7 Example: A contract rewards the first solver of a math problem. Alice submits her answer, but Eve sees it, submits the same answer with higher gas, and claims the reward instead. The contract's logic assumed Alice would go first.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "4/7 Another case: ERC20's approve function. Alice sets Eve's allowance to *m*, but Eve front-runs by transferring *n* (the old allowance) before Alice's update takes effect. Eve ends up with *n + m*, more than intended.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "5/7 Root cause: Shared state transitions assume a fixed order, but miners (or malicious actors) can rearrange transactions. The fix depends on the use case: commit-reveal schemes for reward systems, or stricter checks for approvals.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "6/7 For ERC20, one fix is to add a check comparing the expected allowance to the current one, but this breaks ERC20 compliance. A safer alternative is a custom approve function or resetting allowances to zero before updates.",
-          "source_ids": [
-            "KB-08"
-          ]
-        },
-        {
-          "text": "7/7 Key takeaway: If your contract relies on transaction order, assume it can be manipulated. Design for unpredictability, use commit-reveal patterns or enforce strict preconditions to mitigate front-running risks.",
-          "source_ids": [
-            "KB-08"
-          ]
-        }
-      ],
-      "fixes": [
-        "tweet_1:banned_characters",
-        "tweet_1:curly_quotes",
-        "tweet_2:curly_quotes",
-        "tweet_3:curly_quotes",
-        "tweet_4:banned_characters",
-        "tweet_4:curly_quotes",
-        "tweet_6:banned_characters",
-        "tweet_7:banned_characters"
-      ],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
@@ -121,49 +9,49 @@
         "attempt": 1,
         "tweets": [
           {
-            "text": "What happens when a contract\u2019s external call hands control to another contract\u2014before the original call finishes? The answer is reentrancy, a classic vulnerability in smart contracts.",
+            "text": "Your withdraw function sends Ether, then clears the caller's balance. What can the recipient do in the gap between those two steps? That gap is where reentrancy lives.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The root cause lies in how state updates are deferred. When a contract makes an external call, it temporarily surrenders control. If the called contract calls back before the original state is finalized, it can exploit the unchanged state.",
+            "text": "The mechanism: calling another contract hands it control. It can call back into your contract before the first call returns, while your state is still half-updated.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Consider a withdrawal function: it checks the user\u2019s balance, sends Ether to the recipient, then updates the balance. If the recipient contract calls back before the balance is updated, it can withdraw again using the same unmodified balance.",
+            "text": "A concrete case: a withdrawal sends Ether before clearing the stored balance. A callback can withdraw again against the still-unchanged balance.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Reentrancy isn\u2019t limited to Ether transfers. Any external call\u2014even to a seemingly trusted contract\u2014can trigger a callback. Dependencies between contracts multiply the risk.",
+            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The fix is simple but critical: checks-effects-interactions. Validate inputs, update storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the balance before sending Ether.",
+            "text": "Root cause: state updates that happen after untrusted calls allow repeated execution. The problem is ordering, not any single line.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Always require external calls to succeed or revert the operation. This ensures atomicity: either the entire operation completes, or nothing changes.",
+            "text": "The mitigation is checks-effects-interactions. First validate inputs and permissions. Then update the relevant storage state. Only then make external calls.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Review all callable paths and contracts sharing the affected state. A callback might enter through an unexpected function or dependency, bypassing obvious safeguards.",
+            "text": "In the withdrawal example: save the withdrawal amount and clear the stored balance before calling the recipient. Require the call to succeed so a failure reverts the operation.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Ask yourself: *Does this function modify state before or after external calls?* If the answer is \u2018after,\u2019 reentrancy may be possible. Fix it with checks-effects-interactions.",
+            "text": "A check you can apply today: at each external call, is the affected state already final? Also review other callable paths and contracts sharing that state, since a callback may enter through another function or dependency.",
             "source_ids": [
               "KB-01"
             ]
@@ -172,174 +60,166 @@
       },
       "normalized": [
         {
-          "text": "1/8 What happens when a contract's external call hands control to another contract, before the original call finishes? The answer is reentrancy, a classic vulnerability in smart contracts.",
+          "text": "1/8 Your withdraw function sends Ether, then clears the caller's balance. What can the recipient do in the gap between those two steps? That gap is where reentrancy lives.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/8 The root cause lies in how state updates are deferred. When a contract makes an external call, it temporarily surrenders control. If the called contract calls back before the original state is finalized, it can exploit the unchanged state.",
+          "text": "2/8 The mechanism: calling another contract hands it control. It can call back into your contract before the first call returns, while your state is still half-updated.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/8 Consider a withdrawal function: it checks the user's balance, sends Ether to the recipient, then updates the balance. If the recipient contract calls back before the balance is updated, it can withdraw again using the same unmodified balance.",
+          "text": "3/8 A concrete case: a withdrawal sends Ether before clearing the stored balance. A callback can withdraw again against the still-unchanged balance.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 Reentrancy isn't limited to Ether transfers. Any external call, even to a seemingly trusted contract, can trigger a callback. Dependencies between contracts multiply the risk.",
+          "text": "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 The fix is simple but critical: checks-effects-interactions. Validate inputs, update storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the balance before sending Ether.",
+          "text": "5/8 Root cause: state updates that happen after untrusted calls allow repeated execution. The problem is ordering, not any single line.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 Always require external calls to succeed or revert the operation. This ensures atomicity: either the entire operation completes, or nothing changes.",
+          "text": "6/8 The mitigation is checks-effects-interactions. First validate inputs and permissions. Then update the relevant storage state. Only then make external calls.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 Review all callable paths and contracts sharing the affected state. A callback might enter through an unexpected function or dependency, bypassing obvious safeguards.",
+          "text": "7/8 In the withdrawal example: save the withdrawal amount and clear the stored balance before calling the recipient. Require the call to succeed so a failure reverts the operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/8 Ask yourself: *Does this function modify state before or after external calls?* If the answer is 'after,' reentrancy may be possible. Fix it with checks-effects-interactions.",
+          "text": "8/8 A check you can apply today: at each external call, is the affected state already final? Also review other callable paths and contracts sharing that state, since a callback may enter through another function or dependency.",
           "source_ids": [
             "KB-01"
           ]
         }
       ],
-      "fixes": [
-        "tweet_1:banned_characters",
-        "tweet_1:curly_quotes",
-        "tweet_3:curly_quotes",
-        "tweet_4:banned_characters",
-        "tweet_4:curly_quotes",
-        "tweet_8:curly_quotes"
-      ],
+      "fixes": [],
       "violations": [],
       "accepted": true
     },
     "failure": null
   },
   {
-    "record_id": "thread_3/validator/1/1",
-    "slot_id": "thread_3",
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
     "attempt": 1,
     "audit": {
       "original": {
-        "slot_id": "thread_3",
+        "slot_id": "thread_2",
         "attempt": 1,
         "tweets": [
           {
-            "text": "What happens when a smart contract allows writes to arbitrary storage locations? How could an attacker exploit this to bypass authorization checks or corrupt data?",
+            "text": "What happens when a uint256 holds 2 and the code subtracts 3? The answer depends on the Solidity version and on whether the line sits inside an unchecked block. A short thread on integer overflow and underflow.",
             "source_ids": [
-              "KB-13"
+              "KB-02"
             ]
           },
           {
-            "text": "The root cause lies in how storage index calculations work. Since all data structures in a contract share the same storage space, a miscalculation can lead to unintended overwrites\u2014like changing the owner address or other critical fields.",
+            "text": "Integer types have bounded ranges. Overflow or underflow occurs when an arithmetic result falls outside the range of its type. The root cause is that those bounds are not enforced in legacy wrapping arithmetic or in unchecked operations.",
             "source_ids": [
-              "KB-13"
+              "KB-02"
             ]
           },
           {
-            "text": "For example, if a contract lacks proper bounds checking, an attacker could manipulate storage slots to overwrite sensitive data, such as the owner or admin address, without authorization.",
+            "text": "Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. So check the compiler version first.",
             "source_ids": [
-              "KB-13"
+              "KB-02"
             ]
           },
           {
-            "text": "Mitigation involves ensuring that writes are strictly confined to intended storage locations. This means validating storage indices and isolating data structures to prevent unintended overlaps.",
+            "text": "A concrete case: uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting. An unchecked block restores this wrapping for arithmetic inside it.",
             "source_ids": [
-              "KB-13"
+              "KB-02"
             ]
           },
           {
-            "text": "A useful check: Audit storage write operations to confirm they only target the correct slots. Tools like static analysis can help identify potential overlaps or unsafe calculations.",
+            "text": "Two details about unchecked blocks. Functions called from an unchecked block do not inherit its unchecked mode. And division or modulo by zero still fails inside unchecked blocks.",
             "source_ids": [
-              "KB-13"
+              "KB-02"
+            ]
+          },
+          {
+            "text": "Mitigation: use checked arithmetic or explicit range checks where wrapping is unintended. Unchecked blocks require reasoning that their inputs stay within the intended bounds.",
+            "source_ids": [
+              "KB-02"
+            ]
+          },
+          {
+            "text": "Reverting is not automatically harmless. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+            "source_ids": [
+              "KB-02"
+            ]
+          },
+          {
+            "text": "A closing check for your own code: Which compiler version applies? Where is each unchecked block? What keeps its inputs within the intended bounds? Is any wrapping unintended?",
+            "source_ids": [
+              "KB-02"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/5 What happens when a smart contract allows writes to arbitrary storage locations? How could an attacker exploit this to bypass authorization checks or corrupt data?",
+          "text": "1/8 What happens when a uint256 holds 2 and the code subtracts 3? The answer depends on the Solidity version and on whether the line sits inside an unchecked block. A short thread on integer overflow and underflow.",
           "source_ids": [
-            "KB-13"
+            "KB-02"
           ]
         },
         {
-          "text": "2/5 The root cause lies in how storage index calculations work. Since all data structures in a contract share the same storage space, a miscalculation can lead to unintended overwrites, like changing the owner address or other critical fields.",
+          "text": "2/8 Integer types have bounded ranges. Overflow or underflow occurs when an arithmetic result falls outside the range of its type. The root cause is that those bounds are not enforced in legacy wrapping arithmetic or in unchecked operations.",
           "source_ids": [
-            "KB-13"
+            "KB-02"
           ]
         },
         {
-          "text": "3/5 For example, if a contract lacks proper bounds checking, an attacker could manipulate storage slots to overwrite sensitive data, such as the owner or admin address, without authorization.",
+          "text": "3/8 Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. So check the compiler version first.",
           "source_ids": [
-            "KB-13"
+            "KB-02"
           ]
         },
         {
-          "text": "4/5 Mitigation involves ensuring that writes are strictly confined to intended storage locations. This means validating storage indices and isolating data structures to prevent unintended overlaps.",
+          "text": "4/8 A concrete case: uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting. An unchecked block restores this wrapping for arithmetic inside it.",
           "source_ids": [
-            "KB-13"
+            "KB-02"
           ]
         },
         {
-          "text": "5/5 A useful check: Audit storage write operations to confirm they only target the correct slots. Tools like static analysis can help identify potential overlaps or unsafe calculations.",
+          "text": "5/8 Two details about unchecked blocks. Functions called from an unchecked block do not inherit its unchecked mode. And division or modulo by zero still fails inside unchecked blocks.",
           "source_ids": [
-            "KB-13"
+            "KB-02"
           ]
-        }
-      ],
-      "fixes": [
-        "tweet_2:banned_characters"
-      ],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_2/validator/1/1",
-    "slot_id": "marketing_2",
-    "attempt": 1,
-    "audit": {
-      "original": {
-        "slot_id": "marketing_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "Curious how a demo audit team approaches smart contract reviews? Sentinel Grove (demo) has 3 fictional auditors who've completed 12 fictional audits. Teams can request a review of their contract code in this fictional offering.",
-            "source_ids": [
-              "STAT-02",
-              "STAT-01",
-              "STAT-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
+        },
         {
-          "text": "Curious how a demo audit team approaches smart contract reviews? Sentinel Grove (demo) has 3 fictional auditors who've completed 12 fictional audits. Teams can request a review of their contract code in this fictional offering.",
+          "text": "6/8 Mitigation: use checked arithmetic or explicit range checks where wrapping is unintended. Unchecked blocks require reasoning that their inputs stay within the intended bounds.",
           "source_ids": [
-            "STAT-02",
-            "STAT-01",
-            "STAT-03"
+            "KB-02"
+          ]
+        },
+        {
+          "text": "7/8 Reverting is not automatically harmless. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+          "source_ids": [
+            "KB-02"
+          ]
+        },
+        {
+          "text": "8/8 A closing check for your own code: Which compiler version applies? Where is each unchecked block? What keeps its inputs within the intended bounds? Is any wrapping unintended?",
+          "source_ids": [
+            "KB-02"
           ]
         }
       ],
@@ -359,10 +239,8 @@
         "attempt": 1,
         "tweets": [
           {
-            "text": "Curious how many teams actually get their contracts reviewed? (demo) Sentinel Grove completed 12 fictional audits and has 3 fictional auditors. Teams can request a review of their smart contract code. Learn more at example.com",
+            "text": "Shipping smart contract code and wondering who else should read it? Sentinel Grove, a fictional demo audit service, lets teams request a review of their contract code. Want to request one?",
             "source_ids": [
-              "STAT-01",
-              "STAT-02",
               "STAT-03"
             ]
           }
@@ -370,10 +248,144 @@
       },
       "normalized": [
         {
-          "text": "Curious how many teams actually get their contracts reviewed? (demo) Sentinel Grove completed 12 fictional audits and has 3 fictional auditors. Teams can request a review of their smart contract code. Learn more at example.com",
+          "text": "Shipping smart contract code and wondering who else should read it? Sentinel Grove, a fictional demo audit service, lets teams request a review of their contract code. Want to request one?",
+          "source_ids": [
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A low-level call in Solidity fails, yet your contract carries on as if it worked. How does that happen without any revert?",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "Low-level call, delegatecall and staticcall return a success boolean plus returned bytes. If the callee throws an exception, the boolean is false. The exception is not automatically propagated to the caller.",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "The root cause: the caller does not inspect the returned success flag or validate the result the application needs. If failure is ignored, the caller can continue as though the intended operation happened.",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "A true flag has its own limit. A low-level call to an address with no code can return true. So true alone does not show that the destination exists or that your intended action took place.",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "Mitigation, step one: capture the success boolean and handle failure explicitly. Use require(success) when a failed call must revert the whole operation.",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "Step two: if your logic depends on a returned value or on contract code being present, check those conditions too. A successful low-level call is not proof of an application-specific result.",
+            "source_ids": [
+              "KB-03"
+            ]
+          },
+          {
+            "text": "A check you can run on your own code. For each low-level call, ask: Is the boolean captured? What happens when it is false? Do I also need to validate returned data or that the target has code?",
+            "source_ids": [
+              "KB-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/7 A low-level call in Solidity fails, yet your contract carries on as if it worked. How does that happen without any revert?",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "2/7 Low-level call, delegatecall and staticcall return a success boolean plus returned bytes. If the callee throws an exception, the boolean is false. The exception is not automatically propagated to the caller.",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "3/7 The root cause: the caller does not inspect the returned success flag or validate the result the application needs. If failure is ignored, the caller can continue as though the intended operation happened.",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "4/7 A true flag has its own limit. A low-level call to an address with no code can return true. So true alone does not show that the destination exists or that your intended action took place.",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "5/7 Mitigation, step one: capture the success boolean and handle failure explicitly. Use require(success) when a failed call must revert the whole operation.",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "6/7 Step two: if your logic depends on a returned value or on contract code being present, check those conditions too. A successful low-level call is not proof of an application-specific result.",
+          "source_ids": [
+            "KB-03"
+          ]
+        },
+        {
+          "text": "7/7 A check you can run on your own code. For each low-level call, ask: Is the boolean captured? What happens when it is false? Do I also need to validate returned data or that the target has code?",
+          "source_ids": [
+            "KB-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "What can an audit count tell you? Sentinel Grove, a fictional demo firm, completed 12 audits. In this demo offering, teams can request a review of their smart contract code.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "What can an audit count tell you? Sentinel Grove, a fictional demo firm, completed 12 audits. In this demo offering, teams can request a review of their smart contract code.",
           "source_ids": [
             "STAT-01",
-            "STAT-02",
             "STAT-03"
           ]
         }
@@ -394,138 +406,18 @@
         "attempt": 1,
         "tweets": [
           {
-            "text": "Worried about reentrancy in your withdraw function? State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs, update state, then make external calls. (demo) Request a review from Sentinel Grove to check your code.",
+            "text": "Why can one withdrawal pay out twice? State updated after an untrusted call lets a callback reuse the old balance; checks-effects-interactions fixes the order. Which of your functions call out before updating state?",
             "source_ids": [
-              "KB-01",
-              "STAT-03"
+              "KB-01"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "Worried about reentrancy in your withdraw function? State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs, update state, then make external calls. (demo) Request a review from Sentinel Grove to check your code.",
+          "text": "Why can one withdrawal pay out twice? State updated after an untrusted call lets a callback reuse the old balance; checks-effects-interactions fixes the order. Which of your functions call out before updating state?",
           "source_ids": [
-            "KB-01",
-            "STAT-03"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/validator/2/1",
-    "slot_id": "thread_3",
-    "attempt": 2,
-    "audit": {
-      "original": {
-        "slot_id": "thread_3",
-        "attempt": 2,
-        "tweets": [
-          {
-            "text": "Smart contracts store data at specific storage locations, like an owner address. But what happens when writes aren\u2019t restricted to intended slots? How could this let an attacker bypass checks or corrupt data?",
-            "source_ids": [
-              "KB-13"
-            ]
-          },
-          {
-            "text": "The issue stems from shared storage space. All data structures in a contract reside in the same address space. If storage index calculations aren\u2019t precise, writes can accidentally target unrelated fields\u2014like overwriting an owner address.",
-            "source_ids": [
-              "KB-13"
-            ]
-          },
-          {
-            "text": "For instance, if a contract lacks safeguards, an attacker might manipulate storage slots to alter critical fields without authorization. The risk arises when writes aren\u2019t confined to their designated locations.",
-            "source_ids": [
-              "KB-13"
-            ]
-          },
-          {
-            "text": "Mitigation focuses on isolating storage writes. Ensure calculations for storage indices are accurate and that data structures don\u2019t overlap. This prevents unintended overwrites of sensitive fields.",
-            "source_ids": [
-              "KB-13"
-            ]
-          },
-          {
-            "text": "A practical step: Review storage write operations to confirm they target only the intended slots. This helps maintain data integrity and authorization controls.",
-            "source_ids": [
-              "KB-13"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/5 Smart contracts store data at specific storage locations, like an owner address. But what happens when writes aren't restricted to intended slots? How could this let an attacker bypass checks or corrupt data?",
-          "source_ids": [
-            "KB-13"
-          ]
-        },
-        {
-          "text": "2/5 The issue stems from shared storage space. All data structures in a contract reside in the same address space. If storage index calculations aren't precise, writes can accidentally target unrelated fields, like overwriting an owner address.",
-          "source_ids": [
-            "KB-13"
-          ]
-        },
-        {
-          "text": "3/5 For instance, if a contract lacks safeguards, an attacker might manipulate storage slots to alter critical fields without authorization. The risk arises when writes aren't confined to their designated locations.",
-          "source_ids": [
-            "KB-13"
-          ]
-        },
-        {
-          "text": "4/5 Mitigation focuses on isolating storage writes. Ensure calculations for storage indices are accurate and that data structures don't overlap. This prevents unintended overwrites of sensitive fields.",
-          "source_ids": [
-            "KB-13"
-          ]
-        },
-        {
-          "text": "5/5 A practical step: Review storage write operations to confirm they target only the intended slots. This helps maintain data integrity and authorization controls.",
-          "source_ids": [
-            "KB-13"
-          ]
-        }
-      ],
-      "fixes": [
-        "tweet_1:curly_quotes",
-        "tweet_2:banned_characters",
-        "tweet_2:curly_quotes",
-        "tweet_3:curly_quotes",
-        "tweet_4:curly_quotes"
-      ],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_1/validator/2/1",
-    "slot_id": "marketing_1",
-    "attempt": 2,
-    "audit": {
-      "original": {
-        "slot_id": "marketing_1",
-        "attempt": 2,
-        "tweets": [
-          {
-            "text": "Curious if your smart contract code has been reviewed? Sentinel Grove completed 12 fictional audits (demo). Request a review of your contract.",
-            "source_ids": [
-              "STAT-01",
-              "STAT-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "Curious if your smart contract code has been reviewed? Sentinel Grove completed 12 fictional audits (demo). Request a review of your contract.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-03"
+            "KB-01"
           ]
         }
       ],

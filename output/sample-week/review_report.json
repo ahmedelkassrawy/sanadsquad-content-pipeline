@@ -1,40 +1,80 @@
 [
   {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "eaf7cd03e8a0a672bc3ca2b1bc432c70ff3682eb6447eb3c1d51fb08fc6f5f46",
+    "input_sha256": "1dcdfcc0cd4db9c679ad77a149489b95c5096f1d2d5824862c575988c4ef9da0",
     "review": {
-      "slot_id": "thread_2",
+      "slot_id": "thread_1",
       "scores": {
-        "hook": 3.0,
+        "hook": 4.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "grounding": 4.0,
         "voice": 5.0,
-        "clarity": 5.0,
+        "clarity": 4.0,
         "cta": 5.0
       },
-      "reasons": [
-        "The opening tweet poses a question about transaction order dependence but does not name a specific vulnerability or provide a compelling contrast that would strongly hook a developer; it is clear but generic."
-      ],
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
     "failure": null
   },
   {
-    "record_id": "thread_1/reviewer/1/1",
-    "slot_id": "thread_1",
+    "record_id": "thread_2/reviewer/1/1",
+    "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "92f966268a202d71ab182419f8dd4be06fe6ea9f8bede276adcc8ac2030a7c9b",
+    "input_sha256": "b048989487d8f4f8fb1f3c7ffb0a5186406e3b7bfb51f401471b1eede327864e",
     "review": {
-      "slot_id": "thread_1",
+      "slot_id": "thread_2",
       "scores": {
-        "hook": 5.0,
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "bdcbe67b9e6f368a56a356f75adaeb7fb53215b4457ebd8c9886b623f068beae",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 4.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 5.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "80e8ecf0efd31458e627d8aa9d570d7e3b6efd28012dc56a7c140310be186fa9",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
         "cta": 5.0
       },
       "reasons": [],
@@ -47,79 +87,24 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "fd8416b55acd879211712c5f86049451e44577b3dc1861886b554bcda1726687",
+    "input_sha256": "c59a99faec562987700595784ca49286c780f7b72321d47a8b5b548616dcc1e6",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
         "hook": 3.0,
         "technical_accuracy": 5.0,
-        "grounding": 3.0,
-        "voice": 5.0,
+        "grounding": 4.0,
+        "voice": 4.0,
         "clarity": 3.0,
-        "cta": 3.0
+        "cta": 2.0
       },
       "reasons": [
-        "Opening question is clear but somewhat generic; does not fully tie to the specific evidence about approach.",
-        "Minor wording variation: 'contract code' vs 'smart contract code' adds no new fact, but not exact trace.",
-        "Readable but repetitive use of 'fictional' and 'demo' makes it slightly cluttered.",
-        "Ends with a statement of capability rather than a direct next step or engagement question."
+        "Opens with the question 'What can an audit count tell you?', which fits the credibility angle and the audit-count evidence. It is generic, and the post never answers it, so it is acceptable but plain.",
+        "Three short sentences, but the question is left hanging and does not lead into the facts. 'fictional demo firm' and 'demo offering' repeat the label. The result reads as a fact list more than one finished thought.",
+        "There is no direct next step or engagement question. 'Teams can request a review' describes the fictional offering, but it does not ask the reader to do anything. It makes no unsupported promise, but it is a weak ending."
       ],
       "hard_fail": [],
       "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/reviewer/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "db527536e3111d3938ce2b2128fbc3926d103dcf6bd69297f2265963a5627342",
-    "review": {
-      "slot_id": "thread_3",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 3.0,
-        "grounding": 1.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 1.0
-      },
-      "reasons": [
-        "Core mechanism described matches evidence, but tweets add unsupported specifics (bounds checking, audit/static analysis) not in source, making claims broader than evidence.",
-        "Tweets introduce facts not in evidence, such as needing bounds checking and using audit/static analysis to check storage writes, which are not grounded in the provided source.",
-        "Final tweet recommends auditing storage writes and using static analysis, but these checks are not supported by the evidence, making the closing unsupported.",
-        "Claims that lacking bounds checking enables arbitrary writes and that auditing/storage analysis confirms correct slots add details absent from the source."
-      ],
-      "hard_fail": [
-        "unsupported_claim"
-      ],
-      "accepted": false
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "890e0c47b6b97516640046223b0cb1803f2338e88a54b791cccdb1e6f0bfeb54",
-    "review": {
-      "slot_id": "marketing_1",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 3.0
-      },
-      "reasons": [
-        "Ends with a generic 'Learn more at example.com' rather than a direct next step like requesting a review, making the CTA weak.",
-        "The fictional claim 'Teams can request a review of their smart contract code.' lacks an explicit fictional or demo label in the published text, violating the requirement for fictional firm claims."
-      ],
-      "hard_fail": [
-        "off_brand"
-      ],
-      "accepted": false
     },
     "failure": null
   },
@@ -127,60 +112,16 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "b25015b60b5a1079a99cb25effc130a1e54840fd2417e6cfb383ba0ea293682e",
+    "input_sha256": "38c72193f303aa88d34f1ea5395cde94550970f10c62872674066ff306d50277",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 3.0,
-        "cta": 5.0
-      },
-      "reasons": [
-        "Understandable but contains four sentences and a parenthetical label that adds slight clutter; could be tightened into two or three short sentences."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/reviewer/2/1",
-    "slot_id": "thread_3",
-    "attempt": 2,
-    "input_sha256": "093850663449611a450eaac7e1b0fe9f3924a0e9fe8a0c963eab4c81f83317f4",
-    "review": {
-      "slot_id": "thread_3",
-      "scores": {
         "hook": 4.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
         "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_1/reviewer/2/1",
-    "slot_id": "marketing_1",
-    "attempt": 2,
-    "input_sha256": "5690baf92d22c39ddabcdd87eda79c38b5c9b1fdb5a634e02a9015f3c2eafd71",
-    "review": {
-      "slot_id": "marketing_1",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
+        "clarity": 4.0,
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],

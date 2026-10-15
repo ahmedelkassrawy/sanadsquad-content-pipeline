@@ -1,12 +1,12 @@
 {
-  "concept": "Sentinel Grove",
-  "scene": "Sentinel Grove",
+  "concept": "Smart contract audit capability demonstration",
+  "scene": "A clean, minimalist workspace with a desk, a laptop displaying code, and subtle smart contract-related icons in the background. The overall tone is professional and trustworthy.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Sentinel Grove",
-  "alt_text": "Sentinel Grove",
+  "overlay_text": "12 fictional audits",
+  "alt_text": "Illustration representing Sentinel Grove's fictional audit capability with a demo label. The image includes a workspace with a laptop displaying code and smart contract elements, emphasizing professionalism and trust.",
   "severity": null
 }
