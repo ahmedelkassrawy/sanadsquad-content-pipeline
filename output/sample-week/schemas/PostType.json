@@ -1,0 +1,150 @@
+{
+  "$defs": {
+    "ResearchConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "hints": {
+          "title": "Hints",
+          "type": "string"
+        },
+        "topic_source": {
+          "enum": [
+            "kb",
+            "angles"
+          ],
+          "title": "Topic Source",
+          "type": "string"
+        },
+        "angles": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angles"
+        }
+      },
+      "required": [
+        "hints",
+        "topic_source"
+      ],
+      "title": "ResearchConfig",
+      "type": "object"
+    },
+    "ReviewConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "pass_avg": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Pass Avg",
+          "type": "number"
+        },
+        "hard_fail": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hard Fail",
+          "type": "array"
+        }
+      },
+      "required": [
+        "pass_avg",
+        "hard_fail"
+      ],
+      "title": "ReviewConfig",
+      "type": "object"
+    },
+    "Units": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "minimum": 1,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "minimum": 1,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "Units",
+      "type": "object"
+    },
+    "VisualConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "template": {
+          "title": "Template",
+          "type": "string"
+        },
+        "severity_badge": {
+          "enum": [
+            "auto",
+            "never"
+          ],
+          "title": "Severity Badge",
+          "type": "string"
+        }
+      },
+      "required": [
+        "template",
+        "severity_badge"
+      ],
+      "title": "VisualConfig",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "writer": {
+      "title": "Writer",
+      "type": "string"
+    },
+    "rubric": {
+      "title": "Rubric",
+      "type": "string"
+    },
+    "units": {
+      "$ref": "#/$defs/Units"
+    },
+    "numbering": {
+      "title": "Numbering",
+      "type": "boolean"
+    },
+    "research": {
+      "$ref": "#/$defs/ResearchConfig"
+    },
+    "review": {
+      "$ref": "#/$defs/ReviewConfig"
+    },
+    "visual": {
+      "$ref": "#/$defs/VisualConfig"
+    }
+  },
+  "required": [
+    "name",
+    "writer",
+    "rubric",
+    "units",
+    "numbering",
+    "research",
+    "review",
+    "visual"
+  ],
+  "title": "PostType",
+  "type": "object"
+}

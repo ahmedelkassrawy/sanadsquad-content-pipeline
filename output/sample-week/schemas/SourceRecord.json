@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "source_id": {
+      "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+      "title": "Source Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "kb",
+        "stat",
+        "web"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "retrieved_at": {
+      "format": "date-time",
+      "title": "Retrieved At",
+      "type": "string"
+    },
+    "evidence_text": {
+      "title": "Evidence Text",
+      "type": "string"
+    },
+    "status": {
+      "default": "ok",
+      "enum": [
+        "ok",
+        "snippet_only",
+        "fetch_failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source_id",
+    "kind",
+    "title",
+    "evidence_text"
+  ],
+  "title": "SourceRecord",
+  "type": "object"
+}

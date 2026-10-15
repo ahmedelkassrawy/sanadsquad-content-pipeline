@@ -1,0 +1,447 @@
+{
+  "$defs": {
+    "AuditTweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "source_ids"
+      ],
+      "title": "AuditTweet",
+      "type": "object"
+    },
+    "Draft": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "attempt": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "tweets": {
+          "items": {
+            "$ref": "#/$defs/Tweet"
+          },
+          "minItems": 1,
+          "title": "Tweets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "tweets"
+      ],
+      "title": "Draft",
+      "type": "object"
+    },
+    "DraftAudit": {
+      "additionalProperties": false,
+      "properties": {
+        "original": {
+          "$ref": "#/$defs/Draft"
+        },
+        "normalized": {
+          "items": {
+            "$ref": "#/$defs/AuditTweet"
+          },
+          "title": "Normalized",
+          "type": "array"
+        },
+        "fixes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fixes",
+          "type": "array"
+        },
+        "violations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Violations",
+          "type": "array"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "original",
+        "normalized",
+        "fixes",
+        "violations",
+        "accepted"
+      ],
+      "title": "DraftAudit",
+      "type": "object"
+    },
+    "ImageResult": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "backend": {
+          "title": "Backend",
+          "type": "string"
+        },
+        "fallback_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fallback Reason"
+        }
+      },
+      "required": [
+        "slot_id",
+        "path",
+        "backend"
+      ],
+      "title": "ImageResult",
+      "type": "object"
+    },
+    "ResearchPack": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "topic_id": {
+          "title": "Topic Id",
+          "type": "string"
+        },
+        "topic_name": {
+          "title": "Topic Name",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceRecord"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "topic_id",
+        "topic_name",
+        "sources"
+      ],
+      "title": "ResearchPack",
+      "type": "object"
+    },
+    "ResolvedSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "minLength": 1,
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "type": {
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        },
+        "focus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Focus"
+        },
+        "topic_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic Id"
+        }
+      },
+      "required": [
+        "slot_id",
+        "type"
+      ],
+      "title": "ResolvedSlot",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "scores": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Scores",
+          "type": "object"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "hard_fail": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hard Fail",
+          "type": "array"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "slot_id",
+        "scores",
+        "reasons",
+        "hard_fail",
+        "accepted"
+      ],
+      "title": "Review",
+      "type": "object"
+    },
+    "SlotOutcome": {
+      "enum": [
+        "shipped",
+        "dropped_quality",
+        "failed_research",
+        "failed_api",
+        "failed_budget",
+        "failed_output"
+      ],
+      "title": "SlotOutcome",
+      "type": "string"
+    },
+    "SourceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "kb",
+            "stat",
+            "web"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "evidence_text": {
+          "title": "Evidence Text",
+          "type": "string"
+        },
+        "status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "snippet_only",
+            "fetch_failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "title",
+        "evidence_text"
+      ],
+      "title": "SourceRecord",
+      "type": "object"
+    },
+    "Tweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Tweet",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "slot": {
+      "$ref": "#/$defs/ResolvedSlot"
+    },
+    "attempt": {
+      "default": 0,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "pack": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResearchPack"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "draft": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Draft"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DraftAudit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "review": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Review"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "image": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SlotOutcome"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    },
+    "feedback": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Feedback",
+      "type": "array"
+    }
+  },
+  "required": [
+    "slot"
+  ],
+  "title": "SlotState",
+  "type": "object"
+}

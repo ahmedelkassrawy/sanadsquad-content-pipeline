@@ -1,0 +1,258 @@
+[
+  {
+    "record_id": "thread_2/final/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "topic_id": "KB-08",
+    "topic_name": "Transaction order dependence",
+    "draft": {
+      "slot_id": "thread_2",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "1/7 What happens when your smart contract's logic depends on the order of transactions, and miners or attackers can influence that order? This is transaction order dependence, a race condition risk.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "2/7 Miners prioritize transactions by gas price, not submission time. If Alice submits a transaction with a low gas fee, an attacker like Eve can front-run it by submitting the same action with a higher fee. The miner picks Eve's transaction first.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "3/7 Example: A contract rewards the first solver of a math problem. Alice submits her answer, but Eve sees it, submits the same answer with higher gas, and claims the reward instead. The contract's logic assumed Alice would go first.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "4/7 Another case: ERC20's approve function. Alice sets Eve's allowance to *m*, but Eve front-runs by transferring *n* (the old allowance) before Alice's update takes effect. Eve ends up with *n + m*, more than intended.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "5/7 Root cause: Shared state transitions assume a fixed order, but miners (or malicious actors) can rearrange transactions. The fix depends on the use case: commit-reveal schemes for reward systems, or stricter checks for approvals.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "6/7 For ERC20, one fix is to add a check comparing the expected allowance to the current one, but this breaks ERC20 compliance. A safer alternative is a custom approve function or resetting allowances to zero before updates.",
+          "source_ids": [
+            "KB-08"
+          ]
+        },
+        {
+          "text": "7/7 Key takeaway: If your contract relies on transaction order, assume it can be manipulated. Design for unpredictability, use commit-reveal patterns or enforce strict preconditions to mitigate front-running risks.",
+          "source_ids": [
+            "KB-08"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_2",
+      "path": "images/slot-thread_2.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "thread_1/final/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "topic_id": "KB-01",
+    "topic_name": "Reentrancy",
+    "draft": {
+      "slot_id": "thread_1",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "1/8 What happens when a contract's external call hands control to another contract, before the original call finishes? The answer is reentrancy, a classic vulnerability in smart contracts.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/8 The root cause lies in how state updates are deferred. When a contract makes an external call, it temporarily surrenders control. If the called contract calls back before the original state is finalized, it can exploit the unchanged state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/8 Consider a withdrawal function: it checks the user's balance, sends Ether to the recipient, then updates the balance. If the recipient contract calls back before the balance is updated, it can withdraw again using the same unmodified balance.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/8 Reentrancy isn't limited to Ether transfers. Any external call, even to a seemingly trusted contract, can trigger a callback. Dependencies between contracts multiply the risk.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/8 The fix is simple but critical: checks-effects-interactions. Validate inputs, update storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the balance before sending Ether.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/8 Always require external calls to succeed or revert the operation. This ensures atomicity: either the entire operation completes, or nothing changes.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "7/8 Review all callable paths and contracts sharing the affected state. A callback might enter through an unexpected function or dependency, bypassing obvious safeguards.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "8/8 Ask yourself: *Does this function modify state before or after external calls?* If the answer is 'after,' reentrancy may be possible. Fix it with checks-effects-interactions.",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_1",
+      "path": "images/slot-thread_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "marketing_2/final/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "topic_id": "ANGLE-credibility",
+    "topic_name": "credibility",
+    "draft": {
+      "slot_id": "marketing_2",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "Curious how a demo audit team approaches smart contract reviews? Sentinel Grove (demo) has 3 fictional auditors who've completed 12 fictional audits. Teams can request a review of their contract code in this fictional offering.",
+          "source_ids": [
+            "STAT-02",
+            "STAT-01",
+            "STAT-03"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "marketing_2",
+      "path": "images/slot-marketing_2.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "marketing_3/final/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "topic_id": "ANGLE-education",
+    "topic_name": "education-to-cta",
+    "draft": {
+      "slot_id": "marketing_3",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "Worried about reentrancy in your withdraw function? State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs, update state, then make external calls. (demo) Request a review from Sentinel Grove to check your code.",
+          "source_ids": [
+            "KB-01",
+            "STAT-03"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "marketing_3",
+      "path": "images/slot-marketing_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "thread_3/final/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "topic_id": "KB-13",
+    "topic_name": "Write to arbitrary storage location",
+    "draft": {
+      "slot_id": "thread_3",
+      "attempt": 2,
+      "tweets": [
+        {
+          "text": "1/5 Smart contracts store data at specific storage locations, like an owner address. But what happens when writes aren't restricted to intended slots? How could this let an attacker bypass checks or corrupt data?",
+          "source_ids": [
+            "KB-13"
+          ]
+        },
+        {
+          "text": "2/5 The issue stems from shared storage space. All data structures in a contract reside in the same address space. If storage index calculations aren't precise, writes can accidentally target unrelated fields, like overwriting an owner address.",
+          "source_ids": [
+            "KB-13"
+          ]
+        },
+        {
+          "text": "3/5 For instance, if a contract lacks safeguards, an attacker might manipulate storage slots to alter critical fields without authorization. The risk arises when writes aren't confined to their designated locations.",
+          "source_ids": [
+            "KB-13"
+          ]
+        },
+        {
+          "text": "4/5 Mitigation focuses on isolating storage writes. Ensure calculations for storage indices are accurate and that data structures don't overlap. This prevents unintended overwrites of sensitive fields.",
+          "source_ids": [
+            "KB-13"
+          ]
+        },
+        {
+          "text": "5/5 A practical step: Review storage write operations to confirm they target only the intended slots. This helps maintain data integrity and authorization controls.",
+          "source_ids": [
+            "KB-13"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "marketing_1/final/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "topic_id": "ANGLE-service",
+    "topic_name": "service",
+    "draft": {
+      "slot_id": "marketing_1",
+      "attempt": 2,
+      "tweets": [
+        {
+          "text": "Curious if your smart contract code has been reviewed? Sentinel Grove completed 12 fictional audits (demo). Request a review of your contract.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-03"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "marketing_1",
+      "path": "images/slot-marketing_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": null
+    }
+  }
+]

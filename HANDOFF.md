@@ -1,43 +1,47 @@
-# Handoff: start of Day 1
+# Handoff: Day 3 delivered, PR #6 ready for Kassra (2026-10-15)
 
-Written 2026-10-14 for the next session (Kassra or an agent) picking up the SanadSquad content pipeline.
+For the next model or session on the SanadSquad content pipeline. Earlier handoffs: [_archived_HANDOFF-day1.md](_archived_HANDOFF-day1.md); this file replaces the morning's "final sample pending" handoff (see git history for it).
+
+## Read first
+
+1. The task brief: `C:\Users\Dell\Downloads\Telegram Desktop\AI_Engineer_Task_Multi_Agent_Content_Pipeline.pdf` (not in the repo). Check it and DESIGN.md before asking Kassra anything.
+2. [DESIGN.md](DESIGN.md) is the authority; section 6 wins over section 2.
+3. [plans/5-day3-delivery.md](plans/5-day3-delivery.md) slices S4..S13 and the manifest.
 
 ## Where things stand
 
-- **Design is settled.** Read [DESIGN.md](DESIGN.md) first; every decision there was agreed with Kassra over a 60-question design session. Don't reopen them without asking him.
-- **An external design review was accepted.** DESIGN.md §6 closes 12 gaps (evidence records, no `USER` citations, writers never search, terminal states, fallback image spec, honest CSV/budget/resume claims). **Where §2 and §6 disagree, §6 wins.**
-- **The four open API questions are answered.** See DESIGN.md §4. One changed the design: on OpenRouter BYOK, `usage.cost` is only the fee, so cost = `usage.cost + cost_details.upstream_inference_cost`.
-- **No code exists yet.** The repo has `DESIGN.md`, `HANDOFF.md` and `.gitignore`.
-- **Repo:** private, [ahmedelkassrawy/sanadsquad-content-pipeline](https://github.com/ahmedelkassrawy/sanadsquad-content-pipeline), branch `main`.
-- **The brief:** `C:\Users\Dell\Downloads\Telegram Desktop\AI_Engineer_Task_Multi_Agent_Content_Pipeline.pdf`.
+- Worktree `D:\me\SanadSquad-day3`, branch `feat/day3-delivery`, head `d003434` plus this handoff commit, pushed. Draft PR #6 (closes #5), description updated; merging is Kassra's call. `D:\me\SanadSquad` is still on old `main`: do not read today's code there.
+- Final checks at `d003434`: pytest 456 passed, `ruff format --check` clean, `pip check` clean.
+- Sample committed in `output/sample-week` (from `.runs/final-c234f25-sample`): 6/6 shipped, hand-checked against `research_log.json`, provenance in `sample-provenance.json`, secret-value scan clean, `output/** -text` keeps `posts.csv` byte-exact.
 
-## Deadline and plan
+## What changed today (after a7ccfcb)
 
-Target **Fri 2026-10-16** (hard deadline Sun 2026-10-18). Today is Day 1:
+| Slice | Change | Review |
+|---|---|---|
+| S7, S7b | Any LangChain provider; key from `<PROVIDER>_API_KEY`; preflight uses the same rule | Opus CLEAN |
+| S7c | Run-wide `--reasoning-effort` / `--reasoning-effort-override`; langchain-mistralai | Codex CLEAN |
+| S9 | Validator safe fix replaces banned characters before review (Kassra's decision, DESIGN 2.6/6.11) | Codex CLEAN after 2 fix rounds |
+| S10a-c | ruff format (line 100), pipeline.py refactor, blank lines between steps; all AST-identical or suite-proven | Codex CLEAN / coordinator AST proof |
+| S11 | Prompt rewrite: rubric anchors, marketing recipe per angle, clearer research/visual/reviewer prompts | Codex BLOCKED then CLEAN |
+| S12 | Validator rejects pack source ids leaked into published text | Codex CLEAN |
+| S13 | `nvidia` routed through its OpenAI-compatible endpoint | Codex CLEAN |
+| config | reviewer and marketing_writer `agent.yaml` on `nvidia:nvidia/nemotron-3-super-120b-a12b` | n/a |
+| docs | README, ARCHITECTURE, .env.example rewritten (Sonnet writer, Opus review BLOCKED then CLEAN); schemas regenerated | Opus CLEAN |
 
-1. Project skeleton: `pyproject.toml` / `requirements.txt`, `.env.example`, folder layout from DESIGN.md §2.3.
-2. Inputs: `inputs/brand-voice.md` (front matter + prose, neutral made-up firm name, fake stats as `STAT-01..`), `inputs/kb.json` (18 to 20 entries from SWC Registry / OWASP SC Top 10, with `aliases` and `references`; **Kassra reviews these**), `inputs/plan.json` (6 slots).
-3. Pydantic contracts (`ResolvedSlot`, `SourceRecord`, `ResearchPack`, `Draft`, `ValidationResult`, `Review`, `ImageSpec`, `ImageResult`, `UsageRecord`, the `SlotOutcome` terminal-state enum from §6.10, and the `type.yaml` model from §6.9) + JSON Schema export to `schemas/`.
-4. Model wrapper: `init_chat_model`, `include_raw=True`, usage capture, transient retry x3, truncation retry at 1.5x, one malformed-output repair (§6.10), stable call ids (§6.6), and the **usage ledger** (reserve worst case under `asyncio.Lock`, settle after).
-5. Pricing: provider cost first, else `genai-prices` `calc_price`; `LookupError` -> refuse unless `--allow-unpriced`.
-6. Validator + citation checker per §6.11 (`twitter-text-parser`, domain allow-list, word-boundary banned phrases, trailing-hashtag-only fix, original draft kept).
-7. Skills: `search_kb` (BM25 + aliases, research only), `web_search` (Tavily -> `ddgs` + `trafilatura` page fetch, returns `SourceRecord`s), `brand_rules` (shared by writers, reviewer, visual, validator).
-8. pytest with a fake LLM covering validator, citations, budget refusal, and the Day 1 parts of §6.12 (topic-assignment validation, CSV round-trip, concurrent reservations).
+## Model setup that produced the sample
 
-Cut order if behind (Day 3 items): Cloudflare adapter -> `--resume` flag -> advisor.
+`MODEL_OVERRIDE= python run_week.py --plan inputs/plan.json --output <run> --default-model mistralai:ministral-14b-latest --reasoning-effort-override none --allow-unpriced --max-concurrency 2` with the committed agent.yaml files. Keys used: `MISTRALAI_API_KEY`, `NVIDIA_API_KEY` (both free). Free-tier facts observed today are in the README.
 
-## Environment facts
+## Rules to keep
 
-- Python: `C:\Users\Dell\miniconda3\python.exe` (3.13). `python3` is a Store alias; don't use it.
-- Already installed in miniconda: `langgraph` 1.1.9, `langchain-core` 1.6.0, `langchain-anthropic` 1.4.0, `langchain-openai` 1.6.0, `langchain-google-genai` 4.2.1, `pydantic` 2.12. **Not installed:** `genai-prices` (tested in a scratch venv only), `rank-bm25`, `tavily-python`, `ddgs`, `pillow` (check), `python-dotenv`, `trafilatura`, `twitter-text-parser`. Prefer a project venv over adding to miniconda.
-- Keys: Kassra has OpenRouter, Gemini and OpenCode Zen keys. Only `GEMINI_API_KEY` is set in the shell; the rest go in `.env` (gitignored).
-- Don't use LiteLLM: versions 1.82.7/1.82.8 were compromised on PyPI in March 2026, and it isn't needed.
+- Free models unless Kassra says otherwise (he mentioned adding an Anthropic key for an optional polish run; `.env` already has an `ANTHROPIC_API_KEY` line: replace its value, do not add a second line).
+- Codex `gpt-6.1-sol` medium or Sonnet 5.5 implement; independent review by Opus or Codex; the exact Codex command is in the previous handoff (git history) and `.runs/*-brief.md` dispatches.
+- `/ship` for every change and every debugging step: read the real error before rerunning.
+- Never print or commit `.env`. Commit files by name; Kassra sometimes has uncommitted edits in the tree.
 
-## Things to remember while building
+## Open items
 
-- Agents are plain classes; LangGraph nodes are thin glue. No agent reads `WeekState`.
-- Rules in code, judgement in the model: the validator is code, not an agent.
-- Instructions are files: no prompt strings in Python.
-- Record every call in `usage.jsonl` with `cost_source`.
-- Before claiming anything works, run it (tests or a live call). List anything unverified under "Not verified".
-- Run `/ship` conventions per Kassra's global CLAUDE.md for implementation work.
+- Merge PR #6 (Kassra).
+- Optional Anthropic polish run (Kassra's choice); if run, hand-check every post again before replacing `output/sample-week`.
+- Known limitations are listed in the README (reviewer reasoning forced to none by the run-wide override; advisor fails on free models; `tests/test_pipeline.py:281` order assumption; Groq/Gemini connection errors not retried; KB entries `pending_kassra_review`).
+- `DESIGN.md` in the working tree has a line-ending-only change from Kassra's editor; leave it.

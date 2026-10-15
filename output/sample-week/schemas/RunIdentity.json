@@ -1,0 +1,33 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "thread_id": {
+      "title": "Thread Id",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "snapshot_files": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Snapshot Files",
+      "type": "object"
+    }
+  },
+  "required": [
+    "thread_id",
+    "run_id",
+    "snapshot_files"
+  ],
+  "title": "RunIdentity",
+  "type": "object"
+}

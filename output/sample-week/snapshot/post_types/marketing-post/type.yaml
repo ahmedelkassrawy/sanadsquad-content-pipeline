@@ -1,0 +1,19 @@
+name: marketing-post
+writer: marketing_writer
+rubric: rubric.md
+units:
+  min: 1
+  max: 1
+numbering: false
+research:
+  hints: research.md
+  topic_source: angles
+  angles: angles.yaml
+review:
+  pass_avg: 3.5
+  hard_fail:
+  - unsupported_claim
+  - off_brand
+visual:
+  template: brand
+  severity_badge: never

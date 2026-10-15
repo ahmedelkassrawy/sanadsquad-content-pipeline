@@ -1,0 +1,53 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "action": {
+      "enum": [
+        "search_kb",
+        "web_search",
+        "finish"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "query": {
+      "default": "",
+      "title": "Query",
+      "type": "string"
+    },
+    "source_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Ids",
+      "type": "array"
+    },
+    "topic_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Topic Id"
+    }
+  },
+  "required": [
+    "slot_id",
+    "attempt",
+    "action"
+  ],
+  "title": "ResearchAction",
+  "type": "object"
+}

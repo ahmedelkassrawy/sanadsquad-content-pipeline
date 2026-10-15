@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "path": {
+      "title": "Path",
+      "type": "string"
+    },
+    "source_sha256": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Source Sha256",
+      "type": "string"
+    },
+    "before": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Before",
+      "type": "string"
+    },
+    "after": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "After",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path",
+    "source_sha256",
+    "before",
+    "after"
+  ],
+  "title": "InstructionEdit",
+  "type": "object"
+}

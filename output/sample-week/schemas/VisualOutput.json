@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "ImageSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "concept": {
+          "title": "Concept",
+          "type": "string"
+        },
+        "scene": {
+          "title": "Scene",
+          "type": "string"
+        },
+        "palette": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "overlay_text": {
+          "title": "Overlay Text",
+          "type": "string"
+        },
+        "alt_text": {
+          "title": "Alt Text",
+          "type": "string"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity"
+        }
+      },
+      "required": [
+        "concept",
+        "scene",
+        "palette",
+        "overlay_text",
+        "alt_text"
+      ],
+      "title": "ImageSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "spec": {
+      "$ref": "#/$defs/ImageSpec"
+    }
+  },
+  "required": [
+    "slot_id",
+    "attempt",
+    "spec"
+  ],
+  "title": "VisualOutput",
+  "type": "object"
+}

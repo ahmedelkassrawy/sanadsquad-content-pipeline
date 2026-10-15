@@ -1,0 +1,6 @@
+model: null
+max_output_tokens: 3000
+reasoning_effort: low
+skills:
+- search_kb
+- web_search

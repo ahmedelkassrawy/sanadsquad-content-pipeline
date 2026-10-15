@@ -1,5 +1,34 @@
 {
   "$defs": {
+    "Draft": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "attempt": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "tweets": {
+          "items": {
+            "$ref": "#/$defs/Tweet"
+          },
+          "minItems": 1,
+          "title": "Tweets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "tweets"
+      ],
+      "title": "Draft",
+      "type": "object"
+    },
     "PostType": {
       "additionalProperties": false,
       "properties": {
@@ -198,6 +227,28 @@
       "title": "SourceRecord",
       "type": "object"
     },
+    "Tweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Tweet",
+      "type": "object"
+    },
     "Units": {
       "additionalProperties": false,
       "properties": {
@@ -267,6 +318,24 @@
       },
       "title": "Feedback",
       "type": "array"
+    },
+    "max_tweet_chars": {
+      "default": 280,
+      "maximum": 280,
+      "minimum": 1,
+      "title": "Max Tweet Chars",
+      "type": "integer"
+    },
+    "previous_draft": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Draft"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

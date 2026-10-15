@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "ResearchRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "slot": {
+          "$ref": "#/$defs/ResolvedSlot"
+        },
+        "attempt": {
+          "default": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "hints": {
+          "title": "Hints",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slot",
+        "hints"
+      ],
+      "title": "ResearchRequest",
+      "type": "object"
+    },
+    "ResolvedSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "minLength": 1,
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "type": {
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        },
+        "focus": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Focus"
+        },
+        "topic_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic Id"
+        }
+      },
+      "required": [
+        "slot_id",
+        "type"
+      ],
+      "title": "ResolvedSlot",
+      "type": "object"
+    },
+    "SourceRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "kb",
+            "stat",
+            "web"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "format": "date-time",
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "evidence_text": {
+          "title": "Evidence Text",
+          "type": "string"
+        },
+        "status": {
+          "default": "ok",
+          "enum": [
+            "ok",
+            "snippet_only",
+            "fetch_failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "kind",
+        "title",
+        "evidence_text"
+      ],
+      "title": "SourceRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "$ref": "#/$defs/ResearchRequest"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/SourceRecord"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "searches_remaining": {
+      "title": "Searches Remaining",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request",
+    "evidence",
+    "searches_remaining"
+  ],
+  "title": "ResearchTurn",
+  "type": "object"
+}

@@ -1,0 +1,12 @@
+{
+  "concept": "Reentrancy",
+  "scene": "Reentrancy",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Reentrancy",
+  "alt_text": "Reentrancy",
+  "severity": null
+}

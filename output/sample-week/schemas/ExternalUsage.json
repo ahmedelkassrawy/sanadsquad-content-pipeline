@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "search_calls": {
+      "default": 0,
+      "title": "Search Calls",
+      "type": "integer"
+    },
+    "tavily_calls": {
+      "default": 0,
+      "title": "Tavily Calls",
+      "type": "integer"
+    },
+    "ddgs_calls": {
+      "default": 0,
+      "title": "Ddgs Calls",
+      "type": "integer"
+    },
+    "fetch_calls": {
+      "default": 0,
+      "title": "Fetch Calls",
+      "type": "integer"
+    },
+    "tavily_credits": {
+      "default": 0,
+      "title": "Tavily Credits",
+      "type": "number"
+    },
+    "tavily_credits_estimated": {
+      "default": false,
+      "title": "Tavily Credits Estimated",
+      "type": "boolean"
+    },
+    "image_calls": {
+      "default": 0,
+      "title": "Image Calls",
+      "type": "integer"
+    },
+    "cloudflare_neurons": {
+      "default": 0,
+      "title": "Cloudflare Neurons",
+      "type": "integer"
+    },
+    "pillow_cards": {
+      "default": 0,
+      "title": "Pillow Cards",
+      "type": "integer"
+    }
+  },
+  "title": "ExternalUsage",
+  "type": "object"
+}

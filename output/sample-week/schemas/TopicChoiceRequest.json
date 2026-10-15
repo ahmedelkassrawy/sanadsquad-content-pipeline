@@ -1,0 +1,38 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "default": "_batch",
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "default": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "choices": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Choices",
+      "type": "object"
+    },
+    "exclude": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Exclude",
+      "type": "array"
+    }
+  },
+  "required": [
+    "choices",
+    "exclude"
+  ],
+  "title": "TopicChoiceRequest",
+  "type": "object"
+}

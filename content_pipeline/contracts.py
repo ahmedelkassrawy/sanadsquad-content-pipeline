@@ -1,16 +1,34 @@
 from typing import Literal
 from pydantic import Field, StrictStr, model_validator
-from .models import Contract, Draft, ImageResult, ImageSpec, PostType, ResearchPack, ResolvedSlot, Review, SlotOutcome, SourceRecord
+from .models import (
+    Contract,
+    Draft,
+    ImageResult,
+    ImageSpec,
+    PostType,
+    ResearchPack,
+    ResolvedSlot,
+    Review,
+    SlotOutcome,
+    SourceRecord,
+)
 
 
 class Angle(Contract):
     id: StrictStr = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
     name: StrictStr
+    source_ids: list[StrictStr] | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
         if not self.name.strip():
             raise ValueError("angle needs a nonempty name")
+
+        if self.source_ids is not None and (
+            not self.source_ids or len(self.source_ids) != len(set(self.source_ids))
+        ):
+            raise ValueError("configured angle evidence needs unique source ids")
+
         return self
 
 
@@ -21,6 +39,7 @@ class AnglesFile(Contract):
     def unique_ids(self):
         if len({angle.id for angle in self.angles}) != len(self.angles):
             raise ValueError("duplicate angle ids")
+
         return self
 
 
@@ -64,6 +83,8 @@ class WriteRequest(Contract):
     research: ResearchPack
     post_type: PostType
     feedback: list[str]
+    max_tweet_chars: int = Field(default=280, ge=1, le=280)
+    previous_draft: Draft | None = None
 
 
 class Rubric(Contract):
@@ -73,6 +94,7 @@ class Rubric(Contract):
     def unique(self):
         if len(self.criteria) != len(set(self.criteria)):
             raise ValueError("duplicate rubric criteria")
+
         return self
 
 
@@ -124,7 +146,12 @@ class DraftAudit(Contract):
     def approved(self):
         if not self.accepted:
             raise ValueError("draft has not passed validation")
-        return Draft(slot_id=self.original.slot_id,attempt=self.original.attempt,tweets=[tweet.model_dump() for tweet in self.normalized])
+
+        return Draft(
+            slot_id=self.original.slot_id,
+            attempt=self.original.attempt,
+            tweets=[tweet.model_dump() for tweet in self.normalized],
+        )
 
 
 class SlotState(Contract):
@@ -160,11 +187,13 @@ class DraftRecord(Trace):
 
 
 class ReviewRecord(Trace):
+    input_sha256: str | None = None
     review: Review | None = None
     failure: str | None = None
 
 
 class VisualRecord(Trace):
+    input_sha256: str | None = None
     spec: ImageSpec
     result: ImageResult
 
@@ -219,7 +248,8 @@ class RunSummary(Trace):
     unpriced: bool
     external_usage: ExternalUsage
     cost_scope: str = "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."
-    advisor: Literal["not_enabled"] = "not_enabled"
+    advisor: Literal["not_enabled", "completed", "failed"] = "not_enabled"
+    advisor_reason: str | None = None
 
 
 class Estimate(Contract):
@@ -241,3 +271,52 @@ class WeekSnapshot(Contract):
     slots: dict[str, SlotState]
     warnings: list[str]
     summary: RunSummary | None = None
+    advisor: str | None = None
+    advisor_reason: str | None = None
+
+
+class InstructionFile(Contract):
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    text: str
+
+
+class AdvisorRequest(Contract):
+    slot_id: str = "_run"
+    attempt: int = 1
+    evidence: dict[str, list[dict]]
+    instructions: dict[str, InstructionFile]
+
+
+class InstructionEdit(Contract):
+    path: str
+    source_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    before: str = Field(min_length=1, max_length=2000)
+    after: str = Field(min_length=1, max_length=2000)
+
+
+class AdvisorOutput(Contract):
+    slot_id: str
+    attempt: int
+    recommendations: list[str] = Field(max_length=10)
+    edits: list[InstructionEdit] = Field(max_length=8)
+
+    @model_validator(mode="after")
+    def bounded_recommendations(self):
+        if any(not line.strip() or len(line) > 600 for line in self.recommendations):
+            raise ValueError("advice recommendations must be concise")
+
+        return self
+
+
+class AdvisorRecord(Trace):
+    input_sha256: str | None = None
+    status: Literal["not_enabled", "completed", "failed"]
+    output: AdvisorOutput | None = None
+    reason: str | None = None
+
+
+class RunIdentity(Contract):
+    version: Literal[1] = 1
+    thread_id: str
+    run_id: str
+    snapshot_files: dict[str, str]

@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "text": {
+      "title": "Text",
+      "type": "string"
+    },
+    "source_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Source Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "text",
+    "source_ids"
+  ],
+  "title": "AuditTweet",
+  "type": "object"
+}

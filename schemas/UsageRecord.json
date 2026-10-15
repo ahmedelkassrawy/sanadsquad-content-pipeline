@@ -1,4 +1,40 @@
 {
+  "$defs": {
+    "CallFailureKind": {
+      "enum": [
+        "rate_limit",
+        "auth",
+        "payment",
+        "timeout",
+        "connection",
+        "server",
+        "provider_error",
+        "truncated",
+        "malformed_output",
+        "malformed_envelope",
+        "output_rejected",
+        "unknown"
+      ],
+      "title": "CallFailureKind",
+      "type": "string"
+    },
+    "CallFinishReason": {
+      "enum": [
+        "stop",
+        "end_turn",
+        "stop_sequence",
+        "tool_calls",
+        "function_call",
+        "length",
+        "max_tokens",
+        "error",
+        "content_filter",
+        "unknown"
+      ],
+      "title": "CallFinishReason",
+      "type": "string"
+    }
+  },
   "additionalProperties": false,
   "properties": {
     "call_id": {
@@ -103,6 +139,42 @@
       "minimum": 0,
       "title": "Overshoot Tokens",
       "type": "integer"
+    },
+    "failure_kind": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CallFailureKind"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "http_status": {
+      "anyOf": [
+        {
+          "maximum": 599,
+          "minimum": 100,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Http Status"
+    },
+    "finish_reason": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CallFinishReason"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

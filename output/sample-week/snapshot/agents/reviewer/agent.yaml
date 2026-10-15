@@ -1,0 +1,5 @@
+model: nvidia:nvidia/nemotron-3-super-120b-a12b
+max_output_tokens: 3000
+reasoning_effort: medium
+skills:
+- brand_rules

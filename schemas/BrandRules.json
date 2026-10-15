@@ -29,6 +29,7 @@
     "safe_fixes": {
       "items": {
         "enum": [
+          "banned_characters",
           "whitespace",
           "curly_quotes",
           "trailing_hashtags"

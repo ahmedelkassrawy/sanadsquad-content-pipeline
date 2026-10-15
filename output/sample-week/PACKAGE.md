@@ -1,0 +1,1 @@
+Inspectable sample package. SQLite checkpoint, ownership lock and internal run identity/state are excluded; this copy cannot resume. Brand statistics are fictional. Copy the live sample-provenance.json beside this package before claiming live provenance.

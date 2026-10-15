@@ -1,0 +1,64 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "final-c234f25-sample",
+  "slots": {
+    "thread_1": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "KB-01",
+      "reasons": []
+    },
+    "thread_2": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "KB-08",
+      "reasons": []
+    },
+    "thread_3": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "KB-13",
+      "reasons": []
+    },
+    "marketing_1": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-service",
+      "reasons": []
+    },
+    "marketing_2": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "ANGLE-credibility",
+      "reasons": []
+    },
+    "marketing_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "ANGLE-education",
+      "reasons": []
+    }
+  },
+  "shipped": 6,
+  "confirmed_tokens": 100977,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.0,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": true,
+  "external_usage": {
+    "search_calls": 0,
+    "tavily_calls": 0,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 0.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 6,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 6
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "failed",
+  "advisor_reason": "failed_output"
+}

@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "InstructionFile": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "text"
+      ],
+      "title": "InstructionFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "slot_id": {
+      "default": "_run",
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "default": 1,
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "evidence": {
+      "additionalProperties": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "instructions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/InstructionFile"
+      },
+      "title": "Instructions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "evidence",
+    "instructions"
+  ],
+  "title": "AdvisorRequest",
+  "type": "object"
+}

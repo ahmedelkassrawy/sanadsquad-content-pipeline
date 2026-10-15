@@ -17,6 +17,34 @@ class SlotOutcome(str, Enum):
     failed_output = "failed_output"
 
 
+class CallFailureKind(str, Enum):
+    rate_limit = "rate_limit"
+    auth = "auth"
+    payment = "payment"
+    timeout = "timeout"
+    connection = "connection"
+    server = "server"
+    provider_error = "provider_error"
+    truncated = "truncated"
+    malformed_output = "malformed_output"
+    malformed_envelope = "malformed_envelope"
+    output_rejected = "output_rejected"
+    unknown = "unknown"
+
+
+class CallFinishReason(str, Enum):
+    stop = "stop"
+    end_turn = "end_turn"
+    stop_sequence = "stop_sequence"
+    tool_calls = "tool_calls"
+    function_call = "function_call"
+    length = "length"
+    max_tokens = "max_tokens"
+    error = "error"
+    content_filter = "content_filter"
+    unknown = "unknown"
+
+
 class ResolvedSlot(Contract):
     slot_id: str = Field(min_length=1)
     type: str = Field(min_length=1)
@@ -37,8 +65,10 @@ class SourceRecord(Contract):
     def source_kind(self):
         if not self.source_id.startswith({"kb": "KB-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
             raise ValueError("source id must match kind")
+
         if self.status == "ok" and not self.evidence_text.strip():
             raise ValueError("citable evidence cannot be empty")
+
         return self
 
 
@@ -51,10 +81,13 @@ class ResearchPack(Contract):
     @model_validator(mode="after")
     def unique_sources(self):
         ids = [s.source_id for s in self.sources]
+
         if len(ids) != len(set(ids)):
             raise ValueError("duplicate source ids")
+
         if not any(s.status == "ok" for s in self.sources):
             raise ValueError("failed_research: no citable evidence")
+
         return self
 
 
@@ -88,8 +121,10 @@ class Review(Contract):
     def score_range(self):
         if not self.scores or any(not 1 <= s <= 5 for s in self.scores.values()):
             raise ValueError("review scores must be 1..5")
+
         if self.hard_fail and self.accepted:
             raise ValueError("hard failure cannot approve")
+
         return self
 
 
@@ -124,6 +159,9 @@ class UsageRecord(Contract):
     cost_source: str
     status: Literal["confirmed", "uncertain"] = "confirmed"
     overshoot_tokens: int = Field(default=0, ge=0)
+    failure_kind: CallFailureKind | None = None
+    http_status: int | None = Field(default=None, strict=True, ge=100, le=599)
+    finish_reason: CallFinishReason | None = None
 
 
 class Units(Contract):
@@ -134,6 +172,7 @@ class Units(Contract):
     def ordered(self):
         if self.max < self.min:
             raise ValueError("units max below min")
+
         return self
 
 
@@ -146,6 +185,7 @@ class ResearchConfig(Contract):
     def angle_file(self):
         if self.topic_source == "angles" and not self.angles:
             raise ValueError("angles source needs angles file")
+
         return self
 
 
@@ -175,7 +215,9 @@ class BrandRules(Contract):
     banned_words: list[str]
     banned_characters: list[str]
     allowed_links: list[str]
-    safe_fixes: list[Literal["whitespace", "curly_quotes", "trailing_hashtags"]]
+    safe_fixes: list[
+        Literal["banned_characters", "whitespace", "curly_quotes", "trailing_hashtags"]
+    ]
     approved_stats: dict[str, str]
     palette: list[str]
 

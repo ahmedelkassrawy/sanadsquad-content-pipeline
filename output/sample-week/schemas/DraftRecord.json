@@ -1,0 +1,164 @@
+{
+  "$defs": {
+    "AuditTweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "source_ids"
+      ],
+      "title": "AuditTweet",
+      "type": "object"
+    },
+    "Draft": {
+      "additionalProperties": false,
+      "properties": {
+        "slot_id": {
+          "title": "Slot Id",
+          "type": "string"
+        },
+        "attempt": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "tweets": {
+          "items": {
+            "$ref": "#/$defs/Tweet"
+          },
+          "minItems": 1,
+          "title": "Tweets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slot_id",
+        "tweets"
+      ],
+      "title": "Draft",
+      "type": "object"
+    },
+    "DraftAudit": {
+      "additionalProperties": false,
+      "properties": {
+        "original": {
+          "$ref": "#/$defs/Draft"
+        },
+        "normalized": {
+          "items": {
+            "$ref": "#/$defs/AuditTweet"
+          },
+          "title": "Normalized",
+          "type": "array"
+        },
+        "fixes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fixes",
+          "type": "array"
+        },
+        "violations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Violations",
+          "type": "array"
+        },
+        "accepted": {
+          "title": "Accepted",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "original",
+        "normalized",
+        "fixes",
+        "violations",
+        "accepted"
+      ],
+      "title": "DraftAudit",
+      "type": "object"
+    },
+    "Tweet": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Tweet",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "title": "Record Id",
+      "type": "string"
+    },
+    "slot_id": {
+      "title": "Slot Id",
+      "type": "string"
+    },
+    "attempt": {
+      "title": "Attempt",
+      "type": "integer"
+    },
+    "audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DraftAudit"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "failure": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure"
+    }
+  },
+  "required": [
+    "record_id",
+    "slot_id",
+    "attempt"
+  ],
+  "title": "DraftRecord",
+  "type": "object"
+}
