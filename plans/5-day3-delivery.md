@@ -153,3 +153,13 @@ Change: rubrics gain per-criterion 1/3/5 anchors and definitions of unsupported_
 Invariant: no rule is removed or weakened: grounding, citation, fictional-label, hard-fail, length and evidence rules keep their meaning; every phrase pinned by existing tests is kept verbatim; rubric criteria front matter and type.yaml are unchanged; code is unchanged.
 
 Acceptance: full suite green unchanged; independent review compares old and new prompts rule by rule; one final live week at the reviewed head.
+
+## S12 validator rejects leaked source ids (compact lane, 2026-10-15)
+
+Symptom: final sample at 1ef45d1 (`.runs/final-1ef45d1-sample`) shipped marketing_1 with "Our demo service (STAT-03)" in the published text; the Mistral reviewer did not flag it. Writers and the reviewer are told never to put ids in Tweet.text, but the brief says checks code can do must not be left to the LLM.
+
+Invariant: every other validator check, safe fix, reviewer, threshold and retry unchanged. Ordinary words are never matched as ids.
+
+Fix: `validate` reports `tweet_N:leaked_source_id:<id>` when the normalized text contains, as a whole token, any source_id of the slot's ResearchPack (KB-xx, STAT-xx, WEB-xx or any other id present in the pack). It is a real violation: the draft goes back to the writer, not auto-fixed.
+
+Acceptance: offline tests through `validate`: a tweet containing a pack source id (bare, in parentheses, case as written) is rejected with that violation; an id-like token not in the pack and ordinary text are not; it fails on the base. Full suite green.
