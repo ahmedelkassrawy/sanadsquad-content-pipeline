@@ -16,8 +16,8 @@ from .research import KnowledgeBase
 from .validation import validate
 
 
-async def reviewer_control(root,output,model,token_budget,cost_budget):
-    settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False)
+async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpriced=False):
+    settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False,allow_unpriced=allow_unpriced)
     controls=json.loads(local_file(root,"config/live-review-controls.json").read_text(encoding="utf-8"))
     spec=load_type(root,controls["post_type"])
     kb=KnowledgeBase(root/"inputs/kb.json")
@@ -56,13 +56,13 @@ async def reviewer_control(root,output,model,token_budget,cost_budget):
 
 async def execute(args):
     slots=load_plan(args.root,args.root/"inputs/plan.json")
-    settings=Settings(model_override=args.model,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget)
+    settings=Settings(model_override=args.model,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget,allow_unpriced=args.allow_unpriced)
     validate_inputs(args.root,slots,settings)
     if args.output.exists(): raise ValueError("proof output already exists")
     args.output.mkdir(parents=True,exist_ok=False)
     passed=True
     if args.mode in {"reviewer","both"}:
-        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget)
+        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget,args.allow_unpriced)
     if args.mode in {"sample","both"} and passed:
         summary=await run_pipeline(args.root,slots,args.output/"sample-week",settings)
         atomic_json(args.output/"sample-provenance.json",{"provenance":"live configured model/search; no injected factory","model":args.model,"complete_six":len(slots)==6 and summary.shipped==6,"summary":summary.model_dump(mode="json"),"note":"Brand statistics are fictional demo fixtures; KB owner approval remains pending."})
@@ -73,6 +73,7 @@ async def execute(args):
 def main(argv=None):
     parser=argparse.ArgumentParser(description="Explicit real reviewer control and six-slot sample; paid/network calls require --live.")
     parser.add_argument("--live",action="store_true")
+    parser.add_argument("--allow-unpriced",action="store_true")
     parser.add_argument("--root",type=Path,default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output",type=Path)
     parser.add_argument("--mode",choices=["reviewer","sample","both"],default="both")
