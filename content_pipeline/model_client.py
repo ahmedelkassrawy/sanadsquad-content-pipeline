@@ -1,6 +1,7 @@
 import asyncio
 import json
 import math
+import re
 from contextlib import nullcontext
 from importlib.metadata import version
 from pathlib import Path
@@ -266,7 +267,9 @@ class LangChainTransport:
         provider, name = self.model.split(":", 1)
         key_name = {"openrouter":"OPENROUTER_API_KEY","opencode":"OPENCODE_API_KEY","openai":"OPENAI_API_KEY","google_genai":"GEMINI_API_KEY","anthropic":"ANTHROPIC_API_KEY"}.get(provider)
         if not key_name:
-            raise ValueError("unsupported configured model provider")
+            if not re.fullmatch(r"[a-z][a-z0-9_]*", provider):
+                raise ValueError("unsupported configured model provider")
+            key_name = provider.upper() + "_API_KEY"
         key = env.get(key_name)
         if not key or not key.strip():
             raise ValueError("missing credential for selected provider")
@@ -297,7 +300,7 @@ class LangChainTransport:
         chat = init_chat_model(name, model_provider=provider, **options)
         # Tool structured output retains raw usage before LangChain parses it;
         # native SDK parsing can raise on length or bad JSON before returning usage.
-        method = {"openai":"function_calling","google_genai":"json_schema","anthropic":"function_calling"}[provider]
+        method = {"openai":"function_calling","google_genai":"json_schema","anthropic":"function_calling"}.get(provider, "function_calling")
         return chat.with_structured_output(schema, method=method, include_raw=True)
 
     async def __call__(self, messages, schema, max_tokens):
