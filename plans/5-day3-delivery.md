@@ -99,3 +99,15 @@ Invariant: existing providers behave exactly as before (same key names, OpenRout
 Fix: keep the explicit key-name overrides (`google_genai` -> `GEMINI_API_KEY`, and the current entries); any other provider whose name matches `^[a-z][a-z0-9_]*$` reads `<PROVIDER>_API_KEY` (for example `groq` -> `GROQ_API_KEY`); a provider name outside that pattern raises `unsupported configured model provider`. Providers without an explicit structured-output method use `function_calling`. Add `langchain-groq` to `pyproject.toml` dependencies and pin it in `requirements.txt`.
 
 Acceptance: a public-interface offline test through `LangChainTransport.prepare` with a faked `init_chat_model` shows `groq:<model>` reads `GROQ_API_KEY`, passes it as `api_key`, and requests `function_calling`; it fails on the base with `unsupported configured model provider`. Existing provider tests stay green; full suite green. Root then runs a live free-model probe on Groq.
+
+## S7b preflight accepts any well-formed provider (compact lane, 2026-10-15)
+
+Symptom: after S7 (72f8d84), `live_proof --model groq:openai/gpt-oss-120b` exits 2 with `live_proof_error:ValueError` before any model call. Confirmed cause (offline repro `.runs/s7p-diag/repro_groq_preflight.py`): `validate_inputs` in `content_pipeline/pipeline.py` raises `invalid configured model reference` because it keeps its own hard-coded provider set; an OpenRouter model passes the same preflight. S7's acceptance tested only `LangChainTransport.prepare`, not the run's public preflight, so the second allowlist was missed.
+
+Invariant: the reference pattern, the OpenRouter `/` rule and every other preflight check are unchanged; existing providers still pass; malformed provider names still fail before any client is built.
+
+Fix: one shared provider-name rule. `content_pipeline/model_client.py` exposes the S7 pattern (`^[a-z][a-z0-9_]*$`) as a single helper used by both `LangChainTransport.prepare` and `validate_inputs`, replacing the hard-coded provider set in `pipeline.py`.
+
+Acceptance: an offline test through `validate_inputs` with a `groq:` model fails on 72f8d84 with `invalid configured model reference` and passes after; a malformed provider and an OpenRouter reference without `/` still fail; full suite green. Root then reruns the Groq live sample.
+
+Open low findings from the S7 Opus review (not fixed here): F2 Groq/Gemini connection and timeout errors are not retried and record `unknown`; F3 Groq HTTP 400 `tool_use_failed` ends as `failed_api` without a repair attempt. F1 (reasoning_effort rejected on qwen) was disproved by a live call.
