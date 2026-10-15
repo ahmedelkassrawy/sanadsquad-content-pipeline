@@ -277,6 +277,7 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 - It is a **pre-call budget guard**, not a mathematical hard cap. Input tokens are estimated (chars / 3.5 + 15%), and an estimate can be wrong for unusual text.
 - The guard reserves that estimate plus full `max_output_tokens` before each call. Any actual overshoot is recorded in `usage.jsonl` and the summary.
 - A call that was dispatched but has no recorded result (timeout, crash) may still have been billed: its reservation is kept as an **uncertain** charge and never released. The summary reports **confirmed** and **uncertain** spend separately.
+- **Provider refusals (Kassra, 2026-10-15):** an exception carrying HTTP 400–499 except 408 releases its reservation and records confirmed zero tokens and zero cost with `failure_kind` and `http_status`; 401/403 end `failed_api`, 402 ends `failed_budget`. Timeouts, connection errors, 408, 5xx, cancellation and status-less errors stay uncertain; our own ledger budget refusal is unchanged.
 - **Scope:** LLM spend only. Search and image calls are counted (calls, Tavily credits, Cloudflare neurons) but not priced in USD. The summary says so.
 - The brief requires cost **reporting**, not a cap. Kassra wants the guard, but it stays simple and never blocks the required pipeline work.
 

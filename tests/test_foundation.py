@@ -493,10 +493,16 @@ async def test_permanent_provider_budget_failure_does_not_retry(tmp_path):
     error.status_code = 403
     transport = Transport([error])
     model = client(tmp_path, transport)
-    with pytest.raises(ModelFailure, match="failed_budget"):
+    with pytest.raises(ModelFailure, match="failed_api"):
         await model.call(Draft, [{"role": "user", "content": "write"}], "x", "writer", 1, 100)
     assert len(transport.payloads) == 1
-    assert model.ledger.totals()["uncertain_tokens"] == 102
+    assert model.ledger.totals()["uncertain_tokens"] == 0
+
+    [record] = [json.loads(line) for line in (tmp_path / "usage.jsonl").read_text().splitlines()]
+    assert record["status"] == "confirmed"
+    assert record["input_tokens"] == record["output_tokens"] == record["cost_usd"] == 0
+    assert (record["failure_kind"], record["http_status"]) == ("auth", 403)
+    assert model.ledger.entries[record["call_id"]]["status"] == "released"
 
 
 async def test_budget_refusal_precedes_dispatch(tmp_path):

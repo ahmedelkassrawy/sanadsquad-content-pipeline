@@ -165,9 +165,20 @@ async def test_actual_gemini_sdk_errors_retry_and_retain_uncertain_usage(
     assert [entry["call_id"] for entry in usage] == [
         f"a/writer/1/{n}" for n in range(1, expected_calls + 1)
     ]
-    assert [entry["status"] for entry in usage] == ["uncertain"] * (expected_calls - 1) + [
-        "confirmed" if recover else "uncertain"
-    ]
+    if code == 429:
+        assert [entry["status"] for entry in usage] == ["confirmed"] * expected_calls
+        refusals = usage[:-1] if recover else usage
+        assert all(
+            entry["input_tokens"] == entry["output_tokens"] == entry["cost_usd"] == 0
+            and entry["failure_kind"] == "rate_limit"
+            and entry["http_status"] == 429
+            for entry in refusals
+        )
+        assert all(ledger.entries[entry["call_id"]]["status"] == "released" for entry in refusals)
+    else:
+        assert [entry["status"] for entry in usage] == ["uncertain"] * (expected_calls - 1) + [
+            "confirmed" if recover else "uncertain"
+        ]
     assert ledger.totals()["uncertain_tokens"] == sum(
         entry["tokens"] for entry in ledger.entries.values() if entry["status"] == "uncertain"
     )
