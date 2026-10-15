@@ -1,131 +1,216 @@
 # Architecture
 
-The pipeline is a fixed workflow. Plain typed Python agents handle one role each;
-LangGraph owns routing, parallelism, retries and SQLite checkpoints. Model choice is
-configuration, independent of orchestration. [DESIGN.md](DESIGN.md) section 6 remains
-the settled requirements authority.
+The pipeline is a fixed workflow. The orchestrator is plain code, not a model. Each
+agent is a plain typed Python class with one job. LangGraph owns routing, parallel
+lanes, the content retry and SQLite checkpoints. Which model each agent uses is configuration,
+separate from the orchestration. [DESIGN.md](DESIGN.md) section 6 is the settled
+requirements authority; this file describes what the code does today.
+
+## Diagram
+
+Node names match `content_pipeline/pipeline.py` (`graph()` and `_lane_graph()`).
 
 ```mermaid
 flowchart TD
-  CLI[Week or piece CLI] --> P[Validate and acquire run ownership]
-  P --> S[New snapshot or saved checkpoint]
-  S --> R[Parallel focused research]
-  R --> T[One batch topic choice with code fallback]
-  T --> W[Send a lane per slot]
-  W --> V[Writer then code validator]
-  V -->|clean| J[Rubric reviewer]
-  V -->|invalid| Retry[One shared content retry]
-  J -->|reject| Retry
-  Retry -->|retry available| W
-  Retry -->|spent| Drop[Terminal failure]
-  J -->|accept| I[Grounded visual spec and Pillow card]
-  I --> E[Export in plan order]
-  Drop --> E
-  E --> A[Suggest-only advisor]
-  A --> F[Lifetime usage and final summary]
+  CLI["run_week.py / run_piece.py"] --> PRE["Preflight: validate inputs, take run lock, snapshot inputs or load checkpoint"]
+  PRE --> FR["focused_research: slots with a focus, in parallel"]
+  FR --> TS["topic_selection: one batch topic call for empty slots, code fallback, then research them in parallel"]
+  TS -->|"Send: one lane per slot"| W
+
+  subgraph LANE["lane: one per slot, all lanes run in parallel"]
+    W["write: writer agent"] --> V["validate: code"]
+    V -->|"clean"| R["review: reviewer agent, code scores"]
+    V -->|"violations"| RT["retry"]
+    R -->|"reject"| RT
+    RT -->|"first attempt: write again with feedback"| W
+    RT -->|"second attempt failed: dropped_quality"| C
+    R -->|"accept"| IMG["visual: visual agent, then code builds the card"]
+    IMG --> C["collect"]
+  end
+
+  TS -.->|"slot with failed research skips the lane work"| C
+  W -.->|"API or budget failure"| C
+  R -.->|"API or budget failure"| C
+  W -.->|"writer output malformed"| RT
+  C --> EX["export: posts.csv and posts.json, plan order"]
+  EX --> AD["advisor: suggest only"]
+  AD --> SU["summary: run_summary.json, totals include the advisor"]
 ```
 
-## Boundaries and data flow
+Every slot ends in exactly one outcome: `shipped`, `dropped_quality`, `failed_research`,
+`failed_api`, `failed_budget` or `failed_output`. A failing slot is recorded inside its
+lane and never stops the other lanes. Export and summary run once, after every lane ends,
+even when nothing shipped.
 
-`config.py` loads file contracts, strict angle pools and brand rules. `pipeline.py`
-validates startup inputs, freezes policy, creates the graph and contains expected slot
-failures. Every slot finishes as shipped, dropped_quality, failed_research, failed_api,
-failed_budget or failed_output. Different slots do not share a content retry.
+## Why these agents
 
-`agents.py` receives ResearchRequest, WriteRequest, ReviewRequest or VisualRequest;
-agents never receive WeekState. Research alone has callable tools from `tools.py` and
-`skills/search_kb.py`/`web_search.py`. It uses BM25 aliases and the same chat model to
-judge KB matches, with at most four search actions. Web hits retain actual page evidence;
-summary snippets/fetch failures cannot support claims. Public HTTP(S) fetches reject
-private targets and validate redirects. Assigned topics use the configured KB/angles
-producer, regardless of an angle ID's prefix. Code reserves all valid later topic
-proposals before deterministic fallback and excludes the last four completed runs.
+Each agent takes one typed request and returns one typed result. No agent sees the whole
+run state, and none does another agent's job.
 
-Writers get only their research pack and file instructions. Shared `brand_rules` is
-instruction text for writers/reviewer/visual and executable rules for validation.
-Code adds numbering, applies only logged safe fixes, checks weighted tweet length and
-source IDs, then passes the exact approved candidate and identical evidence to review.
-Review scoring requires every rubric criterion and hard-fail flag; average/threshold
-and approval are computed by code. An accepted boolean from the model is never trusted.
-The model still owns factual grounding judgment; valid source IDs alone prove no claim.
-The private reviewer tool schema spells out the current file-configured criterion and
-hard-fail keys, with score bounds. Its typed response converts back to the unchanged
-canonical dictionary contract before validation/scoring. Criterion reasons are required;
-false flags may omit reasons, true flags still require them, and extra string reasons
-remain allowed. This representation helps producers emit the required fields; it does
-not change approval policy or establish a model's grounding quality.
+| Agent | One job | Skills |
+| --- | --- | --- |
+| Orchestrator (code, `pipeline.py`) | Read the plan, apply `--set`, start lanes in parallel, route retry or drop, collect results, export, summarise. | none |
+| Research (`agents/research`) | Turn a slot into a topic plus sources. Searches the knowledge base first and the web only if needed. Records every source. Its topic-choice call for empty slots uses `agents/research/topics.md`. | `search_kb`, `web_search` |
+| Thread writer (`agents/thread_writer`) | Write a 5 to 10 tweet thread from one research pack. | `brand_rules` |
+| Marketing writer (`agents/marketing_writer`) | Write one marketing tweet from one research pack. | `brand_rules` |
+| Reviewer (`agents/reviewer`) | Score the draft against the type's rubric and give a reason for each score and each rejection. | `brand_rules` |
+| Visual (`agents/visual`) | Propose an image spec (concept, scene, palette, overlay text, alt text) for an accepted piece. | `brand_rules` |
+| Advisor (`agents/advisor`) | After export, suggest edits to instruction files. | `brand_rules` |
 
-`images.py` validates both modeled and fallback overlays before Pillow rendering.
-`trail.py` deduplicates stable record IDs and exports approved text unchanged. JSON
-contracts live in `models.py`/`contracts.py`; `schemas.py` exports their schemas.
+Why two writers: threads and single posts need different instructions, length rules and
+rubrics. Each writer has its own `system.md`; each post type adds its own `writer.md`.
+Why only research can search: a writer that can search can invent a source. Writers work
+from the research pack alone, and `config.py` refuses a writer that lists a search skill.
+Why a separate reviewer: the model that wrote a draft should not approve it.
+
+A skill is two files in `skills/`: `<name>.md` (prompt text) and `<name>.py` (code).
+Start-up fails if an agent lists a skill and either file is missing. `brand_rules.md` is
+added to the prompts of five agents. `brand_rules.py` calls `check_brand`, the same
+function the validator uses, and the rules themselves live once, in the front matter of
+`inputs/brand-voice.md`. Research gets `search_kb` and `web_search` as callable tools; the
+tool descriptions come from the `.md` files and the tool code is in `tools.py`.
+
+## Where code is used instead of the model
+
+The brief says rules belong in code and judgement in the model. The split:
+
+| Done by code | Where |
+| --- | --- |
+| Routing, parallel lanes, one content retry, drop after the second failure | `pipeline.py` |
+| Safe fixes: replace banned characters (em dash, U+2011), normalise whitespace, straight quotes, remove a trailing hashtag block. Every fix is logged. | `validation.py` `validate()` |
+| Tweet numbering (`1/7`) | `validation.py` |
+| Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text | `validation.py` |
+| Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, hard-fail flags. The model's own "accepted" is never trusted. | `agents.py` `score_review()` |
+| Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic fallback when the model's choice is missing or invalid | `research.py` `assign_topics()` |
+| Budget guard: reserve the worst case before each call, refuse if it does not fit, keep uncertain charges | `model_client.py`, `ledger.py` |
+| Model call retries: transient errors up to three times with backoff, one longer retry after truncation, one repair re-prompt for malformed output | `model_client.py` |
+| Image: checks the overlay text against brand rules and the piece, builds a fallback spec if the agent's is unusable, draws the 1200x675 PNG card and badge | `images.py` |
+| Safe web fetching (public addresses only, redirects checked), CSV and JSON export, run folder trail | `research.py`, `trail.py` |
+
+Order inside `validate()`: safe fixes first, then numbering, then the hard checks. The
+reviewer sees exactly the text that passed these checks, and that same text is exported.
+Nothing edits it after approval.
+
+Where the model is trusted: choosing and judging sources, writing, judging whether every
+factual claim is supported by the evidence, and scoring the rubric. A valid source id
+alone proves no claim, so the reviewer checks every factual clause, cited or not.
+
+## Model choice is configuration
+
+- `DEFAULT_MODEL` in `.env` (or `--default-model`) is used by every agent.
+- An agent's `agent.yaml` can set `model:` to override it. The committed config pins the
+  reviewer and marketing writer to `nvidia:nvidia/nemotron-3-super-120b-a12b`.
+- `MODEL_OVERRIDE` (or `--model-override`) replaces the model of every agent at once.
+- `REASONING_EFFORT_OVERRIDE` (or `--reasoning-effort-override`) replaces every agent's
+  effort. There is no per-agent effort override yet.
+- Models are written `provider:model` and built with LangChain `init_chat_model`. The key
+  comes from `<PROVIDER>_API_KEY`, except `google_genai` which uses `GEMINI_API_KEY`.
+  OpenRouter, OpenCode and NVIDIA go through LangChain's OpenAI client with a base URL.
+  For NVIDIA this is needed because LangChain's NVIDIA class cannot return raw usage with
+  structured output.
+  Another LangChain provider works without code changes once its `langchain-<provider>`
+  package is installed. The Groq and Mistral packages already are.
+- Instructions are files: brand voice, rubrics, writer prompts and agent prompts need no
+  code change to edit.
+
+## Data flow and boundaries
+
+`config.py` loads settings, post types, agent configs and brand rules. `pipeline.py`
+validates every input before the first call, freezes a snapshot of the inputs into the run
+folder, builds the graph and keeps expected failures inside their slot.
+
+`agents.py` defines the agents. Each receives only its request: `ResearchRequest`,
+`WriteRequest`, `ReviewRequest` or `VisualRequest`. Research is the only agent with tools.
+It uses BM25 over the knowledge base, lets the same chat model judge the top matches, and
+may take at most four search steps. A web hit only counts as evidence when its page text
+was fetched; snippets and failed fetches cannot support a claim. Code rejects non-public
+addresses.
+
+`trail.py` appends each record to its stage file once (stable record ids, no duplicates).
+JSON models live in `models.py` and `contracts.py`; `python -m content_pipeline.schemas`
+exports their schemas.
 
 ## Model calls and recovery
 
-`model_client.py` prepares configured LangChain provider adapters and requests raw
-structured responses. The wrapper retains returned usage even when parsing fails,
-normalizes cache/thinking tokens without double counting, and makes every retry pass
-through the shared ledger. Transient failures get up to three retries; truncation gets
-one 1.5x output retry; malformed structures get one repair. These are separate from the
-single content retry. Initialization/credential failures before dispatch create no
-uncertain billed charge. Errors written to artifacts use safe failure types.
+Every model call goes through one wrapper, `model_client.py`. It does four things:
 
-`durability.py` owns an exclusive OS lock, read-only resume preflight, snapshot hashes
-and persisted thread identity. Mutable live policy cannot mix into an existing run.
-SQLite persists parent and per-lane subgraph checkpoints. Resume invokes the graph
-with no new input, preserving pending namespaces rather than restarting a fresh plan.
-Completed resume returns saved state without factories. The ledger recovers only after
-ownership: reserved calls release; dispatched unresolved calls remain uncertain.
-Call numbering advances over all prior ledger IDs, including released ones. Usage and
-stage trails are retained. Search/image counters are saved incrementally in a separate
-artifact under a shared async lock.
-Saved review/visual/advisor results additionally carry the exact request hash. An
-interruption after their trail append can recover that typed result rather than replacing
-its artifacts with a different response. Input mismatches fail closed.
+- It keeps the token usage a provider returns, even if the answer cannot be parsed.
+- It retries temporary failures up to three times: timeouts, connection errors and HTTP
+  408, 429, 500, 502, 503 and 504. A 429 waits at least 5, 10, then 20 seconds.
+- It retries a cut-off answer once, with a 1.5 times larger output limit, and re-asks once
+  when the structured output is malformed or rejected.
+- It sends every attempt through the shared budget ledger.
 
-An unfinished node can replay work after a crash. In particular, focused research and
-topic selection have gather operations: a sibling's finished call is not individually
-checkpointed until the parent node finishes. Tool/model calls inside a research loop
-have the same window. Billed responses lost before checkpointing can be billed again;
-there is no exactly-once billing guarantee. Trails deduplicate records, not model calls.
-The schema-versioned snapshot format intentionally rejects older/missing/incompatible
-run metadata. Local checkpoint folders should remain under their operator's control.
+These retries are separate from the single content retry in the graph. Errors saved in the
+run folder use short error names, never provider messages.
+
+A crashed run can be resumed. `durability.py` locks the run folder so two processes cannot
+use it at once, and stores a hashed copy of the inputs. Resume reads that copy, never the
+live files. LangGraph saves checkpoints to SQLite, so finished steps are skipped.
+
+One limit to know: a step that was running when the process died can run again. If its
+model call was already billed, you pay twice. Billing is not exactly once. The ledger
+treats a call that was never sent as free, and a call that was sent but has no saved
+result as a possible charge. Keep run folders and checkpoints private.
 
 ## Advisor and storage
 
-`advisor.py` is a plain typed agent after export. It reads the frozen allowed instruction
-files and saved research/draft/review/final records. Structured edits identify exact
-source hashes and unique before excerpts. Code derives the unified diff, bounds its
-size, limits paths, and rejects machine-rule changes. A changed edit cannot contain
-numeric characters on its affected full lines, preventing reused numbers or changed
-wording around an existing number, even if the edit excerpt omits that number.
-Unchanged numeric lines remain allowed.
-The diff and prose are recommendations for human review, never executed/applied.
-This is not semantic fact checking or proof that suggested prose improves the policy;
-human review is required for every recommendation, including worded quantities. Advisor
-failure is isolated; summary totals include its confirmed or uncertain spending.
+After export, `advisor.py` asks a model for suggested edits to the brand voice and to each
+used type's writer instructions and rubric. It reads the saved research, drafts, reviews
+and final pieces. Code then checks every suggestion before it is kept. An edit must match
+the current file text, must not touch the brand rules at the top of `brand-voice.md`, and
+must not change any line that contains a number. The patch is size-capped. Code builds
+`advice.patch` itself and nothing is applied for you. If the advisor fails, the failure is
+recorded and the posts are unaffected.
 
-SQLite is runtime state; JSON trails are inspectable views. The packaged sample omits
-checkpoint, ownership lock and internal identity/state, and includes schemas instead.
-It cannot resume. Both original and packaged outputs retain fictional-stat labels.
+SQLite holds run state for resume. The JSON files are the readable record. The committed
+sample leaves out the checkpoint, lock and identity files, so it cannot resume.
 
-## Extension and limits
+## How to extend it
 
-Add a type by adding a `post_types/<name>` folder with `type.yaml`, `writer.md`, rubric,
-research hints and optional angles. Reference an existing writer or add a writer agent
-folder. A one-post
-third type was exercised without changing graph code. This promise covers existing
-research/write/validate/review/visual contracts; an extra stage needs code.
+**Add a post type.** Add `post_types/<name>/` with `type.yaml` (writer, rubric, unit range,
+numbering, research topic source, review threshold and hard-fail keys, visual template),
+`writer.md`, the rubric and research hints. Add `angles.yaml` if topics come from angles.
+Name an existing writer agent, or add `agents/<writer>/` with `agent.yaml` and
+`system.md`. Then use the type in a plan. The orchestrator never names a post type. Tests
+copy `marketing-post` to a `case-study` type and run it with no Python change
+(`tests/test_pipeline.py:461`). This covers types that fit research, write, validate,
+review and visual. A new stage needs code.
 
-For 15 slots, expand the plan: the same Send/reducer graph applies. Before production,
-add bounded concurrency/backpressure and tune budgets/provider rate limits from real
-measurements; no implemented `MAX_CONCURRENCY` flag is claimed. Larger KBs can replace
-BM25 behind the research tool boundary. For a second platform, add an explicit platform
-contract for length/thread rules and exporter adapters; the current validator/exporter
-are X-only. A daily service would need lifecycle/retention/queue controls and can move
-durability to a service-oriented executor such as Temporal.
+**Add a skill.** Add both `skills/<name>.md` and `skills/<name>.py` (start-up needs both),
+then list it in the agent's `agent.yaml`. Research skills must also be wired as tools in
+`tools.py`.
 
-Cloudflare remains deferred; Pillow and spec fallback are implemented. No scheduler
-import compatibility, publishing/deployment service, universal grounding accuracy,
-exactly-once billing or owner-approved KB is claimed. Optional LangSmith tracing depends
-on explicit environment settings and is not the run's source of truth. See
-[verification notes](docs/verification.md) for measured coverage.
+**Add an agent.** Add `agents/<name>/agent.yaml` and `system.md`, a class in `agents.py`
+that takes one typed request, and a node in `pipeline.py`.
+
+**Grow to 15 slots.** The plan is a list, and the graph starts one lane per slot, so a
+15-slot plan needs no graph change. Raise or set `MAX_CONCURRENCY` (`--max-concurrency`)
+to limit in-flight model calls against provider rate limits, and raise the token and cost
+budgets from measured usage (`--estimate` shows the ceiling). Topics the system picks are
+distinct within the week and avoid the last four runs when they can, so the pools matter. Empty thread
+slots draw from the 20 knowledge base entries. Empty marketing slots draw from the three
+angles in `post_types/marketing-post/angles.yaml`; a plan with more than three empty
+marketing slots would fail the extras with `topic_pool_exhausted` until you add angles or
+give those slots a focus. For a much larger knowledge base, replace BM25 with embeddings
+inside `search_kb` (one file behind the research tool boundary).
+
+**Add a second platform.** Today the length rule, the weighted counting and the CSV
+exporter are X-only, and the tweet limit cannot go above 280. Make the platform a field of
+the post type (maximum length, whether threads exist, numbering, CSV columns). Move the
+length check and `export_posts` behind per-platform adapters, the way image backends are
+meant to plug in. Writers, reviewer, research and the graph stay unchanged.
+
+**Run it daily as a service.** Add run retention and a queue, move durability to a service
+executor such as Temporal, and send advisor output to a human review queue.
+
+## Limits
+
+The limits of this version, and what we would do next, are listed in the
+[README](README.md#known-limitations-and-what-we-would-do-next). In short: cost for free
+models is unpriced, the Cloudflare image backend is not built, the knowledge base is not
+owner-reviewed, brand statistics are fictional demo fixtures, and there is no exactly-once
+billing on resume. No scheduler import format, publishing service or universal grounding
+accuracy is claimed. Optional LangSmith tracing needs real environment variables (the
+project does not load `.env` into the environment) and is not the source of truth; the run
+folder is. See [verification notes](docs/verification.md) for measured coverage.
