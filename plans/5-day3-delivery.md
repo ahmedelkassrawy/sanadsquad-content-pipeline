@@ -121,3 +121,13 @@ Invariant: without the override, every agent keeps its configured `reasoning_eff
 Fix: `Settings.reasoning_effort_override` (`none|low|medium|high`, default unset; env `REASONING_EFFORT_OVERRIDE`) replaces each agent's `reasoning_effort` in `configured_client` when set. `live_proof` gets `--reasoning-effort` (applied to the grounding control and the sample, and recorded in `sample-provenance.json` and the grounding report); `cli` gets `--reasoning-effort-override`, refused on resume like the other overrides. Add `langchain-mistralai` to `pyproject.toml` and pin `langchain-mistralai==1.1.6` plus its new transitive pins in `requirements.txt`.
 
 Acceptance: an offline test shows the override reaches `LangChainTransport` for every agent and that without it agent efforts are unchanged; it fails on the base. Resume refuses the new flag. Full suite green. Root then runs the live sample with `--model mistralai:ministral-14b-latest --reasoning-effort none --allow-unpriced`.
+
+## S9 validator safe fix removes banned characters (compact lane, 2026-10-15)
+
+Symptom: live Mistral `ministral-14b-latest` week at 56a0b7c (`.runs/final-56a0b7c-mistral`): grounding control PASS, zero API failures, 1/6 shipped; thread_1 and thread_3 were dropped only for `banned_character:—`, and second attempts still carried em dashes after validator feedback.
+
+Decision (Kassra, 2026-10-15): mechanical brand rules are enforced in Python in the validator node before review, so a model's punctuation habit cannot sink a post. Invariant: the banned_characters list, check_brand, banned words, hashtags, links, length, citations, the reviewer, thresholds and retries are unchanged; check_brand still runs after the fix and still rejects anything left.
+
+Fix: a new safe fix `banned_characters` (added to the `BrandRules.safe_fixes` literal and listed first in `inputs/brand-voice.md` `safe_fixes`) runs before the other fixes: an em dash — with any surrounding whitespace becomes ", "; the non-breaking hyphen ‑ becomes "-"; any other configured banned character is removed. It is recorded as `tweet_N:banned_characters` in `fixes`, like `curly_quotes`. Length is measured after the fix.
+
+Acceptance: offline tests through `validate` show a draft whose only violation was an em dash is accepted with the fix recorded and the text rewritten, the non-breaking hyphen becomes "-", an over-length draft is still rejected for length, and a brand file without the fix in `safe_fixes` still rejects the em dash; they fail on 56a0b7c. Full suite green. Root reruns the Mistral live week.
