@@ -2,7 +2,7 @@
   "record_id": "_run/summary/1/1",
   "slot_id": "_run",
   "attempt": 1,
-  "run_id": "final-c234f25-sample",
+  "run_id": "final-9e19ac2-claude",
   "slots": {
     "thread_1": {
       "outcome": "shipped",
@@ -13,18 +13,18 @@
     "thread_2": {
       "outcome": "shipped",
       "attempts": 1,
-      "topic_id": "KB-08",
+      "topic_id": "KB-02",
       "reasons": []
     },
     "thread_3": {
       "outcome": "shipped",
-      "attempts": 2,
-      "topic_id": "KB-13",
+      "attempts": 1,
+      "topic_id": "KB-03",
       "reasons": []
     },
     "marketing_1": {
       "outcome": "shipped",
-      "attempts": 2,
+      "attempts": 1,
       "topic_id": "ANGLE-service",
       "reasons": []
     },
@@ -42,9 +42,9 @@
     }
   },
   "shipped": 6,
-  "confirmed_tokens": 100977,
+  "confirmed_tokens": 112378,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.0,
+  "confirmed_cost_usd": 0.2377996,
   "uncertain_cost_usd": 0.0,
   "unpriced": true,
   "external_usage": {

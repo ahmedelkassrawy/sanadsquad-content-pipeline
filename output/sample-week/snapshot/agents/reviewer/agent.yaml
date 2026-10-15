@@ -1,4 +1,4 @@
-model: nvidia:nvidia/nemotron-3-super-120b-a12b
+model: anthropic:claude-sonnet-5-5
 max_output_tokens: 3000
 reasoning_effort: medium
 skills:

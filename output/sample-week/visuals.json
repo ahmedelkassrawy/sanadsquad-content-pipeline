@@ -1,33 +1,9 @@
 [
   {
-    "record_id": "thread_2/visual/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "fc18a4c55c5a34da4b883381fefbf3e55a49e9c729c0be51b31cc77d8700b28d",
-    "spec": {
-      "concept": "Transaction order dependence",
-      "scene": "Transaction order dependence",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "Transaction order dependence",
-      "alt_text": "Transaction order dependence",
-      "severity": "medium"
-    },
-    "result": {
-      "slot_id": "thread_2",
-      "path": "images/slot-thread_2.png",
-      "backend": "pillow_card",
-      "fallback_reason": "visual_fallback"
-    }
-  },
-  {
     "record_id": "thread_1/visual/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "296b42476331e277089cebb50a875c49276ace67fdd00079cabc05c5f690b3d7",
+    "input_sha256": "f7fd43ec231b7698eec5a2e850c9894fd40505f738a06e641cfa8241c466dbcd",
     "spec": {
       "concept": "Reentrancy",
       "scene": "Reentrancy",
@@ -48,34 +24,106 @@
     }
   },
   {
-    "record_id": "marketing_2/visual/1/1",
-    "slot_id": "marketing_2",
+    "record_id": "thread_2/visual/1/1",
+    "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "7e4ca19a76f8e9304045f5bb159beabb276b539455ec803a7c49377d0afd4780",
+    "input_sha256": "2a8a7ae15f547b4c5a4be10c42dfdb34e025e76bfb55c0b874f3e30dbd0098c9",
     "spec": {
-      "concept": "Sentinel Grove",
-      "scene": "Sentinel Grove",
+      "concept": "Integer overflow and underflow",
+      "scene": "Integer overflow and underflow",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "Sentinel Grove",
-      "alt_text": "Sentinel Grove",
+      "overlay_text": "Integer overflow and underflow",
+      "alt_text": "Integer overflow and underflow",
+      "severity": "high"
+    },
+    "result": {
+      "slot_id": "thread_2",
+      "path": "images/slot-thread_2.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "marketing_1/visual/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "bc1b56b55683345504da36ad158a3851174cbb19a002920a6a72232ad0e76c35",
+    "spec": {
+      "concept": "service",
+      "scene": "service",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "service",
+      "alt_text": "service",
+      "severity": null
+    },
+    "result": {
+      "slot_id": "marketing_1",
+      "path": "images/slot-marketing_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "thread_3/visual/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "744b16e7e44924866fe23dd2a16e3e3ff761e560aef8b8fd05eb0e5f30db663f",
+    "spec": {
+      "concept": "Unchecked call return value",
+      "scene": "Unchecked call return value",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "Unchecked call return value",
+      "alt_text": "Unchecked call return value",
+      "severity": "medium"
+    },
+    "result": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "visual_fallback"
+    }
+  },
+  {
+    "record_id": "marketing_2/visual/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "847fe39e20f413b3d5d2ca1ddd9f762c35b936e0e5c6dce37d06652e0487d365",
+    "spec": {
+      "concept": "Smart contract audit capability demonstration",
+      "scene": "A clean, minimalist workspace with a desk, a laptop displaying code, and subtle smart contract-related icons in the background. The overall tone is professional and trustworthy.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "12 fictional audits",
+      "alt_text": "Illustration representing Sentinel Grove's fictional audit capability with a demo label. The image includes a workspace with a laptop displaying code and smart contract elements, emphasizing professionalism and trust.",
       "severity": null
     },
     "result": {
       "slot_id": "marketing_2",
       "path": "images/slot-marketing_2.png",
       "backend": "pillow_card",
-      "fallback_reason": "visual_fallback"
+      "fallback_reason": null
     }
   },
   {
     "record_id": "marketing_3/visual/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "820cac2cd8d0fb5cbfd1bd59696a5016640894c7e34878194bca3bd32dff71d3",
+    "input_sha256": "0b552c2184978025de46adc572fea9f32912c74403f84521f6c59453eb0437b8",
     "spec": {
       "concept": "Reentrancy",
       "scene": "Reentrancy",
@@ -93,54 +141,6 @@
       "path": "images/slot-marketing_3.png",
       "backend": "pillow_card",
       "fallback_reason": "visual_fallback"
-    }
-  },
-  {
-    "record_id": "thread_3/visual/2/1",
-    "slot_id": "thread_3",
-    "attempt": 2,
-    "input_sha256": "32a8b28b346471fa805eeb1e8c6c18d968b36cbbfe0a63fd93e156e48931dfdc",
-    "spec": {
-      "concept": "Write to arbitrary storage location",
-      "scene": "Write to arbitrary storage location",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "Write to arbitrary storage location",
-      "alt_text": "Write to arbitrary storage location",
-      "severity": "high"
-    },
-    "result": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
-      "backend": "pillow_card",
-      "fallback_reason": "visual_fallback"
-    }
-  },
-  {
-    "record_id": "marketing_1/visual/2/1",
-    "slot_id": "marketing_1",
-    "attempt": 2,
-    "input_sha256": "187c7a80fa82f9daa69fb995d9443bb6f87786720cf74c703edc5a6a7adcafa9",
-    "spec": {
-      "concept": "Smart Contract Audit Service",
-      "scene": "A clean, minimalist workspace with a focus on a code review interface on a monitor. Subtle abstract elements like interconnected nodes or a circuit-like pattern in the background symbolize security and precision.",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "Request a review",
-      "alt_text": "Illustration of a secure code review process for smart contracts, emphasizing precision and audit readiness. The background features a workspace with a monitor displaying code, symbolizing Sentinel Grove's fictional smart contract audit service.",
-      "severity": null
-    },
-    "result": {
-      "slot_id": "marketing_1",
-      "path": "images/slot-marketing_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": null
     }
   }
 ]

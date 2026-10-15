@@ -1,12 +1,12 @@
 {
-  "concept": "Write to arbitrary storage location",
-  "scene": "Write to arbitrary storage location",
+  "concept": "Unchecked call return value",
+  "scene": "Unchecked call return value",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Write to arbitrary storage location",
-  "alt_text": "Write to arbitrary storage location",
-  "severity": "high"
+  "overlay_text": "Unchecked call return value",
+  "alt_text": "Unchecked call return value",
+  "severity": "medium"
 }

@@ -1,12 +1,12 @@
 {
-  "concept": "Transaction order dependence",
-  "scene": "Transaction order dependence",
+  "concept": "Integer overflow and underflow",
+  "scene": "Integer overflow and underflow",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Transaction order dependence",
-  "alt_text": "Transaction order dependence",
-  "severity": "medium"
+  "overlay_text": "Integer overflow and underflow",
+  "alt_text": "Integer overflow and underflow",
+  "severity": "high"
 }
