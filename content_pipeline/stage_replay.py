@@ -6,8 +6,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path, PureWindowsPath
 
+from . import record_ids
 from .config import local_file
-from .contracts import ResearchRecord, WeekSnapshot
+from .contracts import FinalPiece, ResearchRecord, WeekSnapshot
 from .durability import atomic_json
 from .images import CARD_SIZE, overlay_errors
 from .model_client import ModelFailure
@@ -157,6 +158,34 @@ class StageReplay:
             self._check_research(record_id, request, record)
 
         return record
+
+    def confirm_research(self, slot_id, pack):
+        """Refuse a checkpointed research pack that its saved record and receipt do not back.
+
+        The snapshot itself is already checked against the run identity by the resume preflight.
+        """
+        record_id = record_ids.record_id(slot_id, "research", 1)
+        record = self._find("research_log", record_id, ResearchRecord)
+        receipt_path = self.context.run_dir / "research-replay.json"
+
+        receipts = (
+            json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
+        )
+
+        receipt = receipts.get(record_id)
+
+        if (
+            record is None
+            or record.pack != pack
+            or not receipt
+            or receipt.get("pack_sha256") != digest(pack.model_dump(mode="json"))
+        ):
+            raise SavedStageMismatch()
+
+    def confirm_final(self, piece):
+        """Refuse a collected piece whose saved final record is missing or different."""
+        if self._find("final", piece.record_id, FinalPiece) != piece:
+            raise SavedStageMismatch()
 
     async def save_research_receipt(self, record_id, request, pack):
         """Persist the request, snapshot and pack fingerprints for replay."""

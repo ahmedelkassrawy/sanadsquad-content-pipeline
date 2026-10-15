@@ -78,10 +78,9 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
             if any(value is not None and value is not False and value != [] for value in forbidden):
                 raise ValueError("resume uses saved policy and plan")
 
-            saved_inputs = resume_inputs(args.resume, overrides)
-            policy, slots, settings, _ = saved_inputs
+            if args.estimate:
+                policy, slots, settings, _ = resume_inputs(args.resume, overrides)
         else:
-            saved_inputs = None
             if args.no_advisor:
                 overrides["advisor_enabled"] = False
 
@@ -101,14 +100,25 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
             plan = requested if requested.is_absolute() else args.root / requested
             slots = parse_sets(load_plan(args.root, plan), args.set)
 
-        startup = estimate(policy, slots, settings)
+        def warn(startup):
+            print("startup_budget_warning: " + startup.model_dump_json(), file=sys.stderr)
 
-        if args.estimate:
-            print(startup.model_dump_json(indent=2))
+        def warn_resume(inputs):
+            warn(estimate(*inputs[:3]))
 
-            return 0
+        # A resume reads its inputs once, under the run lock; the warning waits for them.
+        if args.resume and not args.estimate:
+            on_resume_inputs = warn_resume
+        else:
+            on_resume_inputs = None
+            startup = estimate(policy, slots, settings)
 
-        print("startup_budget_warning: " + startup.model_dump_json(), file=sys.stderr)
+            if args.estimate:
+                print(startup.model_dump_json(indent=2))
+
+                return 0
+
+            warn(startup)
 
         result = asyncio.run(
             run_pipeline(
@@ -120,7 +130,8 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
                 search_factory,
                 renderer,
                 resume=args.resume,
-                resume_inputs=saved_inputs,
+                budget_overrides=overrides if args.resume else None,
+                on_resume_inputs=on_resume_inputs,
             )
         )
 

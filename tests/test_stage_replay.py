@@ -3,6 +3,7 @@
 import asyncio
 import json
 import shutil
+import threading
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,8 +13,9 @@ from test_day3_delivery import ROOT, DeliveryModels, one_slot, records, search_f
 
 from content_pipeline import cli, pipeline
 from content_pipeline.contracts import ReviewRecord
-from content_pipeline.durability import resume_inputs
+from content_pipeline.durability import RunLock
 from content_pipeline.pipeline import Pipeline, run_pipeline
+from content_pipeline.schemas import export
 from content_pipeline.stage_replay import MISMATCH, SavedStageMismatch, StageReplay
 from content_pipeline.trail import Trail
 
@@ -318,25 +320,79 @@ async def test_public_resume_reads_the_resume_inputs_once(tmp_path, monkeypatch)
     assert seen == [output.resolve()]
 
 
-async def test_passed_resume_inputs_are_not_read_again(tmp_path, monkeypatch):
+async def test_resume_inputs_are_read_while_the_run_is_owned(tmp_path, monkeypatch):
     models, output = await interrupted_run(tmp_path)
-    preflight = resume_inputs(output)
+    owned = []
+    original = pipeline.load_resume_inputs
+
+    def read_while_owned(run_dir, budget_overrides=None):
+        with pytest.raises(ValueError, match="run already owned"), RunLock(run_dir):
+            pass
+
+        owned.append(run_dir)
+
+        return original(run_dir, budget_overrides)
+
+    monkeypatch.setattr(pipeline, "load_resume_inputs", read_while_owned)
+
+    received = []
+
+    summary = await resume(output, models, on_resume_inputs=received.append)
+
+    assert summary.shipped == 1
+    assert owned == [output.resolve()]
+    assert [inputs[3].run_id for inputs in received] == [output.name]
+
+
+async def test_resume_budget_overrides_are_applied_in_the_one_read(tmp_path, monkeypatch):
+    models, output = await interrupted_run(tmp_path)
     seen = count_preflights(monkeypatch)
 
-    assert (await resume(output, models, resume_inputs=preflight)).shipped == 1
-    assert seen == []
+    await resume(output, models, budget_overrides={"run_token_budget": 300000})
+
+    assert seen == [output.resolve()]
+    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
 
 
-async def test_passed_resume_inputs_refuse_budget_overrides_on_top(tmp_path):
+async def test_an_intervening_resume_cannot_roll_the_budget_back(tmp_path):
     models, output = await interrupted_run(tmp_path)
+    original = pipeline._prepare_run_inputs
+    intervened = []
 
-    with pytest.raises(ValueError, match="budget"):
-        await resume(
-            output,
-            models,
-            resume_inputs=resume_inputs(output),
-            budget_overrides={"run_token_budget": 300000},
-        )
+    def intervene(output_dir, budget):
+        def run():
+            with pytest.raises(RuntimeError, match="interrupted"):
+                asyncio.run(
+                    run_pipeline(
+                        ROOT,
+                        resume=output_dir,
+                        budget_overrides={"run_token_budget": budget},
+                        model_factory=models.factory,
+                        search_factory=search_factory,
+                        interrupt_after=["topic_selection"],
+                    )
+                )
+
+        worker = threading.Thread(target=run)
+
+        worker.start()
+        worker.join()
+
+    def prepare_then_intervene(*args):
+        prepared = original(*args)
+
+        if not intervened:
+            intervened.append(True)
+
+            intervene(prepared[0], 300000)
+
+        return prepared
+
+    with patch.object(pipeline, "_prepare_run_inputs", prepare_then_intervene):
+        assert (await resume(output, models)).shipped == 1
+
+    assert intervened
+    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
 
 
 def test_cli_resume_reads_the_resume_inputs_once_and_applies_the_budget(tmp_path, monkeypatch):
@@ -350,8 +406,127 @@ def test_cli_resume_reads_the_resume_inputs_once_and_applies_the_budget(tmp_path
     )
 
     assert status == 0
-    assert seen == [output]
+    assert seen == [output.resolve()]
     assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
+
+
+def test_cli_resume_estimate_reads_the_resume_inputs_once_without_running(tmp_path, monkeypatch):
+    _, output = asyncio.run(interrupted_run(tmp_path))
+    seen = count_preflights(monkeypatch)
+
+    status = cli.main(
+        ["--root", str(ROOT), "--resume", str(output), "--estimate"],
+        model_factory=forbidden,
+        search_factory=forbidden,
+    )
+
+    assert status == 0
+    assert seen == [output]
+
+
+async def completed_run(tmp_path):
+    models = DeliveryModels()
+    output = tmp_path / "run"
+
+    await run_pipeline(
+        ROOT, one_slot(), output, model_factory=models.factory, search_factory=search_factory
+    )
+
+    return models, output
+
+
+def tamper_research_receipt(output):
+    path = output / "research-replay.json"
+    receipts = json.loads(path.read_text(encoding="utf-8"))
+
+    next(iter(receipts.values())).update({"pack_sha256": TAMPERED})
+
+    path.write_text(json.dumps(receipts), encoding="utf-8")
+
+
+def tamper_visual_sidecar(output):
+    path = next((output / "images").glob("*.json"))
+    spec = json.loads(path.read_text(encoding="utf-8"))
+
+    spec["concept"] = "Something else"
+
+    path.write_text(json.dumps(spec), encoding="utf-8")
+
+
+TAMPERS = {
+    "research receipt": (tamper_research_receipt, MISMATCH),
+    "draft fingerprint": (
+        lambda output: tamper(
+            output, "drafts", lambda trail: trail[-1].update({"input_sha256": TAMPERED})
+        ),
+        MISMATCH,
+    ),
+    "review fingerprint": (
+        lambda output: tamper(
+            output, "review_report", lambda trail: trail[-1].update({"input_sha256": TAMPERED})
+        ),
+        MISMATCH,
+    ),
+    "visual fingerprint": (
+        lambda output: tamper(
+            output, "visuals", lambda trail: trail[-1].update({"input_sha256": TAMPERED})
+        ),
+        MISMATCH,
+    ),
+    "visual sidecar": (tamper_visual_sidecar, "saved visual artifact mismatch"),
+    "advisor fingerprint": (
+        lambda output: tamper(
+            output, "advisor", lambda trail: trail[-1].update({"input_sha256": TAMPERED})
+        ),
+        MISMATCH,
+    ),
+    "final record": (
+        lambda output: tamper(
+            output, "final", lambda trail: trail[-1]["draft"]["tweets"][0].update({"text": "Hi"})
+        ),
+        MISMATCH,
+    ),
+}
+
+
+@pytest.mark.parametrize("name", list(TAMPERS))
+async def test_tampered_completed_run_is_refused_before_any_model_call(tmp_path, name):
+    models, output = await completed_run(tmp_path)
+    change, message = TAMPERS[name]
+
+    change(output)
+
+    calls = len(models.calls)
+
+    with pytest.raises(ValueError, match=message):
+        await run_pipeline(ROOT, resume=output, model_factory=forbidden, search_factory=forbidden)
+
+    assert len(models.calls) == calls
+
+
+@pytest.mark.parametrize("field", ["drafts", "review_report"])
+async def test_tampered_checkpointed_stage_is_refused_before_the_next_call(tmp_path, field):
+    models = DeliveryModels()
+    output = tmp_path / "run"
+
+    with pytest.raises(RuntimeError, match="interrupted"):
+        await run_pipeline(
+            ROOT,
+            one_slot(),
+            output,
+            model_factory=models.factory,
+            search_factory=search_factory,
+            interrupt_after=["lane:" + ("validate" if field == "drafts" else "review")],
+        )
+
+    saved = tamper(output, field, lambda trail: trail[-1].update({"input_sha256": TAMPERED}))
+    calls = len(models.calls)
+
+    with pytest.raises(ValueError, match=MISMATCH):
+        await resume(output, models)
+
+    assert records(output, field) == saved
+    assert len(models.calls) == calls
 
 
 async def test_run_folder_written_before_draft_fingerprints_still_resumes(tmp_path):
@@ -370,6 +545,21 @@ async def test_run_folder_written_before_draft_fingerprints_still_resumes(tmp_pa
     assert summary.shipped == 1
     assert schemas(models) == ["ReviewAssessment", "VisualOutput", "AdvisorOutput"]
     assert records(output, "drafts") == legacy
+
+
+def test_committed_schemas_describe_the_saved_formats(tmp_path):
+    export(tmp_path)
+
+    committed = Path(__file__).parents[1] / "schemas"
+
+    assert {path.name for path in tmp_path.glob("*.json")} == {
+        path.name for path in committed.glob("*.json")
+    }
+
+    for path in tmp_path.glob("*.json"):
+        assert json.loads(path.read_text(encoding="utf-8")) == json.loads(
+            (committed / path.name).read_text(encoding="utf-8")
+        ), path.name
 
 
 def test_replay_interface_names_the_refusal_and_allows_legacy_only_when_asked(tmp_path):

@@ -819,18 +819,20 @@ class Pipeline:
 
         return state.model_dump(mode="json")
 
+    def _validation_input(self, state):
+        return ValidationInput(
+            draft=state.draft,
+            research=state.pack,
+            post_type=self.types.spec(state.slot.type),
+            max_tweet_chars=self.context.settings.max_tweet_chars,
+        )
+
     async def validation(self, raw):
         """Normalize a draft and record validator feedback before review."""
         state = lane_state(raw)
         spec = self.types.spec(state.slot.type)
         record_id = record_ids.record_id(state.slot.slot_id, "validator", state.attempt)
-
-        inputs = ValidationInput(
-            draft=state.draft,
-            research=state.pack,
-            post_type=spec,
-            max_tweet_chars=self.context.settings.max_tweet_chars,
-        )
+        inputs = self._validation_input(state)
 
         saved = self.replay.reuse("drafts", record_id, DraftRecord, inputs, legacy_ok=True)
 
@@ -880,11 +882,8 @@ class Pipeline:
 
         state.feedback = state.review.reasons if state.review else []
 
-    async def review(self, raw):
-        """Review an approved draft or reuse its matching saved assessment."""
-        state = lane_state(raw)
-
-        request = ReviewRequest(
+    def _review_request(self, state):
+        return ReviewRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             draft=state.audit.approved(),
@@ -892,6 +891,11 @@ class Pipeline:
             post_type=self.types.spec(state.slot.type),
             rubric=self.types.rubric(state.slot.type),
         )
+
+    async def review(self, raw):
+        """Review an approved draft or reuse its matching saved assessment."""
+        state = lane_state(raw)
+        request = self._review_request(state)
 
         record_id = record_ids.record_id(state.slot.slot_id, "reviewer", state.attempt)
 
@@ -1033,16 +1037,13 @@ class Pipeline:
             fallback_detail=detail,
         )
 
-    async def visual(self, raw):
-        """Reuse or render a grounded visual, retaining fallback artifacts."""
-        state = lane_state(raw)
-
+    def _visual_request(self, state):
         severity = next(
             (entry["severity"] for entry in self.kb.entries if entry["id"] == state.pack.topic_id),
             None,
         )
 
-        request = VisualRequest(
+        return VisualRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             draft=state.audit.approved(),
@@ -1050,6 +1051,11 @@ class Pipeline:
             post_type=self.types.spec(state.slot.type),
             severity=severity,
         )
+
+    async def visual(self, raw):
+        """Reuse or render a grounded visual, retaining fallback artifacts."""
+        state = lane_state(raw)
+        request = self._visual_request(state)
 
         record_id = record_ids.record_id(state.slot.slot_id, "visual", state.attempt)
         saved = self.replay.reuse("visuals", record_id, VisualRecord, request)
@@ -1090,19 +1096,100 @@ class Pipeline:
             raise ValueError("nonterminal slot at join")
 
         if state.outcome == SlotOutcome.shipped:
-            piece = FinalPiece(
-                record_id=record_ids.record_id(state.slot.slot_id, "final", state.attempt),
-                slot_id=state.slot.slot_id,
-                attempt=state.attempt,
-                topic_id=state.pack.topic_id,
-                topic_name=state.pack.topic_name,
-                draft=state.audit.approved(),
-                image=state.image,
-            )
-
-            await self.record("final", piece)
+            await self.record("final", self._final_piece(state))
 
         return {"slots": {state.slot.slot_id: state.model_dump(mode="json")}}
+
+    def _final_piece(self, state):
+        return FinalPiece(
+            record_id=record_ids.record_id(state.slot.slot_id, "final", state.attempt),
+            slot_id=state.slot.slot_id,
+            attempt=state.attempt,
+            topic_id=state.pack.topic_id,
+            topic_name=state.pack.topic_name,
+            draft=state.audit.approved(),
+            image=state.image,
+        )
+
+    def _confirm_saved_slot(self, state, collected):
+        slot_id = state.slot.slot_id
+
+        if state.pack is not None:
+            self.replay.confirm_research(slot_id, state.pack)
+
+        if state.audit is None:
+            return
+
+        saved = self.replay.reuse(
+            "drafts",
+            record_ids.record_id(slot_id, "validator", state.attempt),
+            DraftRecord,
+            self._validation_input(state),
+            legacy_ok=True,
+        )
+
+        if saved is None:
+            raise SavedStageMismatch()
+
+        self.replay.confirm_audit(saved, state.audit)
+
+        if state.review is not None:
+            saved = self.replay.reuse(
+                "review_report",
+                record_ids.record_id(slot_id, "reviewer", state.attempt),
+                ReviewRecord,
+                self._review_request(state),
+            )
+
+            if saved is None or saved.record.review != state.review:
+                raise SavedStageMismatch()
+
+        if state.image is not None:
+            request = self._visual_request(state)
+
+            saved = self.replay.reuse(
+                "visuals",
+                record_ids.record_id(slot_id, "visual", state.attempt),
+                VisualRecord,
+                request,
+            )
+
+            if saved is None or saved.record.result != state.image:
+                raise SavedStageMismatch()
+
+            self.replay.validate_visual(saved.record, request, slot_id, self.rules)
+
+        if collected and state.outcome == SlotOutcome.shipped:
+            self.replay.confirm_final(self._final_piece(state))
+
+    def _confirm_saved_advice(self, week):
+        if week.get("advisor") != "completed" or not self.context.settings.advisor_enabled:
+            return
+
+        saved = self.replay.reuse(
+            "advisor",
+            record_ids.record_id("_run", "advisor", 1),
+            AdvisorRecord,
+            self._advisor_request(),
+        )
+
+        if saved is None or saved.record.status != "completed":
+            raise SavedStageMismatch()
+
+    async def confirm_saved(self, graph, config):
+        """Refuse a checkpoint whose finished stages no longer match their saved records."""
+        saved = await graph.aget_state(config, subgraphs=True)
+
+        for value in (saved.values or {}).get("slots", {}).values():
+            self._confirm_saved_slot(SlotState.model_validate(value), True)
+
+        for task in saved.tasks:
+            lane = getattr(task.state, "values", None)
+
+            if lane:
+                self._confirm_saved_slot(lane_state(lane), False)
+
+        self._confirm_saved_advice(saved.values or {})
 
     async def export(self, week):
         """Export shipped posts in plan order."""
@@ -1158,6 +1245,17 @@ class Pipeline:
             ),
         )
 
+    def _advisor_request(self):
+        evidence = {
+            name: json.loads(self.trails[name].path.read_text(encoding="utf-8"))
+            for name in ["research_log", "drafts", "review_report", "final"]
+        }
+
+        return AdvisorRequest(
+            evidence=evidence,
+            instructions=instruction_files(self.root, self.plan, self.types),
+        )
+
     async def advise(self, week):
         """Produce suggest-only advice and record any fail-closed outcome."""
         status = "not_enabled"
@@ -1170,15 +1268,7 @@ class Pipeline:
 
         if self.context.settings.advisor_enabled:
             try:
-                evidence = {
-                    name: json.loads(self.trails[name].path.read_text(encoding="utf-8"))
-                    for name in ["research_log", "drafts", "review_report", "final"]
-                }
-
-                request = AdvisorRequest(
-                    evidence=evidence,
-                    instructions=instruction_files(self.root, self.plan, self.types),
-                )
+                request = self._advisor_request()
 
                 input_hash = request_fingerprint(request)
                 saved = self.replay.reuse(
@@ -1348,23 +1438,14 @@ class RunInterrupted(RuntimeError):
     """A deliberately interrupted graph has durable unfinished nodes."""
 
 
-def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides, saved_inputs):
+def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides):
     if resume is not None:
         if slots is not None or output is not None or settings is not None:
             raise ValueError("resume uses saved plan/settings; only budget increases allowed")
 
-        if saved_inputs is not None and budget_overrides:
-            raise ValueError("budget overrides are already applied to the resume inputs")
-
         run_dir = resume.resolve()
-
-        saved_inputs = saved_inputs or load_resume_inputs(run_dir, budget_overrides)
-
-        snapshot_root, slots, settings, _ = saved_inputs
-
-        validate_inputs(snapshot_root, slots, settings)
     else:
-        if budget_overrides or saved_inputs is not None:
+        if budget_overrides:
             raise ValueError("budget overrides are for resume")
 
         settings = settings or Settings.load(root)
@@ -1383,7 +1464,7 @@ def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides,
 
         run_dir.mkdir(parents=True, exist_ok=False)
 
-    return run_dir, slots, settings, saved_inputs
+    return run_dir, slots, settings
 
 
 def _initialize_new_run(root, run_dir, slots, settings):
@@ -1449,6 +1530,8 @@ async def _execute_pipeline(
     }
 
     if resume is not None:
+        await pipeline.confirm_saved(graph, config)
+
         completed = await completed_summary(graph, config, slots)
 
         if completed is not None:
@@ -1477,20 +1560,30 @@ async def run_pipeline(
     resume: Path | None = None,
     budget_overrides=None,
     interrupt_after=None,
-    resume_inputs=None,
+    on_resume_inputs=None,
 ) -> RunSummary:
-    """Run or resume a content plan; resume_inputs is the preflight, read once per resume."""
+    """Run or resume a content plan; a resume reads its preflight once, after taking the lock.
+
+    on_resume_inputs, when given, is called with that preflight before any stage runs.
+    """
     root = root.resolve()
 
-    run_dir, slots, settings, resume_inputs = _prepare_run_inputs(
-        root, slots, output, settings, resume, budget_overrides, resume_inputs
+    run_dir, slots, settings = _prepare_run_inputs(
+        root, slots, output, settings, resume, budget_overrides
     )
 
     with RunLock(run_dir, create=resume is None):
         if resume is None:
             snapshot_root, identity = _initialize_new_run(root, run_dir, slots, settings)
         else:
-            snapshot_root, slots, settings, identity = resume_inputs
+            saved_inputs = load_resume_inputs(run_dir, budget_overrides)
+
+            snapshot_root, slots, settings, identity = saved_inputs
+
+            validate_inputs(snapshot_root, slots, settings)
+
+            if on_resume_inputs is not None:
+                on_resume_inputs(saved_inputs)
 
         context = RunContext(
             snapshot_root, root, run_dir, settings, None, None, asyncio.Lock(), identity
