@@ -78,8 +78,10 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
             if any(value is not None and value is not False and value != [] for value in forbidden):
                 raise ValueError("resume uses saved policy and plan")
 
-            policy, slots, settings, _ = resume_inputs(args.resume, overrides)
+            saved_inputs = resume_inputs(args.resume, overrides)
+            policy, slots, settings, _ = saved_inputs
         else:
+            saved_inputs = None
             if args.no_advisor:
                 overrides["advisor_enabled"] = False
 
@@ -118,7 +120,7 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
                 search_factory,
                 renderer,
                 resume=args.resume,
-                budget_overrides=overrides if args.resume else None,
+                resume_inputs=saved_inputs,
             )
         )
 

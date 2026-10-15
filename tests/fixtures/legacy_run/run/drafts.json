@@ -1,0 +1,81 @@
+[
+  {
+    "record_id": "a/validator/1/1",
+    "slot_id": "a",
+    "attempt": 1,
+    "audit": {
+      "original": {
+        "slot_id": "a",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "State before calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "State before calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "State before calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "State before calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "State before calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/5 State before calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/5 State before calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/5 State before calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/5 State before calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/5 State before calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null
+  }
+]

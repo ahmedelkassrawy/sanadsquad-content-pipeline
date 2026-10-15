@@ -1,0 +1,1 @@
+Research only. search_kb returns the top five knowledge-base entries for a query, ranked by BM25 over names, aliases and text. A keyword match is not proof of relevance: read each entry and judge whether its description and root cause really cover the focus. Writers never use this tool.

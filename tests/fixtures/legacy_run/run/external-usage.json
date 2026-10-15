@@ -1,0 +1,12 @@
+{
+  "search_calls": 0,
+  "tavily_calls": 0,
+  "ddgs_calls": 0,
+  "fetch_calls": 0,
+  "tavily_credits": 0.0,
+  "tavily_credits_estimated": false,
+  "image_calls": 0,
+  "cloudflare_images": 0,
+  "cloudflare_neurons": 0,
+  "pillow_cards": 0
+}

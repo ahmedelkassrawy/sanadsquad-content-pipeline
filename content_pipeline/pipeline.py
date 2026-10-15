@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 import re
 import shutil
@@ -55,7 +54,16 @@ from .trail import Trail, export_posts
 from .validation import length_feedback, validate
 from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
 from .contracts import AdvisorRecord, AdvisorRequest, RunIdentity
-from .durability import RunLock, atomic_json, resume_inputs, snapshot_hashes
+from .durability import RunLock, atomic_json, snapshot_hashes
+from .durability import resume_inputs as load_resume_inputs
+from .stage_replay import (
+    SavedStageMismatch,
+    StageReplay,
+    ResearchReplayRefused,
+    ValidationInput,
+    completed_summary,
+    request_fingerprint,
+)
 
 
 MAX_CONTENT_ATTEMPTS = 2
@@ -482,11 +490,11 @@ class Pipeline:
         )
         self.external_lock = asyncio.Lock()
         self.search_seen = {}
-        self.research_replay_lock = asyncio.Lock()
         self.trails = {
             name: Trail(context.run_dir / (name + ".json"))
             for name in ["research_log", "drafts", "review_report", "visuals", "final", "advisor"]
         }
+        self.replay = StageReplay(context, self.trails, slots)
 
         for trail in self.trails.values():
             if not trail.path.exists():
@@ -505,27 +513,6 @@ class Pipeline:
         await self.trails[name].append(
             record.record_id, record.model_dump(mode="json", exclude={"record_id"})
         )
-
-    def saved_record(self, name, record_id, model, request):
-        """Load a saved stage record and verify its request fingerprint."""
-        raw = next(
-            (
-                record
-                for record in json.loads(self.trails[name].path.read_text(encoding="utf-8"))
-                if record["record_id"] == record_id
-            ),
-            None,
-        )
-
-        if raw is None:
-            return None
-
-        record = model.model_validate(raw)
-
-        if record.input_sha256 != hashlib.sha256(request.model_dump_json().encode()).hexdigest():
-            raise ValueError("saved stage input mismatch")
-
-        return record
 
     async def save_search_usage(self, searcher):
         """Persist newly observed search usage under the shared usage lock."""
@@ -561,98 +548,6 @@ class Pipeline:
             setattr(self.external, key, getattr(self.external, key) + 1)
 
             atomic_json(self.context.run_dir / "external-usage.json", self.external.model_dump())
-
-    @staticmethod
-    def replay_digest(value):
-        """Hash a value with the canonical research replay JSON encoding."""
-        return hashlib.sha256(
-            json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-                "utf-8"
-            )
-        ).hexdigest()
-
-    def research_request_digest(self, request):
-        """Hash a research request using its original planned topic."""
-        value = request.model_dump(mode="json")
-
-        if request.slot.focus:
-            # Compare focused research against the topic in the original snapshot.
-            planned = next(slot for slot in self.plan if slot.slot_id == request.slot.slot_id)
-
-            value["slot"]["topic_id"] = planned.topic_id
-
-        return self.replay_digest(value)
-
-    def _validate_research_replay(self, record_id, request, record):
-        receipt_path = self.context.run_dir / "research-replay.json"
-
-        receipts = (
-            json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
-        )
-
-        receipt = receipts.get(record_id)
-        expected_request = self.research_request_digest(request)
-        expected_snapshot = self.replay_digest(self.context.identity.snapshot_files)
-        expected_pack = self.replay_digest(record.pack.model_dump(mode="json"))
-
-        if (
-            record.action != "resolved"
-            or record.failure is not None
-            or record.pack.slot_id != request.slot.slot_id
-            or record.evidence != record.pack.sources
-            or not receipt
-            or receipt
-            != {
-                "request_sha256": expected_request,
-                "snapshot_sha256": expected_snapshot,
-                "pack_sha256": expected_pack,
-            }
-        ):
-            raise ModelFailure("failed_research")
-
-    async def saved_research(self, record_id, request):
-        """Reuse research only when its identity and replay receipt match."""
-        path = self.trails["research_log"].path
-
-        raw = next(
-            (
-                item
-                for item in json.loads(path.read_text(encoding="utf-8"))
-                if item["record_id"] == record_id
-            ),
-            None,
-        )
-
-        if raw is None:
-            return None
-
-        record = ResearchRecord.model_validate(raw)
-
-        if record.slot_id != request.slot.slot_id or record.attempt != request.attempt:
-            raise ModelFailure("failed_research")
-
-        if record.pack is None:
-            return record
-
-        self._validate_research_replay(record_id, request, record)
-
-        return record
-
-    async def save_research_receipt(self, record_id, request, pack):
-        """Persist the request, snapshot and pack fingerprints for replay."""
-        receipt = {
-            "request_sha256": self.research_request_digest(request),
-            "snapshot_sha256": self.replay_digest(self.context.identity.snapshot_files),
-            "pack_sha256": self.replay_digest(pack.model_dump(mode="json")),
-        }
-
-        async with self.research_replay_lock:
-            path = self.context.run_dir / "research-replay.json"
-            receipts = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-
-            receipts[record_id] = receipt
-
-            atomic_json(path, receipts)
 
     def _research_request(self, slot):
         spec = load_type(self.root, slot.type)
@@ -701,7 +596,7 @@ class Pipeline:
             request = self._research_request(slot)
             record_id = record_ids.record_id(slot.slot_id, "research", 1)
 
-            saved = await self.saved_research(record_id, request)
+            saved = self.replay.research(record_id, request)
 
             if saved is not None:
                 self._restore_research_state(state, saved)
@@ -731,13 +626,17 @@ class Pipeline:
             state.outcome = failure(error, research=True)
             state.reasons = [state.outcome.value]
 
+            if isinstance(error, ResearchReplayRefused):
+                # The refused saved record stays on the trail as the evidence.
+                return state.model_dump(mode="json")
+
         for record in agent.records if agent else []:
             await self.record("research_log", record)
 
         record_id = await self._record_research_outcome(state)
 
         if state.pack is not None:
-            await self.save_research_receipt(record_id, request, state.pack)
+            await self.replay.save_research_receipt(record_id, request, state.pack)
 
         return state.model_dump(mode="json")
 
@@ -856,7 +755,7 @@ class Pipeline:
 
         return {"slots": changed, "warnings": warnings}
 
-    async def _record_writer_failure(self, state, error):
+    async def _record_writer_failure(self, state, error, request, saved):
         outcome = failure(error)
 
         if outcome == SlotOutcome.failed_output:
@@ -869,6 +768,10 @@ class Pipeline:
                 else outcome.value
             ]
 
+        if saved is not None:
+            # A failure from before the crash is already on the trail; keep it as it is.
+            return
+
         await self.record(
             "drafts",
             DraftRecord(
@@ -876,6 +779,7 @@ class Pipeline:
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 failure=outcome.value,
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -899,6 +803,19 @@ class Pipeline:
             previous_draft=previous_draft,
         )
 
+        saved = self.replay.reuse(
+            "drafts",
+            record_ids.record_id(state.slot.slot_id, "writer", state.attempt),
+            DraftRecord,
+            request,
+            legacy_ok=True,
+        )
+
+        if saved and not saved.legacy and saved.record.failure == SlotOutcome.failed_output.value:
+            state.feedback = ["writer:failed_output"]
+
+            return state.model_dump(mode="json")
+
         try:
             if state.slot.slot_id not in self.writers:
                 self.writers[state.slot.slot_id] = Writer(
@@ -909,18 +826,29 @@ class Pipeline:
 
             state.draft = await self.writers[state.slot.slot_id](request)
         except Exception as error:
-            await self._record_writer_failure(state, error)
+            await self._record_writer_failure(state, error, request, saved)
 
         return state.model_dump(mode="json")
 
     async def validation(self, raw):
         """Normalize a draft and record validator feedback before review."""
         state = lane_state(raw)
+        spec = load_type(self.root, state.slot.type)
+        record_id = record_ids.record_id(state.slot.slot_id, "validator", state.attempt)
+
+        inputs = ValidationInput(
+            draft=state.draft,
+            research=state.pack,
+            post_type=spec,
+            max_tweet_chars=self.context.settings.max_tweet_chars,
+        )
+
+        saved = self.replay.reuse("drafts", record_id, DraftRecord, inputs, legacy_ok=True)
 
         result = validate(
             state.draft,
             state.pack,
-            load_type(self.root, state.slot.type),
+            spec,
             self.rules,
             self.context.settings.max_tweet_chars,
         )
@@ -936,13 +864,19 @@ class Pipeline:
             result, self.context.settings.max_tweet_chars
         )
 
+        if saved is not None:
+            self.replay.confirm_audit(saved, state.audit)
+
+            return state.model_dump(mode="json")
+
         await self.record(
             "drafts",
             DraftRecord(
-                record_id=record_ids.record_id(state.slot.slot_id, "validator", state.attempt),
+                record_id=record_id,
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 audit=state.audit,
+                input_sha256=request_fingerprint(inputs),
             ),
         )
 
@@ -973,11 +907,13 @@ class Pipeline:
 
         record_id = record_ids.record_id(state.slot.slot_id, "reviewer", state.attempt)
 
+        saved = None
+
         try:
-            saved = self.saved_record("review_report", record_id, ReviewRecord, request)
+            saved = self.replay.reuse("review_report", record_id, ReviewRecord, request)
 
             if saved:
-                self._restore_review_state(state, saved)
+                self._restore_review_state(state, saved.record)
 
                 return state.model_dump(mode="json")
 
@@ -993,6 +929,10 @@ class Pipeline:
             state.outcome = failure(error)
             state.reasons = [state.outcome.value]
 
+            if saved or isinstance(error, SavedStageMismatch):
+                # The saved record stays on the trail as the evidence.
+                return state.model_dump(mode="json")
+
         await self.record(
             "review_report",
             ReviewRecord(
@@ -1001,7 +941,7 @@ class Pipeline:
                 attempt=state.attempt,
                 review=state.review,
                 failure=state.outcome.value if state.outcome else None,
-                input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest(),
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -1020,38 +960,6 @@ class Pipeline:
             ] or ["quality_rejected"]
 
         return state.model_dump(mode="json")
-
-    def _validate_saved_visual(self, saved, request, state):
-        from pathlib import PureWindowsPath
-
-        relative = PureWindowsPath(saved.result.path)
-
-        if relative.anchor or ".." in relative.parts:
-            raise ValueError("invalid saved image path")
-
-        path = local_file(self.context.run_dir, Path(*relative.parts).as_posix())
-
-        stored = local_file(
-            self.context.run_dir,
-            path.with_suffix(".json").relative_to(self.context.run_dir).as_posix(),
-        )
-
-        if json.loads(stored.read_text(encoding="utf-8")) != saved.spec.model_dump(
-            mode="json"
-        ) or overlay_errors(saved.spec, request, self.rules):
-            raise ValueError("saved visual artifact mismatch")
-
-        if saved.result.slot_id != state.slot.slot_id:
-            raise ValueError("saved visual identity mismatch")
-
-        if saved.result.backend in {"pillow_card", "cloudflare_flux"}:
-            from PIL import Image
-
-            with Image.open(path) as image:
-                if image.format != "PNG" or image.size != CARD_SIZE:
-                    raise ValueError("invalid saved card")
-
-                image.verify()
 
     async def _visual_spec(self, state, request):
         reason = None
@@ -1153,12 +1061,12 @@ class Pipeline:
         )
 
         record_id = record_ids.record_id(state.slot.slot_id, "visual", state.attempt)
-        saved = self.saved_record("visuals", record_id, VisualRecord, request)
+        saved = self.replay.reuse("visuals", record_id, VisualRecord, request)
 
         if saved:
-            self._validate_saved_visual(saved, request, state)
+            self.replay.validate_visual(saved.record, request, state.slot.slot_id, self.rules)
 
-            state.image = saved.result
+            state.image = saved.record.result
             state.outcome = SlotOutcome.shipped
 
             return state.model_dump(mode="json")
@@ -1177,7 +1085,7 @@ class Pipeline:
                 attempt=state.attempt,
                 spec=spec,
                 result=state.image,
-                input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest(),
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -1229,7 +1137,7 @@ class Pipeline:
 
         return {}
 
-    async def _record_advice(self, status, reason, output, patch, input_hash):
+    async def _record_advice(self, status, reason, output, patch, input_hash, keep_saved=False):
         (self.context.run_dir / "advice.md").write_text(
             "# Run advice\n\n"
             + (
@@ -1242,6 +1150,9 @@ class Pipeline:
         )
 
         (self.context.run_dir / "advice.patch").write_text(patch, encoding="utf-8")
+
+        if keep_saved:
+            return
 
         await self.record(
             "advisor",
@@ -1263,6 +1174,8 @@ class Pipeline:
         output = None
         patch = ""
         input_hash = None
+        saved = None
+        keep_saved = False
 
         if self.context.settings.advisor_enabled:
             try:
@@ -1275,19 +1188,19 @@ class Pipeline:
                     evidence=evidence, instructions=instruction_files(self.root, self.plan)
                 )
 
-                input_hash = hashlib.sha256(request.model_dump_json().encode()).hexdigest()
-                saved = self.saved_record(
+                input_hash = request_fingerprint(request)
+                saved = self.replay.reuse(
                     "advisor", record_ids.record_id("_run", "advisor", 1), AdvisorRecord, request
                 )
 
                 if saved:
-                    if saved.output is not None:
-                        advice_patch(request, saved.output)
+                    if saved.record.output is not None:
+                        advice_patch(request, saved.record.output)
 
                     local_file(self.context.run_dir, "advice.md")
                     local_file(self.context.run_dir, "advice.patch")
 
-                    return {"advisor": saved.status, "advisor_reason": saved.reason}
+                    return {"advisor": saved.record.status, "advisor_reason": saved.record.reason}
 
                 output = await Advisor(self.root, self.client("advisor", "_run"))(request)
 
@@ -1295,6 +1208,7 @@ class Pipeline:
                 status = "completed"
             except Exception as error:
                 status = "failed"
+                keep_saved = saved is not None or isinstance(error, SavedStageMismatch)
 
                 reason = (
                     SlotOutcome.failed_output.value
@@ -1302,7 +1216,7 @@ class Pipeline:
                     else failure(error).value
                 )
 
-        await self._record_advice(status, reason, output, patch, input_hash)
+        await self._record_advice(status, reason, output, patch, input_hash, keep_saved)
 
         return {"advisor": status, "advisor_reason": reason}
 
@@ -1440,18 +1354,23 @@ class RunInterrupted(RuntimeError):
     """A deliberately interrupted graph has durable unfinished nodes."""
 
 
-def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides):
+def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides, saved_inputs):
     if resume is not None:
         if slots is not None or output is not None or settings is not None:
             raise ValueError("resume uses saved plan/settings; only budget increases allowed")
 
+        if saved_inputs is not None and budget_overrides:
+            raise ValueError("budget overrides are already applied to the resume inputs")
+
         run_dir = resume.resolve()
 
-        snapshot_root, slots, settings, identity = resume_inputs(run_dir, budget_overrides)
+        saved_inputs = saved_inputs or load_resume_inputs(run_dir, budget_overrides)
+
+        snapshot_root, slots, settings, _ = saved_inputs
 
         validate_inputs(snapshot_root, slots, settings)
     else:
-        if budget_overrides:
+        if budget_overrides or saved_inputs is not None:
             raise ValueError("budget overrides are for resume")
 
         settings = settings or Settings.load(root)
@@ -1470,7 +1389,7 @@ def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides)
 
         run_dir.mkdir(parents=True, exist_ok=False)
 
-    return run_dir, slots, settings
+    return run_dir, slots, settings, saved_inputs
 
 
 def _initialize_new_run(root, run_dir, slots, settings):
@@ -1489,23 +1408,6 @@ def _initialize_new_run(root, run_dir, slots, settings):
     (run_dir / "usage.jsonl").write_text("", encoding="utf-8")
 
     return snapshot_root, identity
-
-
-async def _completed_checkpoint(graph, config, slots):
-    saved = await graph.aget_state(config)
-
-    state = WeekSnapshot.model_validate(saved.values)
-
-    if list(state.slots) != [slot.slot_id for slot in slots]:
-        raise ValueError("checkpoint plan mismatch")
-
-    if not saved.next and state.summary is not None:
-        return state.summary
-
-    if not saved.next:
-        raise ValueError("checkpoint has no unfinished nodes")
-
-    return None
 
 
 async def _invoke_pipeline(context, graph, config, slots, resume):
@@ -1553,7 +1455,7 @@ async def _execute_pipeline(
     }
 
     if resume is not None:
-        completed = await _completed_checkpoint(graph, config, slots)
+        completed = await completed_summary(graph, config, slots)
 
         if completed is not None:
             return completed
@@ -1581,19 +1483,20 @@ async def run_pipeline(
     resume: Path | None = None,
     budget_overrides=None,
     interrupt_after=None,
+    resume_inputs=None,
 ) -> RunSummary:
-    """Run or resume a content plan with durable checkpoints and accounting."""
+    """Run or resume a content plan; resume_inputs is the preflight, read once per resume."""
     root = root.resolve()
 
-    run_dir, slots, settings = _prepare_run_inputs(
-        root, slots, output, settings, resume, budget_overrides
+    run_dir, slots, settings, resume_inputs = _prepare_run_inputs(
+        root, slots, output, settings, resume, budget_overrides, resume_inputs
     )
 
     with RunLock(run_dir, create=resume is None):
         if resume is None:
             snapshot_root, identity = _initialize_new_run(root, run_dir, slots, settings)
         else:
-            snapshot_root, slots, settings, identity = resume_inputs(run_dir, budget_overrides)
+            snapshot_root, slots, settings, identity = resume_inputs
 
         context = RunContext(
             snapshot_root, root, run_dir, settings, None, None, asyncio.Lock(), identity

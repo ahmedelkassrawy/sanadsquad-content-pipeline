@@ -1,0 +1,1 @@
+Shared by writers, reviewer, visual and validator. The brand voice front matter is binding: never use its banned words or banned characters, never use hashtags, and link only to its allowed domains. Code enforces the same rules: it applies a few safe fixes before review and rejects anything else that breaks them. Safe normalization precedes review; approved text never changes.

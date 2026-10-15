@@ -566,7 +566,7 @@ async def test_unpriced_refused_or_token_only_opt_in(tmp_path):
 async def test_concurrent_trail_and_csv_exact_roundtrip(tmp_path):
     trail = Trail(tmp_path / "drafts.json")
     await asyncio.gather(*(trail.append(f"x/writer/1/{i}", {"text": str(i)}) for i in range(10)))
-    await trail.append("x/writer/1/1", {"text": "duplicate"})
+    await trail.append("x/writer/1/1", {"text": "1"})
     assert [
         (r["record_id"], r["text"]) for r in json.loads((tmp_path / "drafts.json").read_text())
     ] == [(f"x/writer/1/{i}", str(i)) for i in range(10)]

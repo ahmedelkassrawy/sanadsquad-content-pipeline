@@ -1,0 +1,11 @@
+{
+  "default_model": "openrouter:openai/gpt-4.1-mini",
+  "model_override": null,
+  "reasoning_effort_override": null,
+  "max_tweet_chars": 280,
+  "run_token_budget": 250000,
+  "run_cost_budget_usd": 1.0,
+  "allow_unpriced": false,
+  "advisor_enabled": true,
+  "max_concurrency": null
+}

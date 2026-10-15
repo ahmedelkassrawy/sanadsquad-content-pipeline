@@ -1,0 +1,10 @@
+{
+  "slots": [
+    {
+      "slot_id": "a",
+      "type": "tech-thread",
+      "focus": "reentrancy",
+      "topic_id": null
+    }
+  ]
+}

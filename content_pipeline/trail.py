@@ -15,10 +15,16 @@ class Trail:
                 json.loads(self.path.read_text(encoding="utf-8")) if self.path.exists() else []
             )
 
-            if any(r["record_id"] == record_id for r in records):
+            record = json.loads(json.dumps({"record_id": record_id, **data}))
+            saved = next((r for r in records if r["record_id"] == record_id), None)
+
+            if saved is not None:
+                if saved != record:
+                    raise ValueError("duplicate trail id with different content: " + record_id)
+
                 return
 
-            records.append({"record_id": record_id, **data})
+            records.append(record)
 
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
