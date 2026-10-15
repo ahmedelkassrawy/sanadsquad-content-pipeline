@@ -379,7 +379,7 @@ class ModelClient:
                 retryable = isinstance(error, (TimeoutError, ConnectionError, APIConnectionError, AnthropicConnectionError)) or status in {408, 429, 500, 502, 503, 504}
                 if retryable and transient < 3:
                     transient += 1
-                    await self.sleep(_retry_delay(error, diagnostic_status, transient))
+                    await self.sleep(_retry_delay(error, _safe_http_status(status), transient))
                     continue
                 raise ModelFailure("failed_api") from None
             if not isinstance(result, dict) or "raw" not in result:

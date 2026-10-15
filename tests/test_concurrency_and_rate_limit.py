@@ -85,6 +85,28 @@ async def test_status_backoff(tmp_path, status, header, expected):
     assert calls == 2
 
 
+async def test_google_rate_limit_backoff(tmp_path):
+    from langchain_google_genai.chat_models import GoogleRateLimitError
+
+    waits = []
+    calls = 0
+
+    async def transport(*args):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise GoogleRateLimitError("offline rate limit")
+        return response()
+
+    async def sleep(delay):
+        waits.append(delay)
+
+    client = ModelClient("google_genai:fixture", Ledger(tmp_path/"ledger.json", 100000, 10), tmp_path/"usage.jsonl", transport=transport, prices=FixedPrices(), sleep=sleep)
+    assert (await invoke(client)).slot_id == "a"
+    assert waits == [5]
+    assert calls == 2
+
+
 @pytest.mark.parametrize("status,expected", [(429, [5, 10, 20]), (503, [1, 2, 4])])
 async def test_retry_exhaustion(tmp_path, status, expected):
     waits = []

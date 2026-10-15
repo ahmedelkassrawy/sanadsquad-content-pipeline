@@ -37,7 +37,7 @@ async def test_actual_gemini_sdk_request_reasoning_and_raw_usage(tmp_path,monkey
     assert ledger.totals()["tokens"]==38
 
 
-@pytest.mark.parametrize("code,recover,expected_calls,expected_delays",[(429,True,2,[1]),(429,False,4,[1,2,4]),(503,True,2,[1]),(401,False,1,[])])
+@pytest.mark.parametrize("code,recover,expected_calls,expected_delays",[(429,True,2,[5]),(429,False,4,[5,10,20]),(503,True,2,[1]),(401,False,1,[])])
 async def test_actual_gemini_sdk_errors_retry_and_retain_uncertain_usage(tmp_path,monkeypatch,code,recover,expected_calls,expected_delays):
     from google.genai.errors import ClientError, ServerError
     monkeypatch.setenv("GEMINI_API_KEY","synthetic-unused")
