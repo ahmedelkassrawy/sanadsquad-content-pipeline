@@ -17,12 +17,23 @@ def configured_root(tmp_path, source_ids):
     for folder in ["inputs", "agents", "post_types", "skills", "config"]:
         shutil.copytree(ROOT / folder, root / folder)
     angles_path = root / "post_types/marketing-post/angles.yaml"
-    angles_path.write_text(yaml.safe_dump({"angles": [{"id": "ANGLE-education", "name": "education-to-cta", "source_ids": source_ids}]}), encoding="utf-8")
+    angles_path.write_text(
+        yaml.safe_dump(
+            {
+                "angles": [
+                    {"id": "ANGLE-education", "name": "education-to-cta", "source_ids": source_ids}
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
     return root
 
 
 @pytest.mark.asyncio
-async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_with_writer_and_reviewer(tmp_path):
+async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_with_writer_and_reviewer(
+    tmp_path,
+):
     root = configured_root(tmp_path, ["KB-01"])
     models = OfflineModels()
 

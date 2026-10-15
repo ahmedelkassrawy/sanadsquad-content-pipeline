@@ -30,8 +30,12 @@ def test_configured_client_effort(tmp_path, role, configured, effort):
     assert load_agent(ROOT, role).reasoning_effort == configured
     settings = Settings() if effort is None else Settings(reasoning_effort_override=effort)
     client = model_client.configured_client(
-        ROOT, role, Ledger(tmp_path / "ledger.json", 10000, 1),
-        tmp_path / "usage.jsonl", settings=settings, prices=FixturePrices(),
+        ROOT,
+        role,
+        Ledger(tmp_path / "ledger.json", 10000, 1),
+        tmp_path / "usage.jsonl",
+        settings=settings,
+        prices=FixturePrices(),
     )
     assert isinstance(client.transport, model_client.LangChainTransport)
     assert client.transport.reasoning_effort == (configured if effort is None else effort)
@@ -45,7 +49,10 @@ def test_settings_rejects_invalid_effort():
 def test_settings_loads_effort_from_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("REASONING_EFFORT_OVERRIDE", "none")
     assert Settings.load(tmp_path).reasoning_effort_override == "none"
-    assert Settings.load(tmp_path, {"reasoning_effort_override": "high"}).reasoning_effort_override == "high"
+    assert (
+        Settings.load(tmp_path, {"reasoning_effort_override": "high"}).reasoning_effort_override
+        == "high"
+    )
 
 
 def test_cli_resume_refuses_effort_override(tmp_path, monkeypatch, capsys):
@@ -97,8 +104,13 @@ async def test_offline_proof_effort_settings_and_provenance(tmp_path, monkeypatc
 
         async def __call__(self, request):
             supported = request.slot_id == "supported"
-            return Review(slot_id=request.slot_id, scores={"grounding": 5 if supported else 1},
-                          reasons=[], hard_fail=[] if supported else ["unsupported_claim"], accepted=supported)
+            return Review(
+                slot_id=request.slot_id,
+                scores={"grounding": 5 if supported else 1},
+                reasons=[],
+                hard_fail=[] if supported else ["unsupported_claim"],
+                accepted=supported,
+            )
 
     async def pipeline(root, slots, path, settings):
         assert json.loads((output / "grounding/report.json").read_text())["verdict"] == "PASS"
@@ -121,8 +133,15 @@ async def test_snapshot_without_effort_field_resumes(tmp_path):
     models = OfflineModels()
     slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy")]
     with pytest.raises(RuntimeError, match="interrupted"):
-        await run_pipeline(ROOT, slots, output, Settings(advisor_enabled=False),
-                           models.factory, search_factory, interrupt_after=["lane:write"])
+        await run_pipeline(
+            ROOT,
+            slots,
+            output,
+            Settings(advisor_enabled=False),
+            models.factory,
+            search_factory,
+            interrupt_after=["lane:write"],
+        )
     for path in [output / "snapshot/resolved-config.json", output / "runtime-settings.json"]:
         saved = json.loads(path.read_text())
         saved.pop("reasoning_effort_override", None)
@@ -132,5 +151,7 @@ async def test_snapshot_without_effort_field_resumes(tmp_path):
     identity["snapshot_files"] = snapshot_hashes(output / "snapshot")
     identity_path.write_text(json.dumps(identity), encoding="utf-8")
     assert resume_inputs(output)[2].reasoning_effort_override is None
-    summary = await run_pipeline(ROOT, resume=output, model_factory=models.factory, search_factory=search_factory)
+    summary = await run_pipeline(
+        ROOT, resume=output, model_factory=models.factory, search_factory=search_factory
+    )
     assert summary.shipped == 1

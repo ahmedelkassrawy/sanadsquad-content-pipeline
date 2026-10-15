@@ -17,9 +17,7 @@ _BARE_DOMAIN_URL = re.compile(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/
 def _is_url_token(token: str) -> bool:
     """Recognize URL tokens whose banned characters must stay unchanged."""
     return (
-        "://" in token
-        or token.startswith("www.")
-        or _BARE_DOMAIN_URL.fullmatch(token) is not None
+        "://" in token or token.startswith("www.") or _BARE_DOMAIN_URL.fullmatch(token) is not None
     )
 
 
@@ -46,9 +44,9 @@ def _fix_plain_text(plain: str, banned: list[str], before: str, after: str) -> s
         pieces = []
         start = 0
         for match in _DASH_RUN.finditer(plain):
-            left = plain[:match.start()] or before
-            right = plain[match.end():] or after
-            pieces.append(plain[start:match.start()])
+            left = plain[: match.start()] or before
+            right = plain[match.end() :] or after
+            pieces.append(plain[start : match.start()])
             pieces.append(_replace_dash_run(left, right, match.group()))
             start = match.end()
         pieces.append(plain[start:])
@@ -63,9 +61,14 @@ def fix_banned_characters(text: str, banned: list[str]) -> str:
     for match in re.finditer(r"\S+", text):
         if not _is_url_token(match.group()):
             continue
-        pieces.append(_fix_plain_text(
-            text[start:match.start()], banned, text[:start], text[match.start():],
-        ))
+        pieces.append(
+            _fix_plain_text(
+                text[start : match.start()],
+                banned,
+                text[:start],
+                text[match.start() :],
+            )
+        )
         pieces.append(match.group())
         start = match.end()
     pieces.append(_fix_plain_text(text[start:], banned, text[:start], ""))
@@ -94,10 +97,17 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     if draft.slot_id != pack.slot_id:
         return ["slot_mismatch"]
     citable = {s.source_id for s in pack.sources if s.status == "ok" and s.evidence_text.strip()}
-    return [f"tweet_{i}:citation:{source_id}" for i, t in enumerate(draft.tweets, 1) for source_id in t.source_ids if source_id not in citable]
+    return [
+        f"tweet_{i}:citation:{source_id}"
+        for i, t in enumerate(draft.tweets, 1)
+        for source_id in t.source_ids
+        if source_id not in citable
+    ]
 
 
-def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules, limit: int = 280) -> ValidationResult:
+def validate(
+    draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules, limit: int = 280
+) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
     fixed = draft.model_copy(deep=True)
@@ -109,7 +119,9 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
         operations = {
             "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
             "whitespace": lambda t: " ".join(t.split()),
-            "curly_quotes": lambda t: t.translate(str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})),
+            "curly_quotes": lambda t: t.translate(
+                str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
+            ),
             "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
         }
         for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
@@ -117,7 +129,9 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
             if changed != text:
                 fixes.append(f"tweet_{i}:{fix}")
             text = changed
-        if not any(not ch.isspace() and not unicodedata.category(ch).startswith("P") for ch in text):
+        if not any(
+            not ch.isspace() and not unicodedata.category(ch).startswith("P") for ch in text
+        ):
             empty_content.append(f"tweet_{i}:invalid_text")
         tweet.text = f"{i}/{len(fixed.tweets)} {text}" if spec.numbering else text
     errors = check_citations(fixed, pack) + empty_content
@@ -130,7 +144,9 @@ def validate(draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules
             errors.append(f"tweet_{i}:invalid_text")
         if parsed.weightedLength > limit:
             errors.append(f"tweet_{i}:length")
-    return ValidationResult(original=draft, normalized=fixed, fixes=fixes, violations=errors, accepted=not errors)
+    return ValidationResult(
+        original=draft, normalized=fixed, fixes=fixes, violations=errors, accepted=not errors
+    )
 
 
 def length_feedback(result: ValidationResult, limit: int = 280) -> list[str]:
@@ -140,5 +156,7 @@ def length_feedback(result: ValidationResult, limit: int = 280) -> list[str]:
         if f"tweet_{i}:length" in result.violations:
             weighted = parse_tweet(tweet.text).weightedLength
             words = len(tweet.text.split())
-            notes.append(f"tweet_{i}:weighted_length:{weighted}/{limit}:shorten_by_at_least:{weighted - limit}:words:{words}:max_words:{max(1, int(limit / 7.5))}")
+            notes.append(
+                f"tweet_{i}:weighted_length:{weighted}/{limit}:shorten_by_at_least:{weighted - limit}:words:{words}:max_words:{max(1, int(limit / 7.5))}"
+            )
     return notes

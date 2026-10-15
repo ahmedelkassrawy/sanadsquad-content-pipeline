@@ -28,7 +28,9 @@ def captured_chat(monkeypatch, tmp_path):
 
 
 @pytest.mark.parametrize("effort", ["none", "medium"])
-def test_groq_uses_conventional_credential_and_function_calling(tmp_path, monkeypatch, captured_chat, effort):
+def test_groq_uses_conventional_credential_and_function_calling(
+    tmp_path, monkeypatch, captured_chat, effort
+):
     captured, runnable = captured_chat
     monkeypatch.setenv("GROQ_API_KEY", "synthetic-groq-key")
 
@@ -37,8 +39,10 @@ def test_groq_uses_conventional_credential_and_function_calling(tmp_path, monkey
     assert result is runnable
     assert captured["model"] == "llama-x"
     expected = {
-        "model_provider": "groq", "api_key": "synthetic-groq-key",
-        "max_tokens": 1000, "max_retries": 0,
+        "model_provider": "groq",
+        "api_key": "synthetic-groq-key",
+        "max_tokens": 1000,
+        "max_retries": 0,
     }
     if effort != "none":
         expected["reasoning_effort"] = effort
@@ -81,8 +85,11 @@ def test_google_genai_keeps_gemini_credential_and_json_schema(tmp_path, monkeypa
     assert result is runnable
     assert captured["model"] == "gemini-2.5-flash"
     assert captured["options"] == {
-        "model_provider": "google_genai", "api_key": "synthetic-gemini-key",
-        "max_output_tokens": 1000, "max_retries": 0, "thinking_budget": 0,
+        "model_provider": "google_genai",
+        "api_key": "synthetic-gemini-key",
+        "max_output_tokens": 1000,
+        "max_retries": 0,
+        "thinking_budget": 0,
     }
     assert captured["schema"] is Draft
     assert captured["structured"] == {"method": "json_schema", "include_raw": True}

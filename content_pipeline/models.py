@@ -206,7 +206,9 @@ class BrandRules(Contract):
     banned_words: list[str]
     banned_characters: list[str]
     allowed_links: list[str]
-    safe_fixes: list[Literal["banned_characters", "whitespace", "curly_quotes", "trailing_hashtags"]]
+    safe_fixes: list[
+        Literal["banned_characters", "whitespace", "curly_quotes", "trailing_hashtags"]
+    ]
     approved_stats: dict[str, str]
     palette: list[str]
 

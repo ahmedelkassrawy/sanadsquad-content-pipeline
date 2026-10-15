@@ -1,6 +1,17 @@
 from typing import Literal
 from pydantic import Field, StrictStr, model_validator
-from .models import Contract, Draft, ImageResult, ImageSpec, PostType, ResearchPack, ResolvedSlot, Review, SlotOutcome, SourceRecord
+from .models import (
+    Contract,
+    Draft,
+    ImageResult,
+    ImageSpec,
+    PostType,
+    ResearchPack,
+    ResolvedSlot,
+    Review,
+    SlotOutcome,
+    SourceRecord,
+)
 
 
 class Angle(Contract):
@@ -12,7 +23,9 @@ class Angle(Contract):
     def nonempty_name(self):
         if not self.name.strip():
             raise ValueError("angle needs a nonempty name")
-        if self.source_ids is not None and (not self.source_ids or len(self.source_ids) != len(set(self.source_ids))):
+        if self.source_ids is not None and (
+            not self.source_ids or len(self.source_ids) != len(set(self.source_ids))
+        ):
             raise ValueError("configured angle evidence needs unique source ids")
         return self
 
@@ -129,7 +142,11 @@ class DraftAudit(Contract):
     def approved(self):
         if not self.accepted:
             raise ValueError("draft has not passed validation")
-        return Draft(slot_id=self.original.slot_id,attempt=self.original.attempt,tweets=[tweet.model_dump() for tweet in self.normalized])
+        return Draft(
+            slot_id=self.original.slot_id,
+            attempt=self.original.attempt,
+            tweets=[tweet.model_dump() for tweet in self.normalized],
+        )
 
 
 class SlotState(Contract):
@@ -280,7 +297,7 @@ class AdvisorOutput(Contract):
 
     @model_validator(mode="after")
     def bounded_recommendations(self):
-        if any(not line.strip() or len(line)>600 for line in self.recommendations):
+        if any(not line.strip() or len(line) > 600 for line in self.recommendations):
             raise ValueError("advice recommendations must be concise")
         return self
 

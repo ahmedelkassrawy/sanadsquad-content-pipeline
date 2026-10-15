@@ -41,7 +41,12 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
                     parsed["source_ids"] = ["KB-02"]
                     parsed["topic_id"] = "KB-02"
                     result["raw"].content = json.dumps(parsed)
-            if schema.__name__ == "ResearchAction" and slot_id == "b" and a_research_calls == 1 and not cancelled:
+            if (
+                schema.__name__ == "ResearchAction"
+                and slot_id == "b"
+                and a_research_calls == 1
+                and not cancelled
+            ):
                 await sibling_saved.wait()
                 cancelled = True
                 raise asyncio.CancelledError()
@@ -56,9 +61,13 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
         ResolvedSlot(slot_id="b", type="tech-thread", focus="recursive call"),
     ]
     with patch.object(Pipeline, "record", record), pytest.raises(NodeCancelledError):
-        await run_pipeline(ROOT, slots, output, model_factory=factory, search_factory=search_factory)
+        await run_pipeline(
+            ROOT, slots, output, model_factory=factory, search_factory=search_factory
+        )
 
-    saved = next(item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"])
+    saved = next(
+        item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"]
+    )
     assert saved["pack"]["topic_id"] == "KB-01"
     if tamper_receipt:
         receipt_path = output / "research-replay.json"
@@ -66,20 +75,30 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
         receipts["a/research/1/1"]["request_sha256"] = "0" * 64
         receipt_path.write_text(json.dumps(receipts))
 
-    summary = await run_pipeline(ROOT, resume=output, model_factory=factory, search_factory=search_factory)
+    summary = await run_pipeline(
+        ROOT, resume=output, model_factory=factory, search_factory=search_factory
+    )
 
     if tamper_receipt:
         assert summary.slots["a"].outcome.value == "failed_research"
-        assert not any(call[1] == "a" and call[2] in {"Draft", "ReviewAssessment"} for call in models.calls)
+        assert not any(
+            call[1] == "a" and call[2] in {"Draft", "ReviewAssessment"} for call in models.calls
+        )
         return
 
     writer = next(call[3] for call in models.calls if call[1] == "a" and call[2] == "Draft")
-    reviewer = next(call[3] for call in models.calls if call[1] == "a" and call[2] == "ReviewAssessment")
-    persisted = next(item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"])
+    reviewer = next(
+        call[3] for call in models.calls if call[1] == "a" and call[2] == "ReviewAssessment"
+    )
+    persisted = next(
+        item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"]
+    )
     assert writer["research"] == reviewer["research"] == persisted["pack"]
     assert persisted["pack"]["topic_id"] == "KB-01"
     assert summary.shipped == 2
-    research_calls = [call for call in models.calls if call[2] == "ResearchAction" and call[1] == "a"]
+    research_calls = [
+        call for call in models.calls if call[2] == "ResearchAction" and call[1] == "a"
+    ]
     assert len(research_calls) == 1
     trail = records(output, "research_log")
     assert len({entry["record_id"] for entry in trail}) == len(trail)
@@ -109,7 +128,9 @@ async def test_replayed_empty_slot_research_rejects_changed_topic_assignment(tmp
             if schema.__name__ == "TopicChoices":
                 topic_calls += 1
                 result["parsed"]["assignments"] = (
-                    {"a": "KB-01", "b": "KB-02"} if topic_calls == 1 else {"a": "KB-02", "b": "KB-01"}
+                    {"a": "KB-01", "b": "KB-02"}
+                    if topic_calls == 1
+                    else {"a": "KB-02", "b": "KB-01"}
                 )
                 result["raw"].content = json.dumps(result["parsed"])
             return result
@@ -127,14 +148,24 @@ async def test_replayed_empty_slot_research_rejects_changed_topic_assignment(tmp
 
     output = tmp_path / "run"
     slots = [ResolvedSlot(slot_id=slot, type="tech-thread") for slot in ("a", "b")]
-    with patch.object(Pipeline, "record", record), patch.object(Pipeline, "research_slot", interrupt_sibling), pytest.raises(NodeCancelledError):
-        await run_pipeline(ROOT, slots, output, model_factory=factory, search_factory=search_factory)
+    with (
+        patch.object(Pipeline, "record", record),
+        patch.object(Pipeline, "research_slot", interrupt_sibling),
+        pytest.raises(NodeCancelledError),
+    ):
+        await run_pipeline(
+            ROOT, slots, output, model_factory=factory, search_factory=search_factory
+        )
 
-    summary = await run_pipeline(ROOT, resume=output, model_factory=factory, search_factory=search_factory)
+    summary = await run_pipeline(
+        ROOT, resume=output, model_factory=factory, search_factory=search_factory
+    )
     assert summary.slots["a"].outcome.value == "failed_research"
     assert summary.slots["b"].outcome.value == "shipped"
     assert not any(call[1] == "a" and call[2] == "Draft" for call in models.calls)
-    shipped_topics = [slot.topic_id for slot in summary.slots.values() if slot.outcome.value == "shipped"]
+    shipped_topics = [
+        slot.topic_id for slot in summary.slots.values() if slot.outcome.value == "shipped"
+    ]
     assert shipped_topics == ["KB-01"]
 
 
@@ -164,19 +195,40 @@ async def test_interrupted_research_keeps_saved_failure_terminal(tmp_path):
         ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy"),
         ResolvedSlot(slot_id="b", type="tech-thread", focus="reentrancy"),
     ]
-    with patch.object(Pipeline, "record", record), patch.object(Pipeline, "research_slot", interrupt_sibling), pytest.raises(NodeCancelledError):
-        await run_pipeline(ROOT, slots, output, model_factory=models.factory, search_factory=search_factory)
+    with (
+        patch.object(Pipeline, "record", record),
+        patch.object(Pipeline, "research_slot", interrupt_sibling),
+        pytest.raises(NodeCancelledError),
+    ):
+        await run_pipeline(
+            ROOT, slots, output, model_factory=models.factory, search_factory=search_factory
+        )
 
-    initial_research_calls = [call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"]
+    initial_research_calls = [
+        call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"
+    ]
     calls_before_resume = len(models.calls)
     external_before = records(output, "external-usage")
-    summary = await run_pipeline(ROOT, resume=output, model_factory=models.factory, search_factory=search_factory)
+    summary = await run_pipeline(
+        ROOT, resume=output, model_factory=models.factory, search_factory=search_factory
+    )
     assert summary.slots["a"].outcome.value == "failed_research"
-    assert not any(call[1] == "a" and call[2] in {"ResearchAction", "Draft", "ReviewAssessment"}
-                   for call in models.calls[calls_before_resume:])
-    assert len([call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"]) == len(initial_research_calls)
+    assert not any(
+        call[1] == "a" and call[2] in {"ResearchAction", "Draft", "ReviewAssessment"}
+        for call in models.calls[calls_before_resume:]
+    )
+    assert len(
+        [call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"]
+    ) == len(initial_research_calls)
     external_after = summary.external_usage.model_dump(mode="json")
-    for key in ["search_calls", "tavily_calls", "ddgs_calls", "fetch_calls", "tavily_credits", "tavily_credits_estimated"]:
+    for key in [
+        "search_calls",
+        "tavily_calls",
+        "ddgs_calls",
+        "fetch_calls",
+        "tavily_credits",
+        "tavily_credits_estimated",
+    ]:
         assert external_after[key] == external_before[key]
     assert external_after["image_calls"] == external_before["image_calls"] + 1
     assert external_after["pillow_cards"] == external_before["pillow_cards"] + 1

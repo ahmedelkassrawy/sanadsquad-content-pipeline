@@ -35,18 +35,26 @@ def _draft():
 
 
 def _raw(content="", usage=None, metadata=None, **fields):
-    return SimpleNamespace(content=content, usage_metadata=usage, response_metadata=metadata or {}, **fields)
+    return SimpleNamespace(
+        content=content, usage_metadata=usage, response_metadata=metadata or {}, **fields
+    )
 
 
 def _response(raw, parsed=None, error=None):
-    return {"raw": raw, "parsed": _draft() if parsed is None and error is None else parsed, "parsing_error": error}
+    return {
+        "raw": raw,
+        "parsed": _draft() if parsed is None and error is None else parsed,
+        "parsing_error": error,
+    }
 
 
 async def _call(tmp_path, raw, parsed=None, error=None, results=None):
     prices = FixedPrices()
     ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
     transport = Transport(results or [_response(raw, parsed, error)])
-    client = ModelClient("openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", transport, prices=prices)
+    client = ModelClient(
+        "openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", transport, prices=prices
+    )
     await client.call(Draft, [{"role": "user", "content": "prompt"}], "s", "writer", 1, 100)
     records = [json.loads(line) for line in (tmp_path / "usage.jsonl").read_text().splitlines()]
     return client, records, prices
@@ -104,10 +112,16 @@ async def test_text_and_identical_tool_arguments_are_not_counted_twice(tmp_path)
     "content,fields,expected_text",
     [
         ([{"type": "text", "text": "visible"}], {}, '[{"text":"visible","type":"text"}]'),
-        ("", {"function_call": {"name": "Draft", "arguments": json.dumps(_draft())}}, json.dumps(_draft())),
+        (
+            "",
+            {"function_call": {"name": "Draft", "arguments": json.dumps(_draft())}},
+            json.dumps(_draft()),
+        ),
     ],
 )
-async def test_structured_content_and_legacy_function_call_payloads(tmp_path, content, fields, expected_text):
+async def test_structured_content_and_legacy_function_call_payloads(
+    tmp_path, content, fields, expected_text
+):
     raw = _raw(content, **fields)
 
     _, [record], _ = await _call(tmp_path, raw)
@@ -138,7 +152,9 @@ async def test_malformed_repair_calls_are_estimated_and_billed_separately(tmp_pa
         "openai:gpt-4.1-mini",
         ledger,
         tmp_path / "usage.jsonl",
-        Transport([_response(malformed, parsed=None, error=ValueError("bad")), _response(repaired)]),
+        Transport(
+            [_response(malformed, parsed=None, error=ValueError("bad")), _response(repaired)]
+        ),
         prices=prices,
     )
 
@@ -148,32 +164,64 @@ async def test_malformed_repair_calls_are_estimated_and_billed_separately(tmp_pa
     assert [record["call_id"] for record in records] == ["s/writer/1/1", "s/writer/1/2"]
     assert records[0]["estimated"] is True
     assert records[0]["output_tokens"] == math.ceil(len(malformed.content) / 3.5)
-    assert (records[1]["input_tokens"], records[1]["output_tokens"], records[1]["estimated"]) == (0, 0, False)
-    assert ledger.totals()["tokens"] == sum(record["input_tokens"] + record["output_tokens"] for record in records)
+    assert (records[1]["input_tokens"], records[1]["output_tokens"], records[1]["estimated"]) == (
+        0,
+        0,
+        False,
+    )
+    assert ledger.totals()["tokens"] == sum(
+        record["input_tokens"] + record["output_tokens"] for record in records
+    )
 
 
 async def test_installed_openai_adapter_invalid_tool_arguments_are_billed(tmp_path):
-    arguments = '{"tweets":[' + 'broken ' * 100
+    arguments = '{"tweets":[' + "broken " * 100
 
     def handler(request):
-        return httpx.Response(200, json={
-            "id": "chatcmpl-offline", "object": "chat.completion", "created": 1,
-            "model": "gpt-4.1-mini", "choices": [{"index": 0,
-                "finish_reason": "tool_calls", "message": {"role": "assistant", "content": None,
-                "tool_calls": [{"id": "offline", "type": "function", "function": {
-                    "name": "Draft", "arguments": arguments}}]}}]})
+        return httpx.Response(
+            200,
+            json={
+                "id": "chatcmpl-offline",
+                "object": "chat.completion",
+                "created": 1,
+                "model": "gpt-4.1-mini",
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "id": "offline",
+                                    "type": "function",
+                                    "function": {"name": "Draft", "arguments": arguments},
+                                }
+                            ],
+                        },
+                    }
+                ],
+            },
+        )
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
+
         class AdapterTransport:
             def prepare(self, schema, max_tokens):
                 return ChatOpenAI(
-                    model="gpt-4.1-mini", api_key="synthetic-offline", max_tokens=max_tokens,
-                    max_retries=0, http_async_client=http,
+                    model="gpt-4.1-mini",
+                    api_key="synthetic-offline",
+                    max_tokens=max_tokens,
+                    max_retries=0,
+                    http_async_client=http,
                 ).with_structured_output(schema, method="function_calling", include_raw=True)
 
         ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
         usage_path = tmp_path / "usage.jsonl"
-        client = ModelClient("openai:gpt-4.1-mini", ledger, usage_path, AdapterTransport(), FixedPrices())
+        client = ModelClient(
+            "openai:gpt-4.1-mini", ledger, usage_path, AdapterTransport(), FixedPrices()
+        )
         with pytest.raises(ModelFailure, match="failed_output"):
             await client.call(Draft, [{"role": "user", "content": "write"}], "s", "writer", 1, 1000)
 
@@ -185,7 +233,9 @@ async def test_installed_openai_adapter_invalid_tool_arguments_are_billed(tmp_pa
 
 async def test_native_tool_content_block_and_tool_calls_are_counted_once(tmp_path):
     args = _draft()
-    raw = AIMessage(content_blocks=[{"type": "tool_call", "id": "call-1", "name": "Draft", "args": args}])
+    raw = AIMessage(
+        content_blocks=[{"type": "tool_call", "id": "call-1", "name": "Draft", "args": args}]
+    )
     assert len(raw.tool_calls) == 1
     content = json.dumps(raw.content, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -196,10 +246,13 @@ async def test_native_tool_content_block_and_tool_calls_are_counted_once(tmp_pat
 
 async def test_distinct_tool_calls_with_identical_arguments_are_both_counted(tmp_path):
     arguments = json.dumps(_draft(), separators=(",", ":"))
-    raw = _raw("", tool_calls=[
-        {"id": "call-1", "function": {"arguments": arguments}},
-        {"id": "call-2", "function": {"arguments": arguments}},
-    ])
+    raw = _raw(
+        "",
+        tool_calls=[
+            {"id": "call-1", "function": {"arguments": arguments}},
+            {"id": "call-2", "function": {"arguments": arguments}},
+        ],
+    )
 
     _, [record], _ = await _call(tmp_path, raw)
 
@@ -221,10 +274,13 @@ async def test_native_additional_kwargs_mirrors_are_counted_once_by_id(tmp_path)
 
 async def test_idless_duplicate_tool_calls_keep_occurrence_multiplicity(tmp_path):
     arguments = json.dumps(_draft(), separators=(",", ":"))
-    raw = _raw("", tool_calls=[
-        {"function": {"arguments": arguments}},
-        {"function": {"arguments": arguments}},
-    ])
+    raw = _raw(
+        "",
+        tool_calls=[
+            {"function": {"arguments": arguments}},
+            {"function": {"arguments": arguments}},
+        ],
+    )
 
     _, [record], _ = await _call(tmp_path, raw)
 
@@ -247,10 +303,13 @@ async def test_idless_content_tool_call_mirror_is_counted_once(tmp_path):
 async def test_same_id_different_arguments_are_distinct_occurrences(tmp_path):
     first = json.dumps({"a": 1}, separators=(",", ":"))
     second = json.dumps({"b": 2}, separators=(",", ":"))
-    raw = _raw("", tool_calls=[
-        {"id": "reused", "function": {"arguments": first}},
-        {"id": "reused", "function": {"arguments": second}},
-    ])
+    raw = _raw(
+        "",
+        tool_calls=[
+            {"id": "reused", "function": {"arguments": first}},
+            {"id": "reused", "function": {"arguments": second}},
+        ],
+    )
 
     _, [record], _ = await _call(tmp_path, raw)
 
@@ -258,7 +317,9 @@ async def test_same_id_different_arguments_are_distinct_occurrences(tmp_path):
 
 
 @pytest.mark.parametrize("missing_usage", [True, False])
-async def test_anthropic_tool_use_input_mirrors_are_counted_once(tmp_path, monkeypatch, missing_usage):
+async def test_anthropic_tool_use_input_mirrors_are_counted_once(
+    tmp_path, monkeypatch, missing_usage
+):
     import httpx2
 
     arguments = _draft()
@@ -268,28 +329,39 @@ async def test_anthropic_tool_use_input_mirrors_are_counted_once(tmp_path, monke
     ]
 
     def handler(request):
-        return httpx2.Response(200, json={
-            "id": "msg_offline", "type": "message", "role": "assistant",
-            "model": "claude-3-5-sonnet-20241022", "content": blocks,
-            "stop_reason": "tool_use", "stop_sequence": None,
-            "usage": {
-                "input_tokens": 0 if not missing_usage else 1,
-                "output_tokens": 0 if not missing_usage else 1,
+        return httpx2.Response(
+            200,
+            json={
+                "id": "msg_offline",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-3-5-sonnet-20241022",
+                "content": blocks,
+                "stop_reason": "tool_use",
+                "stop_sequence": None,
+                "usage": {
+                    "input_tokens": 0 if not missing_usage else 1,
+                    "output_tokens": 0 if not missing_usage else 1,
+                },
             },
-        })
+        )
 
     async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as http:
         import langchain_anthropic.chat_models as anthropic_models
 
-        monkeypatch.setattr(anthropic_models, "_get_default_async_httpx_client", lambda **kwargs: http)
+        monkeypatch.setattr(
+            anthropic_models, "_get_default_async_httpx_client", lambda **kwargs: http
+        )
 
         observed = []
 
         class AdapterTransport:
             def prepare(self, schema, max_tokens):
                 runnable = ChatAnthropic(
-                    model_name="claude-3-5-sonnet-20241022", api_key="synthetic-offline",
-                    max_tokens_to_sample=max_tokens, max_retries=0,
+                    model_name="claude-3-5-sonnet-20241022",
+                    api_key="synthetic-offline",
+                    max_tokens_to_sample=max_tokens,
+                    max_retries=0,
                 ).with_structured_output(schema, method="function_calling", include_raw=True)
 
                 class MissingUsage:
@@ -307,16 +379,20 @@ async def test_anthropic_tool_use_input_mirrors_are_counted_once(tmp_path, monke
         usage_path = tmp_path / "usage.jsonl"
         prices = FixedPrices()
         client = ModelClient(
-            "anthropic:claude-3-5-sonnet-20241022", ledger, usage_path,
-            AdapterTransport(), prices,
+            "anthropic:claude-3-5-sonnet-20241022",
+            ledger,
+            usage_path,
+            AdapterTransport(),
+            prices,
         )
         await client.call(Draft, [{"role": "user", "content": "write"}], "s", "writer", 1, 100)
 
     record = json.loads(usage_path.read_text())
     assert record["status"] == "confirmed"
-    expected_output = math.ceil(len(json.dumps(
-        observed[0][0], ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    )) / 3.5)
+    expected_output = math.ceil(
+        len(json.dumps(observed[0][0], ensure_ascii=False, sort_keys=True, separators=(",", ":")))
+        / 3.5
+    )
     assert record["estimated"] is missing_usage
     assert record["output_tokens"] == (expected_output if missing_usage else 0)
     assert ledger.totals()["tokens"] == record["input_tokens"] + record["output_tokens"]
@@ -325,13 +401,9 @@ async def test_anthropic_tool_use_input_mirrors_are_counted_once(tmp_path, monke
 
 async def test_id_union_across_mirrored_views_preserves_distinct_calls(tmp_path):
     arguments = json.dumps(_draft(), separators=(",", ":"))
-    normalized = [
-        {"id": call_id, "args": _draft()}
-        for call_id in ("call-a", "call-b")
-    ]
+    normalized = [{"id": call_id, "args": _draft()} for call_id in ("call-a", "call-b")]
     additional = [
-        {"id": call_id, "function": {"arguments": arguments}}
-        for call_id in ("call-b", "call-c")
+        {"id": call_id, "function": {"arguments": arguments}} for call_id in ("call-b", "call-c")
     ]
     raw = _raw("", tool_calls=normalized, additional_kwargs={"tool_calls": additional})
 

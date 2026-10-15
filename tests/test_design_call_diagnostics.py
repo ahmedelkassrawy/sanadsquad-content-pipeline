@@ -1,4 +1,5 @@
 """Public ModelClient proof for bounded, privacy-safe per-call diagnostics."""
+
 import asyncio
 import json
 from types import SimpleNamespace
@@ -28,7 +29,13 @@ def raw(finish="stop", status=None, content=None):
 
 
 def response(finish="stop", parsed=None, error=None, status=None, content=None):
-    return {"raw": raw(finish, status, content), "parsed": parsed if parsed is not None else {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]}, "parsing_error": error}
+    return {
+        "raw": raw(finish, status, content),
+        "parsed": parsed
+        if parsed is not None
+        else {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]},
+        "parsing_error": error,
+    }
 
 
 class SequenceTransport:
@@ -46,7 +53,14 @@ class SequenceTransport:
 
 def setup(tmp_path, events, sleep=None):
     ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
-    client = ModelClient("openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", SequenceTransport(events), Prices(), sleep=sleep or _sleep)
+    client = ModelClient(
+        "openai:gpt-4.1-mini",
+        ledger,
+        tmp_path / "usage.jsonl",
+        SequenceTransport(events),
+        Prices(),
+        sleep=sleep or _sleep,
+    )
     return client, ledger
 
 
@@ -64,14 +78,24 @@ def diagnostic(record, failure, status, finish):
     assert record["finish_reason"] == finish
 
 
-@pytest.mark.parametrize("code,kind", [(503, "server"), (429, "rate_limit"), (402, "payment"), (403, "auth")])
+@pytest.mark.parametrize(
+    "code,kind", [(503, "server"), (429, "rate_limit"), (402, "payment"), (403, "auth")]
+)
 async def test_http_failure_diagnostics_preserve_retry_and_accounting(tmp_path, code, kind):
     class HttpError(Exception):
         status_code = code
 
-    client, ledger = setup(tmp_path, [HttpError("dummy SECRET_REQUEST_TOKEN https://fake.invalid/raw-response") for _ in range(4)])
+    client, ledger = setup(
+        tmp_path,
+        [
+            HttpError("dummy SECRET_REQUEST_TOKEN https://fake.invalid/raw-response")
+            for _ in range(4)
+        ],
+    )
     with pytest.raises(ModelFailure):
-        await client.call(Draft, [{"role": "user", "content": "safe prompt"}], "s", "writer", 1, 100)
+        await client.call(
+            Draft, [{"role": "user", "content": "safe prompt"}], "s", "writer", 1, 100
+        )
     rows = records(tmp_path / "usage.jsonl")
     record = rows[0]
     diagnostic(record, kind, code, None)
@@ -83,7 +107,9 @@ async def test_http_failure_diagnostics_preserve_retry_and_accounting(tmp_path, 
     assert "fake.invalid" not in (tmp_path / "usage.jsonl").read_text()
 
 
-@pytest.mark.parametrize("error,kind", [(TimeoutError("private"), "timeout"), (ConnectionError("private"), "connection")])
+@pytest.mark.parametrize(
+    "error,kind", [(TimeoutError("private"), "timeout"), (ConnectionError("private"), "connection")]
+)
 async def test_transport_failure_is_classified_without_exception_text(tmp_path, error, kind):
     client, _ = setup(tmp_path, [error, response()])
     await client.call(Draft, [{"role": "user", "content": "safe prompt"}], "s", "writer", 1, 100)
@@ -95,7 +121,15 @@ async def test_transport_failure_is_classified_without_exception_text(tmp_path, 
 
 
 async def test_finish_retry_truncation_and_parse_repair_keep_one_row_per_dispatch(tmp_path):
-    client, ledger = setup(tmp_path, [response("error"), response("length"), response("stop", parsed=None, error=ValueError("secret parse")), response()])
+    client, ledger = setup(
+        tmp_path,
+        [
+            response("error"),
+            response("length"),
+            response("stop", parsed=None, error=ValueError("secret parse")),
+            response(),
+        ],
+    )
     await client.call(Draft, [{"role": "user", "content": "safe prompt"}], "s", "writer", 1, 100)
     rows = records(tmp_path / "usage.jsonl")
     assert [r["call_id"] for r in rows] == [f"s/writer/1/{i}" for i in range(1, 5)]
@@ -112,7 +146,9 @@ async def test_finish_retry_truncation_and_parse_repair_keep_one_row_per_dispatc
 async def test_repeated_6000_to_9000_truncation_is_recorded_once_per_dispatch(tmp_path):
     class Capture(SequenceTransport):
         def __init__(self):
-            super().__init__([response("length", content="a" * 6000), response("length", content="b" * 9000)])
+            super().__init__(
+                [response("length", content="a" * 6000), response("length", content="b" * 9000)]
+            )
             self.max_tokens = []
 
         async def __call__(self, messages, schema, max_tokens):
@@ -121,7 +157,9 @@ async def test_repeated_6000_to_9000_truncation_is_recorded_once_per_dispatch(tm
 
     ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
     transport = Capture()
-    client = ModelClient("openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", transport, Prices(), sleep=_sleep)
+    client = ModelClient(
+        "openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", transport, Prices(), sleep=_sleep
+    )
     with pytest.raises(ModelFailure, match="failed_output"):
         await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 6000)
     rows = records(tmp_path / "usage.jsonl")
@@ -165,14 +203,18 @@ async def test_validator_rejection_unknown_finish_and_malformed_envelope(tmp_pat
         if calls == 1:
             raise ValueError("rejected")
 
-    await rejected.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject_once)
+    await rejected.call(
+        Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject_once
+    )
     rows = records(tmp_path / "usage.jsonl")
     assert calls == len(rows) == len(ledger.entries) == 2
     assert [row["status"] for row in rows] == ["confirmed", "confirmed"]
     diagnostic(rows[0], "output_rejected", None, "stop")
     diagnostic(rows[1], None, None, "stop")
 
-    unknown, _ = setup(tmp_path / "unknown", [response("attacker finish secret https://fake.invalid")])
+    unknown, _ = setup(
+        tmp_path / "unknown", [response("attacker finish secret https://fake.invalid")]
+    )
     await unknown.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100)
     [row] = records(tmp_path / "unknown" / "usage.jsonl")
     diagnostic(row, None, None, "unknown")
@@ -202,7 +244,9 @@ async def test_validator_rejection_repairs_once_then_returns_on_valid_output(tmp
         if calls == 1:
             raise type(error)("SECRET_REQUEST_TOKEN https://fake.invalid/private")
 
-    result = await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject_once)
+    result = await client.call(
+        Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject_once
+    )
     assert isinstance(result, Draft)
     rows = records(tmp_path / "usage.jsonl")
     assert calls == len(rows) == len(ledger.entries) == 2
@@ -224,7 +268,9 @@ async def test_repeated_validator_rejection_records_both_calls_then_fails_output
         raise type(error)(str(error))
 
     with pytest.raises(ModelFailure, match="failed_output"):
-        await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject)
+        await client.call(
+            Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject
+        )
     rows = records(tmp_path / "usage.jsonl")
     assert len(rows) == len(ledger.entries) == 2
     assert [row["failure_kind"] for row in rows] == ["output_rejected", "output_rejected"]
@@ -232,7 +278,16 @@ async def test_repeated_validator_rejection_records_both_calls_then_fails_output
 
 
 async def test_raw_none_with_valid_parsed_output_remains_accepted(tmp_path):
-    client, ledger = setup(tmp_path, [{"raw": None, "parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]}, "parsing_error": None}])
+    client, ledger = setup(
+        tmp_path,
+        [
+            {
+                "raw": None,
+                "parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]},
+                "parsing_error": None,
+            }
+        ],
+    )
     result = await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100)
     [row] = records(tmp_path / "usage.jsonl")
     assert isinstance(result, Draft)
@@ -250,7 +305,9 @@ async def test_unexpected_validator_error_propagates_after_confirmed_charge(tmp_
         raise type(error)(str(error))
 
     with pytest.raises(type(error)):
-        await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject)
+        await client.call(
+            Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject
+        )
     [row] = records(tmp_path / "usage.jsonl")
     assert row["status"] == "confirmed"
     assert row["failure_kind"] == "output_rejected"
@@ -302,11 +359,15 @@ async def test_public_caller_validator_compatibility_baseline(tmp_path, error_ty
             raise error_type("rejected")
 
     if reject_count == 1:
-        result = await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject)
+        result = await client.call(
+            Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject
+        )
         assert isinstance(result, Draft)
     else:
         with pytest.raises(ModelFailure, match="failed_output"):
-            await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject)
+            await client.call(
+                Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject
+            )
     rows = records(tmp_path / "usage.jsonl")
     assert calls == len(rows) == len(ledger.entries) == 2
     assert all(row["status"] == "confirmed" for row in rows)
@@ -314,7 +375,16 @@ async def test_public_caller_validator_compatibility_baseline(tmp_path, error_ty
 
 
 async def test_public_caller_raw_none_with_parsed_valid_compatibility_baseline(tmp_path):
-    client, ledger = setup(tmp_path, [{"raw": None, "parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]}, "parsing_error": None}])
+    client, ledger = setup(
+        tmp_path,
+        [
+            {
+                "raw": None,
+                "parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]},
+                "parsing_error": None,
+            }
+        ],
+    )
     result = await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100)
     [row] = records(tmp_path / "usage.jsonl")
     assert isinstance(result, Draft)
@@ -324,7 +394,15 @@ async def test_public_caller_raw_none_with_parsed_valid_compatibility_baseline(t
 
 
 async def test_public_caller_missing_raw_key_stays_malformed_envelope(tmp_path):
-    client, ledger = setup(tmp_path, [{"parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]}, "parsing_error": None}])
+    client, ledger = setup(
+        tmp_path,
+        [
+            {
+                "parsed": {"slot_id": "s", "attempt": 1, "tweets": [{"text": "ok"}]},
+                "parsing_error": None,
+            }
+        ],
+    )
     with pytest.raises(ModelFailure, match="failed_output"):
         await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100)
     [row] = records(tmp_path / "usage.jsonl")
@@ -333,14 +411,18 @@ async def test_public_caller_missing_raw_key_stays_malformed_envelope(tmp_path):
 
 
 @pytest.mark.parametrize("error_type", [RuntimeError, asyncio.CancelledError])
-async def test_public_caller_unexpected_validator_error_compatibility_baseline(tmp_path, error_type):
+async def test_public_caller_unexpected_validator_error_compatibility_baseline(
+    tmp_path, error_type
+):
     client, ledger = setup(tmp_path, [response()])
 
     def reject(_):
         raise error_type("unexpected")
 
     with pytest.raises(error_type):
-        await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject)
+        await client.call(
+            Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100, reject
+        )
     [row] = records(tmp_path / "usage.jsonl")
     assert row["status"] == "confirmed"
     assert ledger.entries[row["call_id"]]["status"] == "confirmed"
@@ -361,7 +443,15 @@ async def test_public_caller_non_string_finish_routing_compatibility_baseline(tm
 
 
 def test_usage_record_diagnostics_are_optional_bounded_and_legacy_compatible():
-    legacy = UsageRecord.model_validate({"call_id": "s/writer/1/1", "model": "fixture", "input_tokens": 1, "output_tokens": 2, "cost_source": "fixture"})
+    legacy = UsageRecord.model_validate(
+        {
+            "call_id": "s/writer/1/1",
+            "model": "fixture",
+            "input_tokens": 1,
+            "output_tokens": 2,
+            "cost_source": "fixture",
+        }
+    )
     assert (legacy.failure_kind, legacy.http_status, legacy.finish_reason) == (None, None, None)
     with pytest.raises(ValidationError):
         UsageRecord.model_validate({**legacy.model_dump(), "http_status": 999})
@@ -379,7 +469,9 @@ async def test_prepare_failure_creates_no_usage_or_ledger_charge(tmp_path):
             raise RuntimeError("pre-dispatch only")
 
     ledger = Ledger(tmp_path / "ledger.json", 100_000, 10)
-    client = ModelClient("openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", PrepareFailure(), Prices())
+    client = ModelClient(
+        "openai:gpt-4.1-mini", ledger, tmp_path / "usage.jsonl", PrepareFailure(), Prices()
+    )
     with pytest.raises(ModelFailure, match="failed_api"):
         await client.call(Draft, [{"role": "user", "content": "safe"}], "s", "writer", 1, 100)
     assert ledger.entries == {}

@@ -29,14 +29,26 @@ class Ledger:
 
     def totals(self):
         active = [r for r in self.entries.values() if r["status"] != "released"]
-        return {"tokens": sum(r["tokens"] for r in active), "cost_usd": sum(r["cost_usd"] or 0 for r in active), "uncertain_tokens": sum(r["tokens"] for r in active if r["status"] in {"uncertain", "dispatched"}), "uncertain_cost_usd": sum(r["cost_usd"] or 0 for r in active if r["status"] in {"uncertain", "dispatched"})}
+        return {
+            "tokens": sum(r["tokens"] for r in active),
+            "cost_usd": sum(r["cost_usd"] or 0 for r in active),
+            "uncertain_tokens": sum(
+                r["tokens"] for r in active if r["status"] in {"uncertain", "dispatched"}
+            ),
+            "uncertain_cost_usd": sum(
+                r["cost_usd"] or 0 for r in active if r["status"] in {"uncertain", "dispatched"}
+            ),
+        }
 
     async def reserve(self, call_id: str, tokens: int, cost: float | None):
         async with self.lock:
             if call_id in self.entries and self.entries[call_id]["status"] != "released":
                 raise ValueError("call id already charged; use next call_n")
             total = self.totals()
-            if total["tokens"] + tokens > self.token_budget or total["cost_usd"] + (cost or 0) > self.cost_budget:
+            if (
+                total["tokens"] + tokens > self.token_budget
+                or total["cost_usd"] + (cost or 0) > self.cost_budget
+            ):
                 raise BudgetExhausted("failed_budget")
             self.entries[call_id] = {"tokens": tokens, "cost_usd": cost, "status": "reserved"}
             self._save()

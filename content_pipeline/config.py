@@ -55,7 +55,7 @@ def load_type(root: Path, name: str) -> PostType:
         if file:
             local_file(path.parent, file)
     local_file(root / "agents", spec.writer + "/system.md")
-    load_agent(root,spec.writer,writer=True)
+    load_agent(root, spec.writer, writer=True)
     return spec
 
 
@@ -64,14 +64,22 @@ def load_angles(root: Path, spec: PostType):
     angles = AnglesFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8"))).angles
     configured_sources = {source_id for angle in angles for source_id in angle.source_ids or []}
     if configured_sources:
-        kb_ids = {entry["id"] for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))["entries"]}
+        kb_ids = {
+            entry["id"]
+            for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))[
+                "entries"
+            ]
+        }
         if configured_sources - kb_ids:
             raise ValueError("angle evidence references an unknown knowledge-base source")
     return angles
 
 
 def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
-    slots = [ResolvedSlot.model_validate(x) for x in json.loads(path.read_text(encoding="utf-8"))["slots"]]
+    slots = [
+        ResolvedSlot.model_validate(x)
+        for x in json.loads(path.read_text(encoding="utf-8"))["slots"]
+    ]
     if not slots or len({s.slot_id for s in slots}) != len(slots):
         raise ValueError("plan needs unique slots")
     for slot in slots:
@@ -80,13 +88,17 @@ def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
 
 
 def load_agent(root: Path, name: str, *, writer: bool = False) -> AgentConfig:
-    config = AgentConfig.model_validate(yaml.safe_load(local_file(root / "agents", name + "/agent.yaml").read_text(encoding="utf-8")))
+    config = AgentConfig.model_validate(
+        yaml.safe_load(
+            local_file(root / "agents", name + "/agent.yaml").read_text(encoding="utf-8")
+        )
+    )
     if not writer:
-        folder=root/"post_types"
+        folder = root / "post_types"
         for path in sorted(folder.glob("*/type.yaml")):
-            spec=PostType.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+            spec = PostType.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
             if spec.writer == name:
-                writer=True
+                writer = True
                 break
     if writer and any(s in {"search_kb", "web_search"} for s in config.skills):
         raise ValueError("writers cannot search")
@@ -102,7 +114,12 @@ def load_prompt(root: Path, agent_name: str, post_type: str | None = None) -> st
     parts = [local_file(root / "agents", agent_name + "/system.md").read_text(encoding="utf-8")]
     if post_type:
         spec = load_type(root, post_type)
-        parts.append(local_file(root / "post_types" / post_type, "writer.md" if agent_name == spec.writer else spec.rubric).read_text(encoding="utf-8"))
+        parts.append(
+            local_file(
+                root / "post_types" / post_type,
+                "writer.md" if agent_name == spec.writer else spec.rubric,
+            ).read_text(encoding="utf-8")
+        )
     for skill in agent.skills:
         parts.append(local_file(root / "skills", skill + ".md").read_text(encoding="utf-8"))
     parts.append(local_file(root / "inputs", "brand-voice.md").read_text(encoding="utf-8"))
