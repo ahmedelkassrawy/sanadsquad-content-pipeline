@@ -162,6 +162,9 @@ Visual agent (LLM) -> ImageSpec (concept, scene, palette, overlay text, alt text
 
 - Cloudflare Workers AI FLUX-schnell (free daily allowance, needs account id + token). No key or any failure -> Pillow card, so a run never breaks. The trail records which backend produced each image.
 - On-image text is always drawn by code: image models garble text.
+- The configured backend order is honoured. `cloudflare_flux` uses Workers AI `@cf/black-forest-labs/flux-1-schnell` with four steps and a 60-second HTTP timeout. Its code-built prompt uses concept, scene and palette and asks for no text. The decoded image is cropped and resized to 1200×675, then Pillow draws the overlay on a readable band and the optional severity badge.
+- Credentials come from `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the environment or `.env`. Missing credentials silently select Pillow. Provider failures select Pillow with `fallback_reason: "cloudflare_failed"` and safe failure-kind/HTTP-status codes in `fallback_detail`; credentials, response bodies and exception messages are never recorded.
+- `image_calls` counts requested cards and `cloudflare_images` counts attempted provider requests; image usage is not priced. Saved Cloudflare PNGs receive the same resume validation as Pillow cards. Live image proof remains pending credentials.
 - Images are made **only for accepted pieces**. Visual-agent failure and overlay validation: §6.5.
 
 ### 2.10 Output
@@ -264,6 +267,9 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
   - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check_brand()` used by the validator and the overlay check).
 
 ### 6.5 Visual failure and accuracy
+- A spec with overlay errors gets one visual repair call (attempt 2), billed through the model budget, with the validation codes as feedback. Malformed model output retains its separate single schema repair (§6.10).
+- `ImageResult.fallback_detail` optionally records overlay error codes or the agent exception class, without exception messages. Older saved visuals without this field still validate.
+- Excerpt grounding normalizes case, whitespace and straight/curly quotes; numeric support, brand, palette and severity checks remain unchanged.
 - If the visual agent fails (error, invalid output, budget refusal), **code builds a fallback `ImageSpec`** from the accepted piece: title from the topic name, severity from the KB entry if any, brand palette.
 - Overlay text shares **hard brand checks** with tweets, not normalisation or tweet numbering, and may only contain text from the accepted piece or its sources. No new statistics.
 - The **severity badge is optional**; it is drawn only when the source has a severity, so marketing posts have none.

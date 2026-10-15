@@ -153,3 +153,18 @@ def load_prompt(root: Path, agent_name: str, post_type: str | None = None) -> st
     parts.append(local_file(root / "inputs", "brand-voice.md").read_text(encoding="utf-8"))
 
     return "\n\n".join(parts)
+
+
+def load_visual_backends(root: Path) -> list[str]:
+    """Read the ordered image backend chain from the run configuration."""
+    data = yaml.safe_load(local_file(root, "config/visual.yaml").read_text(encoding="utf-8"))
+    backends = data.get("backends") if isinstance(data, dict) else None
+
+    if (
+        not isinstance(backends, list)
+        or not backends
+        or any(backend not in ("cloudflare_flux", "pillow_card") for backend in backends)
+    ):
+        raise ValueError("invalid visual backends")
+
+    return backends
