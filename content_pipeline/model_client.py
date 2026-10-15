@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
 from pydantic import BaseModel
+from . import record_ids
 from .ledger import Ledger
 from .models import CallFailureKind, CallFinishReason, UsageRecord
 
@@ -646,9 +647,11 @@ class ModelClient:
             return None, "unknown"
 
     async def record(self, record: UsageRecord):
-        slot, node, attempt, _ = record.call_id.rsplit("/", 3)
+        parsed = record_ids.parse_record_id(record.call_id)
 
-        record = record.model_copy(update={"slot_id": slot, "node": node, "attempt": int(attempt)})
+        record = record.model_copy(
+            update={"slot_id": parsed.slot_id, "node": parsed.node, "attempt": parsed.attempt}
+        )
 
         async with self.usage_lock:
             self.usage_path.parent.mkdir(parents=True, exist_ok=True)
@@ -936,20 +939,10 @@ class ModelClient:
     ):
         repair = truncation = transient = 0
         messages = list(messages)
-        prefix = f"{slot_id}/{node}/{attempt}/"
-
-        call_n = max(
-            (
-                int(key[len(prefix) :])
-                for key in self.ledger.entries
-                if key.startswith(prefix) and key[len(prefix) :].isdigit()
-            ),
-            default=0,
-        )
+        call_n = record_ids.next_call_n(self.ledger.entries, slot_id, node, attempt)
 
         while True:
-            call_n += 1
-            call_id = f"{slot_id}/{node}/{attempt}/{call_n}"
+            call_id = record_ids.call_id(slot_id, node, attempt, call_n)
             inputs = math.ceil(sum(len(str(m["content"])) for m in messages) / 3.5 * 1.15)
             reserve_tokens = inputs + max_output_tokens
 
@@ -992,3 +985,5 @@ class ModelClient:
                 messages = self._repair_messages(messages, result.error)
             else:
                 return result.parsed
+
+            call_n += 1
