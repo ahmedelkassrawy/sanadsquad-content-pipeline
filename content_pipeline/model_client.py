@@ -316,7 +316,7 @@ def configured_client(root: Path, agent_name: str, ledger: Ledger, usage_path: P
     settings = settings or Settings.load(root)
     agent = load_agent(root,agent_name)
     model = resolve_model(settings,agent)
-    return ModelClient(model,ledger,usage_path,transport=LangChainTransport(model,agent.reasoning_effort,credential_root or root),allow_unpriced=settings.allow_unpriced,repair_prompt=root/"config/repair.md",**kwargs)
+    return ModelClient(model,ledger,usage_path,transport=LangChainTransport(model,settings.reasoning_effort_override or agent.reasoning_effort,credential_root or root),allow_unpriced=settings.allow_unpriced,repair_prompt=root/"config/repair.md",**kwargs)
 
 
 class ModelClient:

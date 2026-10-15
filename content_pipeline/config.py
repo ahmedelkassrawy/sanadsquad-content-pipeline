@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+from typing import Literal
 import yaml
 from dotenv import dotenv_values
 from pydantic import Field
@@ -11,6 +12,7 @@ from .contracts import AnglesFile
 class Settings(Contract):
     default_model: str = "openrouter:openai/gpt-4.1-mini"
     model_override: str | None = None
+    reasoning_effort_override: Literal["none", "low", "medium", "high"] | None = None
     max_tweet_chars: int = Field(default=280, ge=1, le=280)
     run_token_budget: int = Field(default=250000, ge=1)
     run_cost_budget_usd: float = Field(default=1.0, gt=0)

@@ -16,8 +16,8 @@ from .research import KnowledgeBase
 from .validation import validate
 
 
-async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpriced=False,max_concurrency=None):
-    settings=Settings(model_override=model,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False,allow_unpriced=allow_unpriced,max_concurrency=max_concurrency)
+async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpriced=False,max_concurrency=None,reasoning_effort_override=None):
+    settings=Settings(model_override=model,reasoning_effort_override=reasoning_effort_override,run_token_budget=token_budget,run_cost_budget_usd=cost_budget,advisor_enabled=False,allow_unpriced=allow_unpriced,max_concurrency=max_concurrency)
     controls=json.loads(local_file(root,"config/live-review-controls.json").read_text(encoding="utf-8"))
     spec=load_type(root,controls["post_type"])
     kb=KnowledgeBase(root/"inputs/kb.json")
@@ -49,7 +49,7 @@ async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpr
                 reviews.append({"control":name,"failure":getattr(error,"outcome","failed_api")})
             atomic_json(output/"reviews.json",reviews)
         passed=len(reviews)==2 and reviews[0].get("review",{}).get("accepted") is True and reviews[1].get("review",{}).get("accepted") is False and "unsupported_claim" in reviews[1]["review"]["hard_fail"]
-        report={"provenance":"live configured provider; no synthetic transport","model":model,"verdict":"PASS" if passed else "FAIL","totals":ledger.totals(),"inputs_sha256":{name:hashlib.sha256(local_file(root,name).read_bytes()).hexdigest() for name in ["agents/reviewer/system.md","agents/reviewer/agent.yaml",f"post_types/{spec.name}/{spec.rubric}","inputs/kb.json","inputs/brand-voice.md","config/live-review-controls.json"]}}
+        report={"provenance":"live configured provider; no synthetic transport","model":model,"reasoning_effort_override":settings.reasoning_effort_override,"verdict":"PASS" if passed else "FAIL","totals":ledger.totals(),"inputs_sha256":{name:hashlib.sha256(local_file(root,name).read_bytes()).hexdigest() for name in ["agents/reviewer/system.md","agents/reviewer/agent.yaml",f"post_types/{spec.name}/{spec.rubric}","inputs/kb.json","inputs/brand-voice.md","config/live-review-controls.json"]}}
         atomic_json(output/"report.json",report)
         return passed
     finally: prices.close()
@@ -57,16 +57,16 @@ async def reviewer_control(root,output,model,token_budget,cost_budget,allow_unpr
 
 async def execute(args):
     slots=load_plan(args.root,args.root/"inputs/plan.json")
-    settings=Settings(model_override=args.model,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget,allow_unpriced=args.allow_unpriced,max_concurrency=args.max_concurrency)
+    settings=Settings(model_override=args.model,reasoning_effort_override=args.reasoning_effort,run_token_budget=args.token_budget,run_cost_budget_usd=args.cost_budget,allow_unpriced=args.allow_unpriced,max_concurrency=args.max_concurrency)
     validate_inputs(args.root,slots,settings)
     if args.output.exists(): raise ValueError("proof output already exists")
     args.output.mkdir(parents=True,exist_ok=False)
     passed=True
     if args.mode in {"reviewer","both"}:
-        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget,args.allow_unpriced,args.max_concurrency)
+        passed=await reviewer_control(args.root,args.output/"grounding",args.model,min(args.token_budget,24000),args.grounding_cost_budget,args.allow_unpriced,args.max_concurrency,reasoning_effort_override=args.reasoning_effort)
     if args.mode in {"sample","both"} and passed:
         summary=await run_pipeline(args.root,slots,args.output/"sample-week",settings)
-        atomic_json(args.output/"sample-provenance.json",{"provenance":"live configured model/search; no injected factory","model":args.model,"complete_six":len(slots)==6 and summary.shipped==6,"summary":summary.model_dump(mode="json"),"note":"Brand statistics are fictional demo fixtures; KB owner approval remains pending."})
+        atomic_json(args.output/"sample-provenance.json",{"provenance":"live configured model/search; no injected factory","model":args.model,"reasoning_effort_override":settings.reasoning_effort_override,"complete_six":len(slots)==6 and summary.shipped==6,"summary":summary.model_dump(mode="json"),"note":"Brand statistics are fictional demo fixtures; KB owner approval remains pending."})
         passed=summary.shipped==len(slots)==6
     return 0 if passed else 1
 
@@ -79,6 +79,7 @@ def main(argv=None):
     parser.add_argument("--output",type=Path)
     parser.add_argument("--mode",choices=["reviewer","sample","both"],default="both")
     parser.add_argument("--model",default="google_genai:gemini-2.5-flash")
+    parser.add_argument("--reasoning-effort",choices=["none","low","medium","high"])
     parser.add_argument("--token-budget",type=int,default=250000)
     parser.add_argument("--max-concurrency",type=int)
     parser.add_argument("--cost-budget",type=float,default=1.0)

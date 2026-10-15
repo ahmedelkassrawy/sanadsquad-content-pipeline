@@ -24,6 +24,7 @@ def parser(piece=False):
     cli.add_argument("--estimate",action="store_true")
     cli.add_argument("--default-model")
     cli.add_argument("--model-override")
+    cli.add_argument("--reasoning-effort-override",choices=["none","low","medium","high"])
     cli.add_argument("--max-tweet-chars",type=int)
     cli.add_argument("--max-concurrency",type=int)
     cli.add_argument("--token-budget",type=int)
@@ -35,9 +36,9 @@ def parser(piece=False):
 def main(argv=None,*,piece=False,model_factory=None,search_factory=None,renderer=None):
     args=parser(piece).parse_args(argv)
     try:
-        overrides={name:value for name,value in {"default_model":args.default_model,"model_override":args.model_override,"max_tweet_chars":args.max_tweet_chars,"max_concurrency":args.max_concurrency,"run_token_budget":args.token_budget,"run_cost_budget_usd":args.cost_budget,"allow_unpriced":args.allow_unpriced}.items() if value is not None}
+        overrides={name:value for name,value in {"default_model":args.default_model,"model_override":args.model_override,"reasoning_effort_override":args.reasoning_effort_override,"max_tweet_chars":args.max_tweet_chars,"max_concurrency":args.max_concurrency,"run_token_budget":args.token_budget,"run_cost_budget_usd":args.cost_budget,"allow_unpriced":args.allow_unpriced}.items() if value is not None}
         if args.resume:
-            forbidden=[args.output,args.default_model,args.model_override,args.max_tweet_chars,args.max_concurrency,args.allow_unpriced,args.no_advisor]
+            forbidden=[args.output,args.default_model,args.model_override,args.reasoning_effort_override,args.max_tweet_chars,args.max_concurrency,args.allow_unpriced,args.no_advisor]
             if piece: forbidden.extend([args.type,args.topic])
             else: forbidden.extend([args.set,args.plan])
             if any(value is not None and value is not False and value!=[] for value in forbidden):
