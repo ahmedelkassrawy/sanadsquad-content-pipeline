@@ -257,9 +257,11 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 ### 6.4 Writers never search
 - Writers work **only** from their slot's research pack; they don't call `search_kb`.
 - The shared-skill requirement is met by **`brand_rules`**, used by writers, reviewer, visual and validator.
-- **What a skill is**: a Python module plus a `.md` description.
+- **What a skill is**: one module with two faces: its `.md` prompt text and the `.py` code the
+  pipeline calls. The old import paths (`validation.check_brand`, `research.KnowledgeBase`,
+  `research.WebSearch`) stay as re-exports of the skill modules; nothing re-implements them.
   - Research gets its skills as **LLM-callable tools** (`search_kb`, `web_search`).
-  - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check()` used by the validator).
+  - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check_brand()` used by the validator and the overlay check).
 
 ### 6.5 Visual failure and accuracy
 - If the visual agent fails (error, invalid output, budget refusal), **code builds a fallback `ImageSpec`** from the accepted piece: title from the topic name, severity from the KB entry if any, brand palette.
