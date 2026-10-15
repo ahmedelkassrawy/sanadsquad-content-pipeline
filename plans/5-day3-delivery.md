@@ -59,3 +59,13 @@ Inputs/outputs: keep configured client, canonical schemas, messages, scoring and
 For OpenRouter only, agent reasoning_effort=none must send the documented explicit reasoning.enabled=false gateway option through the installed ChatOpenAI request serializer; omitting the argument leaves model defaults active. Low/medium/high and other providers retain existing wire behavior. Preserve tool_choice/include_raw/schema/usage/privacy. Mandatory-reasoning endpoints may refuse an explicit disable; never silently enable against the operator setting. Do not use this option to bypass OpenCode client-only restrictions.
 
 Verification: public ModelClient behavioral red on6dc and green onfix for error-with-parseable-output, shared bounded error retries/accounting/messages and exhausted failed_api; installed actual SDK serialization red/green proves OpenRouter none body plus unchanged non-none/native-provider controls without network. No mirrored string tests or fake live approval. Root independent general/contract/security review and full release before a fresh optional-none operator profile, three actual semantic controls, real writer probe and actual complete sample. Root alone makes model calls; no keys copied.
+
+## S4 advisor instruction-target repair (compact lane, 2026-10-15)
+
+Symptom: three live gpt-4.1-mini weeks finished with `advisor: failed`. A probe of the advisor alone on week 3 (`.runs/gpt41mini-week3-advisor-probe`, local evidence) shows every suggested edit used an evidence record id (`marketing_2/validator/2/1`) as `path` and tried to rewrite shipped post text. Code correctly refuses these (`InvalidAdvice: invalid advice source`), and fail-closed policy then discards all recommendations.
+
+Invariant (unchanged): the advisor is suggest-only and fail-closed; `advice_patch` validation, numeric guards, machine-rule guards and tests stay as they are. Shipped content is never edited.
+
+Fix: `agents/advisor/system.md` states that `edits[].path` must be one of the keys of the request's `instructions` map and `source_sha256` its `sha256`; evidence record ids, slot ids and shipped or draft text are never edit targets; observations about shipped text (for example an encoding glitch) belong in `recommendations`. A public-interface offline test proves the instruction reaches the advisor's system message and that an edit targeting an evidence record id still fails closed with `failed_output`.
+
+Acceptance: focused pytest for the new test, then the full suite; root then reruns the advisor probe live and confirms `advisor: completed` on a fresh live week.
