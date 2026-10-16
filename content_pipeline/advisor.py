@@ -9,18 +9,23 @@ class InvalidAdvice(ValueError):
     """The model returned advice the code refuses: recorded as failed_output, not an API failure."""
 
 
-def instruction_files(root, slots):
+def instruction_files(root, slots, types=None):
     names = {"inputs/brand-voice.md"}
 
     for slot in slots:
-        spec = load_type(root, slot.type)
+        spec = types.spec(slot.type) if types else load_type(root, slot.type)
 
         names.update([f"post_types/{slot.type}/writer.md", f"post_types/{slot.type}/{spec.rubric}"])
+
+    def text(name):
+        path = local_file(root, name)
+
+        return types.text(path) if types else path.read_text(encoding="utf-8")
 
     return {
         name: InstructionFile(
             sha256=hashlib.sha256(local_file(root, name).read_bytes()).hexdigest(),
-            text=local_file(root, name).read_text(encoding="utf-8"),
+            text=text(name),
         )
         for name in sorted(names)
     }
@@ -88,8 +93,8 @@ def advice_patch(request, output):
 
 
 class Advisor(Agent):
-    def __init__(self, root, client):
-        super().__init__(root, "advisor", client)
+    def __init__(self, root, client, types=None):
+        super().__init__(root, "advisor", client, types=types)
 
     async def __call__(self, request):
         output = await self.invoke(AdvisorOutput, request, request.slot_id, request.attempt)

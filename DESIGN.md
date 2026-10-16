@@ -162,6 +162,11 @@ Visual agent (LLM) -> ImageSpec (concept, scene, palette, overlay text, alt text
 
 - Cloudflare Workers AI FLUX-schnell (free daily allowance, needs account id + token). No key or any failure -> Pillow card, so a run never breaks. The trail records which backend produced each image.
 - On-image text is always drawn by code: image models garble text.
+- The configured backend order is honoured. `cloudflare_flux` uses Workers AI `@cf/black-forest-labs/flux-1-schnell` with four steps and a 60-second HTTP timeout. Its code-built prompt uses concept, scene and palette and asks for no text. The decoded image is cropped and resized to 1200×675, then Pillow draws the overlay on a readable band and the optional severity badge.
+- Credentials come from `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the environment or `.env`. Missing credentials silently select Pillow. Provider failures select Pillow with `fallback_reason: "cloudflare_failed"` and safe failure-kind/HTTP-status codes in `fallback_detail`; credentials, response bodies and exception messages are never recorded.
+- `image_calls` counts requested cards and `cloudflare_images` counts attempted provider requests; image usage is not priced. Saved Cloudflare PNGs receive the same resume validation as Pillow cards. The response must be a success of at most 10 MiB with a valid base64 image whose longest side is at most 4096 pixels; the account id must be 32 lowercase hex characters. Otherwise the card falls back as above.
+- **Log-secret decision:** the token and account id must not reach any log handler, because `httpx` and `httpcore` debug traces can repeat them (found in review: the token through h11 exception text, the account id through reflected response headers). Chosen: a filter attached to the `httpx` and `httpcore` loggers and every child that exists at the time, dropping only records whose rendered text, exception text included, contains the token, the account id or the accounts URL. Rejected: changing any log level or silencing a logger, which would hide unrelated HTTP logs. Accepted limits: a logger created after the first Cloudflare call gets the filter on the next call (no such logger is known on the configured HTTP/1.1 path); the secrets stay in memory until the process exits, which is fine for one environment-configured account and not for a service holding many tenants' keys; and each HTTP log record costs one small string check (about one microsecond measured).
+- **Proof status:** the backend is tested offline only, with a mocked HTTP transport. No real Cloudflare call has been made, so the live response shape, timing and image quality are unproven. Live proof stays pending credentials.
 - Images are made **only for accepted pieces**. Visual-agent failure and overlay validation: §6.5.
 
 ### 2.10 Output
@@ -257,11 +262,16 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 ### 6.4 Writers never search
 - Writers work **only** from their slot's research pack; they don't call `search_kb`.
 - The shared-skill requirement is met by **`brand_rules`**, used by writers, reviewer, visual and validator.
-- **What a skill is**: a Python module plus a `.md` description.
+- **What a skill is**: one module with two faces: its `.md` prompt text and the `.py` code the
+  pipeline calls. The old import paths (`validation.check_brand`, `research.KnowledgeBase`,
+  `research.WebSearch`) stay as re-exports of the skill modules; nothing re-implements them.
   - Research gets its skills as **LLM-callable tools** (`search_kb`, `web_search`).
-  - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check()` used by the validator).
+  - For every other agent, a skill contributes **instruction text** to the prompt and/or **functions called by code** (e.g. `brand_rules.check_brand()` used by the validator and the overlay check).
 
 ### 6.5 Visual failure and accuracy
+- A spec with overlay errors gets one visual repair call (attempt 2), billed through the model budget, with the validation codes as feedback. Malformed model output retains its separate single schema repair (§6.10).
+- `ImageResult.fallback_detail` optionally records overlay error codes or the agent exception class, without exception messages. Older saved visuals without this field still validate.
+- Excerpt grounding normalizes case, whitespace and straight/curly quotes; numeric support, brand, palette and severity checks remain unchanged.
 - If the visual agent fails (error, invalid output, budget refusal), **code builds a fallback `ImageSpec`** from the accepted piece: title from the topic name, severity from the KB entry if any, brand palette.
 - Overlay text shares **hard brand checks** with tweets, not normalisation or tweet numbering, and may only contain text from the accepted piece or its sources. No new statistics.
 - The **severity badge is optional**; it is drawn only when the source has a severity, so marketing posts have none.
@@ -269,7 +279,7 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 
 ### 6.6 What resume can and can't promise
 - **Limitation, documented:** if a call completes and is billed but the process dies before the result is saved, `--resume` repeats that call. No exactly-once billing.
-- Every model call and trail record has a **stable id** (`slot_id/node/attempt/call_n`). The trail writer skips ids it already has, so resume never duplicates records.
+- Every model call and trail record has a **stable id** (`slot_id/node/attempt/call_n`). The trail writer skips an id it already has only when the record is identical, so resume never duplicates records; a different record under the same id raises. Every saved stage record (research, writer failure, validator draft, review, visual, advisor) carries a fingerprint of its inputs, and `content_pipeline/stage_replay.py` reuses it only when the fingerprint and the run snapshot match, otherwise it refuses with `saved stage input mismatch` before any model call (a refused saved review ends the slot `failed_api`, a refused advisor record gives advisor `failed`, a refused research record gives `failed_research`, and a refused draft or visual record stops the resume). Draft records written before the draft fingerprint existed have none; they are treated as legacy and kept as they are, so older run folders still resume. A resume takes the run lock first, then reads its preflight once, and before it returns a completed run or continues past a checkpoint it re-checks every stage the checkpoint already finished against its saved record (research pack and its receipt's pack digest, draft, review, visual files, final piece, advisor; the receipt's request and snapshot digests are compared only when research itself is replayed), refusing with the same message before any model call.
 - On resume, a reservation left open by a crash is released **only if the call was never dispatched** (the ledger writes a `dispatched` mark before sending). A dispatched call with no saved result stays an **uncertain charge**, exactly like a timeout (§6.7).
 - Each run **snapshots** its inputs (`brand-voice.md`, `kb.json`, `plan.json`, `post_types/`, `agents/`, resolved config) into `run_dir/snapshot/`. Resume reads the snapshot, not the live files, so one run can't mix two policies.
 
@@ -277,7 +287,8 @@ Priority: 6.1–6.5, 6.8 and 6.10 are part of the required pipeline. 6.6 (resume
 - It is a **pre-call budget guard**, not a mathematical hard cap. Input tokens are estimated (chars / 3.5 + 15%), and an estimate can be wrong for unusual text.
 - The guard reserves that estimate plus full `max_output_tokens` before each call. Any actual overshoot is recorded in `usage.jsonl` and the summary.
 - A call that was dispatched but has no recorded result (timeout, crash) may still have been billed: its reservation is kept as an **uncertain** charge and never released. The summary reports **confirmed** and **uncertain** spend separately.
-- **Scope:** LLM spend only. Search and image calls are counted (calls, Tavily credits, Cloudflare neurons) but not priced in USD. The summary says so.
+- **Provider refusals (Kassra, 2026-10-15):** an HTTP 4xx answer (400 to 499, except 408) is a definite reply from the provider, so nothing was billed. The reservation is released, and the call is recorded as confirmed with zero tokens and zero cost, plus its `failure_kind` and `http_status`. 401 and 403 end the slot `failed_api`; 402 ends it `failed_budget`. Timeouts, connection errors, 408, 5xx, cancellation and errors with no HTTP status stay uncertain, as before. A refusal by our own ledger is unchanged. A provider `Retry-After` header on a retryable status sets the wait, capped at 60 seconds.
+- **Scope:** LLM spend only. Search and image calls are counted (calls, Tavily credits, Cloudflare image requests) but not priced in USD. The summary says so.
 - The brief requires cost **reporting**, not a cap. Kassra wants the guard, but it stays simple and never blocks the required pipeline work.
 
 ### 6.8 CSV and export, stated honestly

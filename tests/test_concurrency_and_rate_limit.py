@@ -82,7 +82,7 @@ async def test_run_wide_concurrent_dispatches(tmp_path, monkeypatch, limit, prep
 
 @pytest.mark.parametrize(
     "status,header,expected",
-    [(429, None, 5), (429, "12", 12), (429, "999", 60), (429, "bad", 5), (503, "12", 1)],
+    [(429, None, 5), (429, "12", 12), (429, "999", 60), (429, "bad", 5), (503, "12", 12)],
 )
 async def test_status_backoff(tmp_path, status, header, expected):
     waits = []
@@ -170,7 +170,16 @@ async def test_retry_exhaustion(tmp_path, status, expected):
     assert waits == expected
     rows = [json.loads(line) for line in (tmp_path / "usage.jsonl").read_text().splitlines()]
     assert len(rows) == 4
-    assert all(row["status"] == "uncertain" and row["http_status"] == status for row in rows)
+    expected_status = "confirmed" if status == 429 else "uncertain"
+    assert all(row["status"] == expected_status and row["http_status"] == status for row in rows)
+
+    if status == 429:
+        assert all(
+            row["input_tokens"] == row["output_tokens"] == row["cost_usd"] == 0
+            and row["failure_kind"] == "rate_limit"
+            for row in rows
+        )
+        assert all(entry["status"] == "released" for entry in client.ledger.entries.values())
 
 
 def test_settings_environment_and_legacy_default(tmp_path, monkeypatch):

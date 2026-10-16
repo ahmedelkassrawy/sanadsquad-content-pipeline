@@ -1,9 +1,13 @@
 import re
 import unicodedata
 from functools import partial
-from urllib.parse import urlparse
-from twitter_text import parse_tweet, extract_urls_with_indices
+from twitter_text import parse_tweet
+from skills import brand_rules
 from .models import BrandRules, Draft, PostType, ResearchPack, ValidationResult
+
+
+# The brand check lives in the brand_rules skill; this alias keeps existing imports working.
+check_brand = brand_rules.check_brand
 
 
 _QUOTES = "\"'\u201c\u201d\u2018\u2019"
@@ -92,30 +96,6 @@ def fix_banned_characters(text: str, banned: list[str]) -> str:
     return "".join(pieces)
 
 
-def check_brand(text: str, rules: BrandRules) -> list[str]:
-    errors = []
-
-    for word in rules.banned_words:
-        if re.search(r"(?<!\w)" + re.escape(word) + r"(?!\w)", text, re.I):
-            errors.append("banned_phrase:" + word)
-
-    for char in rules.banned_characters:
-        if char in text:
-            errors.append("banned_character:" + char)
-
-    if re.search(r"(?<!\w)#[\w]+", text):
-        errors.append("hashtag")
-
-    for link in extract_urls_with_indices(text):
-        url = link["url"]
-        domain = urlparse(url if "://" in url else "https://" + url).hostname
-
-        if domain not in rules.allowed_links:
-            errors.append("link_domain:" + str(domain))
-
-    return errors
-
-
 def check_leaked_source_ids(text: str, pack: ResearchPack) -> list[str]:
     """Report pack source ids that appear as whole tokens in tweet text."""
     return [
@@ -183,7 +163,7 @@ def validate(
 
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))
-        errors.extend(f"tweet_{i}:{e}" for e in check_brand(tweet.text, rules))
+        errors.extend(f"tweet_{i}:{e}" for e in brand_rules.check_brand(tweet.text, rules))
 
         parsed = parse_tweet(tweet.text)
 

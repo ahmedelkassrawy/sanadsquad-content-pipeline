@@ -1,0 +1,339 @@
+{
+  "review_status": "pending_kassra_review",
+  "severity_note": "Draft educational labels; severity is context dependent. SWC is historical and not a complete current taxonomy.",
+  "entries": [
+    {
+      "id": "KB-01",
+      "name": "Reentrancy",
+      "severity": "high",
+      "category": "external calls",
+      "description": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.",
+      "root_cause": "State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+      "aliases": [
+        "recursive call",
+        "SWC-107"
+      ],
+      "references": [
+        "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-107.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-02",
+      "name": "Integer overflow and underflow",
+      "severity": "high",
+      "category": "arithmetic",
+      "description": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.",
+      "root_cause": "Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+      "aliases": [
+        "wraparound",
+        "SWC-101"
+      ],
+      "references": [
+        "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-03",
+      "name": "Unchecked call return value",
+      "severity": "medium",
+      "category": "external calls",
+      "description": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.",
+      "root_cause": "The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
+      "aliases": [
+        "ignored return",
+        "SWC-104"
+      ],
+      "references": [
+        "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-104.md",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#error-handling-assert-require-revert-and-exceptions"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-04",
+      "name": "Unprotected Ether withdrawal",
+      "severity": "high",
+      "category": "access control",
+      "description": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. The SWC entry notes that this bug is sometimes caused by unintentionally exposing initialization functions: if a function intended to be a constructor is named wrongly, its code ends up in the runtime bytecode and can be called by anyone to re-initialize the contract. Before Solidity 0.4.22 a constructor was a function named exactly like its contract, so a name mismatch left it a normal callable function.",
+      "root_cause": "Withdrawal functions lack effective caller authorization, so the contract does not check who may trigger a transfer of Ether out. Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system. Also check that initialization code cannot be called again by an arbitrary account. Since Solidity 0.4.22 the constructor keyword makes constructor definitions clearer than the old same-name rule. The SWC registry is no longer actively maintained, so treat its text as historical guidance.",
+      "aliases": [
+        "withdrawal authorization",
+        "SWC-105"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-118.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-05",
+      "name": "Unprotected selfdestruct",
+      "severity": "high",
+      "category": "access control",
+      "description": "Due to missing or insufficient access controls, malicious parties can self-destruct the contract. What selfdestruct does depends on the EVM version of the chain. Before the Cancun hard fork (EVM Shanghai and earlier), it sends the remaining Ether to a designated target and removes the contract's storage and code. From EVM Cancun onwards (EIP-6780), selfdestruct only sends all Ether in the account to the recipient and does not delete the contract, except when it is called in the same transaction that created the contract. Solidity documentation also warns that Ether sent to a removed contract is forever lost.",
+      "root_cause": "The selfdestruct operation can be reached without authorization. Consider removing the self-destruct functionality unless it is absolutely required. If there is a valid use case, implement a multisig scheme so that multiple parties must approve the action. Solidity has deprecated selfdestruct since version 0.8.18 (EIP-6049) and strongly discourages it in newly deployed contracts. A contract whose code has no selfdestruct call can still perform the operation through delegatecall or callcode. To deactivate a contract, the Solidity documentation suggests changing internal state so that all functions revert.",
+      "aliases": [
+        "suicide",
+        "SWC-106"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-106.md",
+        "https://eips.ethereum.org/EIPS/eip-6780",
+        "https://docs.soliditylang.org/en/latest/introduction-to-smart-contracts.html#deactivate-and-self-destruct"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-06",
+      "name": "Delegatecall to untrusted callee",
+      "severity": "high",
+      "category": "external calls",
+      "description": "delegatecall is a variant of a message call in which the code at the target address runs in the context of the calling contract, while msg.sender and msg.value keep their values. Storage, current address and balance still refer to the calling contract, so a contract can load code from another address at runtime. If that code is untrusted, it can change any storage value of the caller and has full control over the caller's balance. The SWC sample is a proxy whose forward function runs require(callee.delegatecall(_data)) on a callee address supplied by whoever calls it.",
+      "root_cause": "The delegated target is attacker controlled or inadequately constrained. Use delegatecall with caution and never call into untrusted contracts. If the target address is derived from user input, check it against a whitelist of trusted contracts.",
+      "aliases": [
+        "delegatecall",
+        "SWC-112"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-112.md",
+        "https://docs.soliditylang.org/en/latest/introduction-to-smart-contracts.html#delegatecall-and-libraries"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-07",
+      "name": "Authorization through tx.origin",
+      "severity": "high",
+      "category": "access control",
+      "description": "tx.origin is a global variable that returns the sender of the transaction across the full call chain, whereas msg.sender is the sender of the current call. Using tx.origin for authorization can make a contract vulnerable if an authorized account calls into a malicious contract. The Solidity documentation shows a wallet whose transferTo function requires tx.origin == owner. If the owner is tricked into sending Ether to an attack wallet, that wallet's receive function calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
+      "root_cause": "The original transaction sender is treated as the authorized immediate caller. tx.origin should not be used for authorization; use msg.sender instead. With a msg.sender check, the wallet would see the attack wallet's address rather than the owner's address, and the authorization check would fail.",
+      "aliases": [
+        "phishing",
+        "SWC-115"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-115.md",
+        "https://docs.soliditylang.org/en/latest/security-considerations.html#tx-origin"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-08",
+      "name": "Transaction order dependence",
+      "severity": "medium",
+      "category": "ordering",
+      "description": "A race condition arises when code depends on the order of the transactions submitted to it. The SWC entry explains that miners choose which transactions go into a block based on gas price, and that someone running a node can see transactions before they are finalized. Example: a contract gives 1 token to the first person who solves a math problem. Alice submits the answer with a standard gas price, Eve sees it and submits the same answer with a much higher gas price, and Eve's transaction is processed first. Another example is the ERC20 approve function. Alice changes Eve's allowance from n to m, Eve submits a transferFrom of n with a higher gas price, and after Alice's transaction sets the allowance to m, Eve spends m as well, getting n + m instead of at most max(n,m).",
+      "root_cause": "Shared state transitions rely on ordering that block producers can influence; the SWC text describes this in terms of miners and gas price. For reward-for-information cases, SWC suggests a commit-reveal hash scheme: the sender submits hash(salt, address, answer), the contract stores the hash and the sender's address, and later the sender submits the salt and answer so the contract can recompute hash(salt, msg.sender, answer) and release the reward on a match. For the ERC20 case, the best fix is to add the expected current allowance to approve and revert on a mismatch, but then the contract no longer conforms to ERC20. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
+      "aliases": [
+        "front running",
+        "SWC-114"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-114.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-09",
+      "name": "Block values as time proxy",
+      "severity": "medium",
+      "category": "time",
+      "description": "Block values such as block.timestamp and block.number can give a sense of the current time or a time delta, but developers cannot rely on their preciseness. Nodes can synchronize time only to some degree, and the SWC entry says malicious miners can alter the timestamp of their blocks, especially if they gain an advantage. Miners cannot set a timestamp smaller than the previous one, nor too far ahead. The Solidity documentation states that the block timestamp must be strictly larger than the previous block's, but the only guarantee is that it lies between the timestamps of two consecutive blocks in the canonical chain. For block.number, the SWC entry notes that block times are not constant and can change, for example through fork reorganisations and the difficulty bomb.",
+      "root_cause": "Contract logic treats adjustable or approximate block values as precise time. Write contracts with the notion that block values are not precise, because relying on them can lead to unexpected effects. The SWC entry also suggests oracles as an alternative source of time. The SWC registry is no longer actively maintained, so check the target chain's current rules before relying on its description of miners and block times.",
+      "aliases": [
+        "timestamp dependence",
+        "SWC-116"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
+        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-10",
+      "name": "Weak randomness",
+      "severity": "high",
+      "category": "randomness",
+      "description": "Creating a strong source of randomness on Ethereum is challenging, according to the SWC entry. A gambling application that uses a pseudo-random number generator to pick a winner is the example it gives. Using block.timestamp is insecure because a miner can choose any timestamp within a few seconds and still get the block accepted. SWC also treats blockhash, block.difficulty and other block fields as controlled by the miner. If the stakes are high, the miner can mine many blocks in a short time on rented hardware, pick the block whose hash lets them win, and drop the others. Solidity documentation says not to rely on block.timestamp or blockhash as a source of randomness, since both can be influenced by miners to some degree.",
+      "root_cause": "Public or influenceable values are used as secret unbiased entropy. SWC lists several alternatives. One is an external source of randomness via an oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. SWC also lists Bitcoin block hashes, noting they are more expensive to mine. The SWC registry is no longer actively maintained, and Solidity documentation says block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+      "aliases": [
+        "predictable entropy",
+        "SWC-120"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-120.md",
+        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-11",
+      "name": "Denial of service with failed call",
+      "severity": "medium",
+      "category": "availability",
+      "description": "External calls can fail accidentally or deliberately, which can cause a denial of service in the contract. When a contract needs every call in a batch to succeed, for example payments pushed to many recipients in a loop, one failing recipient can block the whole operation. The Solidity documentation adds that sending Ether can fail because the recipient runs out of gas, including through require, assert or revert, and that with transfer or send plus a return value check this can give the recipient a way to block progress in the sending contract.",
+      "root_cause": "Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
+      "aliases": [
+        "revert griefing",
+        "SWC-113"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-113.md",
+        "https://docs.soliditylang.org/en/latest/security-considerations.html#sending-and-receiving-ether"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-12",
+      "name": "Denial of service with block gas limit",
+      "severity": "medium",
+      "category": "availability",
+      "description": "Deploying a contract or calling its functions always requires gas, based on how much computation is needed. Ethereum specifies a block gas limit, and the sum of all transactions included in a block cannot exceed it. Programming patterns that are harmless in centralized applications can become a denial of service in smart contracts when the cost of executing a function exceeds the block gas limit. Modifying an array of unknown size that increases in size over time can lead to this condition.",
+      "root_cause": "Required operations iterate over unbounded state, as in the growing-array case. Be cautious when large arrays are expected to grow over time, and avoid actions that require looping across the entire data structure. If a loop over an array of unknown size is absolutely necessary, plan for it to take multiple blocks and therefore multiple transactions.",
+      "aliases": [
+        "unbounded loop",
+        "SWC-128"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-128.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-13",
+      "name": "Write to arbitrary storage location",
+      "severity": "high",
+      "category": "storage",
+      "description": "A contract's data, such as the owner of the contract, is persistently stored at a storage location (a key or address) at the EVM level. The contract is responsible for ensuring that only authorized user or contract accounts may write to sensitive storage locations. If an attacker can write to arbitrary storage locations of a contract, authorization checks can be circumvented and storage can be corrupted, for instance by overwriting the field that stores the address of the contract owner.",
+      "root_cause": "Storage index calculations permit writing unintended locations. All data structures share the same storage (address) space, so make sure that writes to one data structure cannot inadvertently overwrite entries of another data structure.",
+      "aliases": [
+        "storage overwrite",
+        "SWC-124"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-124.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-14",
+      "name": "Incorrect constructor name",
+      "severity": "high",
+      "category": "initialization",
+      "description": "Constructors are special functions called only once, during contract creation. They perform critical, privileged actions such as setting the owner of the contract. Before Solidity 0.4.22, the only way to define a constructor was a function with the same name as the contract. A function meant to be a constructor becomes a normal callable function if its name does not exactly match the contract name, which can happen when contract code is re-used under a different name and the constructor function name is not changed. Since Solidity 0.4.22 the constructor keyword is available, and the Solidity documentation describes the constructor as a function declared with it that runs once at creation.",
+      "root_cause": "A function intended as a constructor does not match the legacy contract name, so it stays callable after deployment. Upgrade the contract to a recent Solidity compiler version and change to the constructor keyword declaration, which makes constructor definitions clearer.",
+      "aliases": [
+        "legacy constructor",
+        "SWC-118"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-118.md",
+        "https://docs.soliditylang.org/en/latest/contracts.html#constructors"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-15",
+      "name": "Shadowing state variables",
+      "severity": "medium",
+      "category": "storage",
+      "description": "With inheritance, older Solidity allowed ambiguous naming of state variables. If contract A defines a variable x and inherits contract B that also defines a state variable x, there are two separate versions of x, one accessed from A and the other from B. In more complex contract systems this can go unnoticed and lead to security issues. Shadowing can also occur within a single contract when there are multiple definitions at contract and function level. Since Solidity 0.6.0, state variable shadowing is disallowed: a derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
+      "root_cause": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. Review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, because they can flag the issue within a single contract. The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
+      "aliases": [
+        "variable shadowing",
+        "SWC-119"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md",
+        "https://docs.soliditylang.org/en/latest/060-breaking-changes.html",
+        "https://docs.soliditylang.org/en/latest/control-structures.html#scoping-and-declarations"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-16",
+      "name": "Missing protection against signature replay",
+      "severity": "high",
+      "category": "signatures",
+      "description": "Contracts sometimes verify signatures to improve usability or to save gas cost. A secure implementation must protect against signature replay attacks, for example by keeping track of all processed message hashes and only allowing new message hashes to be processed. A malicious user could attack a contract without such a control and get a message hash that was sent by another user processed multiple times.",
+      "root_cause": "Signed messages lack replay protection and a binding to the contract that processes them. Store every message hash the contract has processed, and proceed with the business logic only if a newly received message hash is new. Include the address of the contract that processes the message, so the message can only be used in a single contract. Never generate the message hash including the signature, because ecrecover is susceptible to signature malleability (see SWC-117).",
+      "aliases": [
+        "replay attack",
+        "SWC-121"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-121.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-17",
+      "name": "Lack of proper signature verification",
+      "severity": "high",
+      "category": "signatures",
+      "description": "Smart contract systems can let users sign messages off-chain instead of sending an on-chain transaction, which gives flexibility and increased transferability. Contracts that process signed messages must implement their own logic to recover the authenticity of the message before processing it. Contracts cannot sign messages, so some implementations assume a message is valid based on other methods. One example is relying on msg.sender and assuming that a signed message that came from the sender address was also created by that address. This can lead to vulnerabilities, especially where proxies can relay transactions.",
+      "root_cause": "Verification does not bind the signer and message to the intended operation. SWC does not recommend alternate verification schemes that skip proper signature verification through ecrecover().",
+      "aliases": [
+        "signature verification",
+        "SWC-122"
+      ],
+      "references": [
+        "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-122.md"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-18",
+      "name": "Price oracle manipulation",
+      "severity": "high",
+      "category": "oracles",
+      "description": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.",
+      "root_cause": "The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
+      "aliases": [
+        "oracle manipulation"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-19",
+      "name": "Flash loan facilitated attacks",
+      "severity": "high",
+      "category": "economic security",
+      "description": "A flash loan is uncollateralized, same-transaction borrowing. OWASP says flash loans are not inherently vulnerable, but they give an attacker arbitrarily large, transient capital within one transaction. Any protocol whose trust assumptions rest on capital at risk or historical position size is exposed when an attacker can hold large balances temporarily without risking their own funds. The attacker batches a transaction that borrows via a flash loan, manipulates protocol state, prices or accounting with the borrowed funds, extracts profit, and repays the loan in the same transaction. OWASP names governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks as areas to review.",
+      "root_cause": "Protocol assumptions fail when an attacker temporarily controls substantial liquidity. OWASP notes that flash loans act as a force multiplier for underlying business logic, oracle, arithmetic or access control weaknesses, which must be fixed at the root. Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Rate limit sensitive operations per block or epoch, cap exposure per interaction with limits on slippage, position sizes and borrowing, and include flash-loan scenarios in tests and fuzzing.",
+      "aliases": [
+        "flash loan"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC04-FlashLoanAttacks/"
+      ],
+      "review_status": "pending_kassra_review"
+    },
+    {
+      "id": "KB-20",
+      "name": "Business logic errors",
+      "severity": "high",
+      "category": "logic",
+      "description": "Business logic vulnerabilities are design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. OWASP describes them as cases where intended economic or functional behavior can be subverted even though low-level checks such as type safety, reentrancy guards and access control are correct: the code does what it says, but what it says permits exploitable outcomes. OWASP lists invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions as areas to focus on. Its vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance, so the check enforces no economic invariant.",
+      "root_cause": "The implementation omits or misapplies a required business invariant. OWASP recommends modeling protocol economics explicitly, for example with adversarial simulations, and expressing core invariants in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield. It also recommends formal verification and property-based fuzzing for key accounting paths, rolling out new strategies behind caps while monitoring metrics and on-chain invariants, and making sure governance and operations teams understand the invariants, not just auditors.",
+      "aliases": [
+        "economic invariant"
+      ],
+      "references": [
+        "https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/"
+      ],
+      "review_status": "pending_kassra_review"
+    }
+  ]
+}

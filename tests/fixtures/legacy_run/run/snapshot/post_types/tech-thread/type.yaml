@@ -1,0 +1,19 @@
+name: tech-thread
+writer: thread_writer
+rubric: rubric.md
+units:
+  min: 5
+  max: 10
+numbering: true
+research:
+  hints: research.md
+  topic_source: kb
+  angles: null
+review:
+  pass_avg: 3.5
+  hard_fail:
+  - unsupported_claim
+  - off_brand
+visual:
+  template: technical
+  severity_badge: auto

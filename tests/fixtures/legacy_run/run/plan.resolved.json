@@ -1,0 +1,14 @@
+{
+  "record_id": "_run/plan/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "slots": [
+    {
+      "slot_id": "a",
+      "type": "tech-thread",
+      "focus": "reentrancy",
+      "topic_id": "KB-01"
+    }
+  ],
+  "warnings": []
+}

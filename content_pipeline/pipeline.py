@@ -1,5 +1,4 @@
 import asyncio
-import hashlib
 import json
 import re
 import shutil
@@ -11,16 +10,9 @@ from uuid import uuid4
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent, load_rubric
-from .config import (
-    Settings,
-    load_agent,
-    load_angles,
-    load_brand,
-    load_type,
-    local_file,
-    resolve_model,
-)
+from . import record_ids
+from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent
+from .config import Settings, load_visual_backends, local_file, resolve_model
 from .contracts import (
     DraftAudit,
     DraftRecord,
@@ -43,16 +35,27 @@ from .contracts import (
     WriteRequest,
 )
 from .images import fallback_spec, overlay_errors, render_card
+from .image_backends import render_image
 from .ledger import BudgetExhausted, Ledger
 from .model_client import ModelFailure, Prices, configured_client, valid_provider
 from .models import ImageResult, ResolvedSlot, SlotOutcome
+from .post_types import PostTypes
 from .research import KnowledgeBase, assign_topics
 from .tools import configured_web_search
 from .trail import Trail, export_posts
 from .validation import length_feedback, validate
 from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
 from .contracts import AdvisorRecord, AdvisorRequest, RunIdentity
-from .durability import RunLock, atomic_json, resume_inputs, snapshot_hashes
+from .durability import RunLock, atomic_json, snapshot_hashes
+from .durability import resume_inputs as load_resume_inputs
+from .stage_replay import (
+    SavedStageMismatch,
+    StageReplay,
+    ResearchReplayRefused,
+    ValidationInput,
+    completed_summary,
+    request_fingerprint,
+)
 
 
 MAX_CONTENT_ATTEMPTS = 2
@@ -96,14 +99,15 @@ def parse_sets(slots, values):
     return list(indexed.values())
 
 
-def validate_inputs(root, slots, settings=None):
+def validate_inputs(root, slots, settings=None, types=None):
     """Validate the plan and required configuration before starting a run."""
     if not slots or len({slot.slot_id.casefold() for slot in slots}) != len(slots):
         raise ValueError("plan needs case-insensitive unique slots")
 
     from PIL import ImageColor
 
-    rules, _ = load_brand(root / "inputs/brand-voice.md")
+    types = types or PostTypes(root)
+    rules, _ = types.brand()
 
     if len(rules.palette) < 3:
         raise ValueError("brand palette needs three colors")
@@ -114,27 +118,29 @@ def validate_inputs(root, slots, settings=None):
     KnowledgeBase(root / "inputs/kb.json")
 
     for slot in slots:
-        _validate_slot_inputs(root, slot, settings)
+        _validate_slot_inputs(root, slot, settings, types)
 
     for name in REQUIRED_RUN_FILES:
         local_file(root, name)
 
+    load_visual_backends(root)
 
-def _validate_slot_inputs(root, slot, settings):
+
+def _validate_slot_inputs(root, slot, settings, types):
     safe_name(slot.slot_id)
     safe_name(slot.type)
 
-    spec = load_type(root, slot.type)
+    spec = types.spec(slot.type)
 
     if spec.research.topic_source == "angles":
-        load_angles(root, spec)
+        types.angles(slot.type)
 
     if "unsupported_claim" not in spec.review.hard_fail:
         raise ValueError("rubric must hard-fail unsupported claims")
 
     safe_name(spec.writer)
 
-    load_rubric(root, spec)
+    types.rubric(slot.type)
 
     agent_names = [spec.writer, "research", "reviewer", "visual"]
 
@@ -142,11 +148,11 @@ def _validate_slot_inputs(root, slot, settings):
         agent_names.append("advisor")
 
     for name in agent_names:
-        _validate_agent_inputs(root, name, settings)
+        _validate_agent_inputs(root, name, settings, types)
 
 
-def _validate_agent_inputs(root, name, settings):
-    agent = load_agent(root, name)
+def _validate_agent_inputs(root, name, settings, types):
+    agent = types.agent(name)
 
     local_file(root / "agents", name + "/system.md")
 
@@ -170,20 +176,22 @@ def _validate_agent_inputs(root, name, settings):
 
 def estimate(root, slots, settings):
     """Estimate worst-case token and cost budgets without initializing clients."""
-    validate_inputs(root, slots, settings)
+    types = PostTypes(root)
+
+    validate_inputs(root, slots, settings, types)
 
     tokens = 0
     cost = 0.0
     unpriced = False
     warnings = []
     prices = Prices(update=False)
-    names = _estimate_agent_names(root, slots, settings)
+    names = _estimate_agent_names(types, slots, settings)
 
     for name in names:
-        config = load_agent(root, name)
+        config = types.agent(name)
         # Includes up to 4 search turns, two content attempts, parsing/truncation
         # allowances and three transient retries. Input is still an estimate.
-        calls = _estimated_agent_calls(root, slots, name)
+        calls = _estimated_agent_calls(types, slots, name)
         output = int(config.max_output_tokens * ESTIMATED_OUTPUT_MULTIPLIER)
         reserved = (ESTIMATED_INPUT_TOKENS + output) * calls * ESTIMATED_CALL_ALLOWANCE
         tokens += reserved
@@ -217,13 +225,11 @@ def estimate(root, slots, settings):
     )
 
 
-def _estimate_agent_names(root, slots, settings):
+def _estimate_agent_names(types, slots, settings):
     names = ["research"]
 
     for slot in slots:
-        writer = load_type(root, slot.type).writer
-
-        names.extend(["research", writer, "reviewer", "visual"])
+        names.extend(["research", types.writer(slot.type), "reviewer", "visual"])
 
     if settings.advisor_enabled:
         names.append("advisor")
@@ -231,11 +237,11 @@ def _estimate_agent_names(root, slots, settings):
     return names
 
 
-def _estimated_agent_calls(root, slots, name):
+def _estimated_agent_calls(types, slots, name):
     if name == "research":
         return 5
 
-    writers = {load_type(root, slot.type).writer for slot in slots}
+    writers = {types.writer(slot.type) for slot in slots}
 
     if name in writers | {"reviewer"}:
         return MAX_CONTENT_ATTEMPTS
@@ -283,7 +289,7 @@ def snapshot(root, run_dir, slots, settings):
 
         shutil.copyfile(source, destination)
 
-    files = _snapshot_files(root, slots)
+    files = _snapshot_files(PostTypes(root), slots)
 
     for name in sorted(files):
         source = local_file(root, name)
@@ -305,12 +311,12 @@ def snapshot(root, run_dir, slots, settings):
     return target
 
 
-def _snapshot_files(root, slots):
+def _snapshot_files(types, slots):
     files = set(REQUIRED_RUN_FILES)
     names = {"research", "reviewer", "visual", "advisor"}
 
     for slot in slots:
-        spec = load_type(root, slot.type)
+        spec = types.spec(slot.type)
 
         names.add(spec.writer)
 
@@ -327,7 +333,7 @@ def _snapshot_files(root, slots):
     for name in names:
         files.update([f"agents/{name}/agent.yaml", f"agents/{name}/system.md"])
 
-        for skill in load_agent(root, name).skills:
+        for skill in types.agent(name).skills:
             files.update([f"skills/{skill}.md", f"skills/{skill}.py"])
 
     return files
@@ -345,6 +351,7 @@ class RunContext:
     prices: Prices
     usage_lock: asyncio.Lock
     identity: RunIdentity | None = None
+    types: PostTypes | None = None
     model_limiter: asyncio.Semaphore | None = field(init=False)
 
     def __post_init__(self):
@@ -367,6 +374,7 @@ def default_model_factory(name, slot_id, context):
         prices=context.prices,
         usage_lock=context.usage_lock,
         limiter=context.model_limiter,
+        types=context.types,
     )
 
 
@@ -461,7 +469,9 @@ class Pipeline:
         self.root = context.root
         self.plan = slots
 
-        self.rules, _ = load_brand(self.root / "inputs/brand-voice.md")
+        self.types = PostTypes(self.root)
+        context.types = self.types
+        self.rules, _ = self.types.brand()
 
         self.kb = KnowledgeBase(self.root / "inputs/kb.json")
         self.model_factory = model_factory
@@ -477,11 +487,11 @@ class Pipeline:
         )
         self.external_lock = asyncio.Lock()
         self.search_seen = {}
-        self.research_replay_lock = asyncio.Lock()
         self.trails = {
             name: Trail(context.run_dir / (name + ".json"))
             for name in ["research_log", "drafts", "review_report", "visuals", "final", "advisor"]
         }
+        self.replay = StageReplay(context, self.trails, slots)
 
         for trail in self.trails.values():
             if not trail.path.exists():
@@ -500,27 +510,6 @@ class Pipeline:
         await self.trails[name].append(
             record.record_id, record.model_dump(mode="json", exclude={"record_id"})
         )
-
-    def saved_record(self, name, record_id, model, request):
-        """Load a saved stage record and verify its request fingerprint."""
-        raw = next(
-            (
-                record
-                for record in json.loads(self.trails[name].path.read_text(encoding="utf-8"))
-                if record["record_id"] == record_id
-            ),
-            None,
-        )
-
-        if raw is None:
-            return None
-
-        record = model.model_validate(raw)
-
-        if record.input_sha256 != hashlib.sha256(request.model_dump_json().encode()).hexdigest():
-            raise ValueError("saved stage input mismatch")
-
-        return record
 
     async def save_search_usage(self, searcher):
         """Persist newly observed search usage under the shared usage lock."""
@@ -557,106 +546,8 @@ class Pipeline:
 
             atomic_json(self.context.run_dir / "external-usage.json", self.external.model_dump())
 
-    @staticmethod
-    def replay_digest(value):
-        """Hash a value with the canonical research replay JSON encoding."""
-        return hashlib.sha256(
-            json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-                "utf-8"
-            )
-        ).hexdigest()
-
-    def research_request_digest(self, request):
-        """Hash a research request using its original planned topic."""
-        value = request.model_dump(mode="json")
-
-        if request.slot.focus:
-            # Compare focused research against the topic in the original snapshot.
-            planned = next(slot for slot in self.plan if slot.slot_id == request.slot.slot_id)
-
-            value["slot"]["topic_id"] = planned.topic_id
-
-        return self.replay_digest(value)
-
-    def _validate_research_replay(self, record_id, request, record):
-        receipt_path = self.context.run_dir / "research-replay.json"
-
-        receipts = (
-            json.loads(receipt_path.read_text(encoding="utf-8")) if receipt_path.exists() else {}
-        )
-
-        receipt = receipts.get(record_id)
-        expected_request = self.research_request_digest(request)
-        expected_snapshot = self.replay_digest(self.context.identity.snapshot_files)
-        expected_pack = self.replay_digest(record.pack.model_dump(mode="json"))
-
-        if (
-            record.action != "resolved"
-            or record.failure is not None
-            or record.pack.slot_id != request.slot.slot_id
-            or record.evidence != record.pack.sources
-            or not receipt
-            or receipt
-            != {
-                "request_sha256": expected_request,
-                "snapshot_sha256": expected_snapshot,
-                "pack_sha256": expected_pack,
-            }
-        ):
-            raise ModelFailure("failed_research")
-
-    async def saved_research(self, record_id, request):
-        """Reuse research only when its identity and replay receipt match."""
-        path = self.trails["research_log"].path
-
-        raw = next(
-            (
-                item
-                for item in json.loads(path.read_text(encoding="utf-8"))
-                if item["record_id"] == record_id
-            ),
-            None,
-        )
-
-        if raw is None:
-            return None
-
-        record = ResearchRecord.model_validate(raw)
-
-        if record.slot_id != request.slot.slot_id or record.attempt != request.attempt:
-            raise ModelFailure("failed_research")
-
-        if record.pack is None:
-            return record
-
-        self._validate_research_replay(record_id, request, record)
-
-        return record
-
-    async def save_research_receipt(self, record_id, request, pack):
-        """Persist the request, snapshot and pack fingerprints for replay."""
-        receipt = {
-            "request_sha256": self.research_request_digest(request),
-            "snapshot_sha256": self.replay_digest(self.context.identity.snapshot_files),
-            "pack_sha256": self.replay_digest(pack.model_dump(mode="json")),
-        }
-
-        async with self.research_replay_lock:
-            path = self.context.run_dir / "research-replay.json"
-            receipts = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-
-            receipts[record_id] = receipt
-
-            atomic_json(path, receipts)
-
     def _research_request(self, slot):
-        spec = load_type(self.root, slot.type)
-
-        hints = local_file(self.root / "post_types" / slot.type, spec.research.hints).read_text(
-            encoding="utf-8"
-        )
-
-        request = ResearchRequest(slot=slot, hints=hints)
+        request = ResearchRequest(slot=slot, hints=self.types.hints(slot.type))
 
         return request
 
@@ -670,7 +561,7 @@ class Pipeline:
 
     async def _record_research_outcome(self, state):
         slot = state.slot
-        record_id = f"{slot.slot_id}/research/1/1"
+        record_id = record_ids.record_id(slot.slot_id, "research", 1)
 
         await self.record(
             "research_log",
@@ -694,9 +585,9 @@ class Pipeline:
 
         try:
             request = self._research_request(slot)
-            record_id = f"{slot.slot_id}/research/1/1"
+            record_id = record_ids.record_id(slot.slot_id, "research", 1)
 
-            saved = await self.saved_research(record_id, request)
+            saved = self.replay.research(record_id, request)
 
             if saved is not None:
                 self._restore_research_state(state, saved)
@@ -713,6 +604,7 @@ class Pipeline:
                 self.kb,
                 searcher,
                 self.save_search_usage,
+                self.types,
             )
 
             pack = await agent(request)
@@ -726,13 +618,17 @@ class Pipeline:
             state.outcome = failure(error, research=True)
             state.reasons = [state.outcome.value]
 
+            if isinstance(error, ResearchReplayRefused):
+                # The refused saved record stays on the trail as the evidence.
+                return state.model_dump(mode="json")
+
         for record in agent.records if agent else []:
             await self.record("research_log", record)
 
         record_id = await self._record_research_outcome(state)
 
         if state.pack is not None:
-            await self.save_research_receipt(record_id, request, state.pack)
+            await self.replay.save_research_receipt(record_id, request, state.pack)
 
         return state.model_dump(mode="json")
 
@@ -750,12 +646,7 @@ class Pipeline:
         choices = {}
 
         for state in empty:
-            spec = load_type(self.root, state.slot.type)
-
-            if spec.research.topic_source == "kb":
-                choices[state.slot.slot_id] = [entry["id"] for entry in self.kb.entries]
-            else:
-                choices[state.slot.slot_id] = [angle.id for angle in load_angles(self.root, spec)]
+            choices[state.slot.slot_id] = self.types.topic_pool(state.slot.type, self.kb)
 
         excluded = [state.slot.topic_id for state in states if state.slot.topic_id]
 
@@ -764,7 +655,7 @@ class Pipeline:
 
         try:
             proposals = (
-                await TopicSelector(self.root, self.client("research", "_batch"))(
+                await TopicSelector(self.root, self.client("research", "_batch"), self.types)(
                     TopicChoiceRequest(choices=choices, exclude=excluded)
                 )
             ).assignments
@@ -777,7 +668,7 @@ class Pipeline:
         await self.record(
             "research_log",
             ResearchRecord(
-                record_id=f"{state.slot.slot_id}/research/1/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "research", 1),
                 slot_id=state.slot.slot_id,
                 attempt=1,
                 evidence=[],
@@ -795,7 +686,11 @@ class Pipeline:
             resolved.append(ResolvedSlot.model_validate(updated["slot"]))
 
         record = ResolvedPlan(
-            record_id="_run/plan/1/1", slot_id="_run", attempt=1, slots=resolved, warnings=warnings
+            record_id=record_ids.record_id("_run", "plan", 1),
+            slot_id="_run",
+            attempt=1,
+            slots=resolved,
+            warnings=warnings,
         )
 
         (self.context.run_dir / "plan.resolved.json").write_text(
@@ -820,6 +715,7 @@ class Pipeline:
             self.kb,
             prior,
             allow_partial=True,
+            types=self.types,
         )
 
         for state in empty:
@@ -847,7 +743,7 @@ class Pipeline:
 
         return {"slots": changed, "warnings": warnings}
 
-    async def _record_writer_failure(self, state, error):
+    async def _record_writer_failure(self, state, error, request, saved):
         outcome = failure(error)
 
         if outcome == SlotOutcome.failed_output:
@@ -860,13 +756,18 @@ class Pipeline:
                 else outcome.value
             ]
 
+        if saved is not None:
+            # A failure from before the crash is already on the trail; keep it as it is.
+            return
+
         await self.record(
             "drafts",
             DraftRecord(
-                record_id=f"{state.slot.slot_id}/writer/{state.attempt}/1",
+                record_id=record_ids.record_id(state.slot.slot_id, "writer", state.attempt),
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 failure=outcome.value,
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -884,34 +785,61 @@ class Pipeline:
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             research=state.pack,
-            post_type=load_type(self.root, state.slot.type),
+            post_type=self.types.spec(state.slot.type),
             feedback=state.feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
         )
+
+        saved = self.replay.reuse(
+            "drafts",
+            record_ids.record_id(state.slot.slot_id, "writer", state.attempt),
+            DraftRecord,
+            request,
+            legacy_ok=True,
+        )
+
+        if saved and not saved.legacy and saved.record.failure == SlotOutcome.failed_output.value:
+            state.feedback = ["writer:failed_output"]
+
+            return state.model_dump(mode="json")
 
         try:
             if state.slot.slot_id not in self.writers:
                 self.writers[state.slot.slot_id] = Writer(
                     self.root,
                     state.slot.type,
-                    self.client(load_type(self.root, state.slot.type).writer, state.slot.slot_id),
+                    self.client(self.types.writer(state.slot.type), state.slot.slot_id),
+                    self.types,
                 )
 
             state.draft = await self.writers[state.slot.slot_id](request)
         except Exception as error:
-            await self._record_writer_failure(state, error)
+            await self._record_writer_failure(state, error, request, saved)
 
         return state.model_dump(mode="json")
+
+    def _validation_input(self, state):
+        return ValidationInput(
+            draft=state.draft,
+            research=state.pack,
+            post_type=self.types.spec(state.slot.type),
+            max_tweet_chars=self.context.settings.max_tweet_chars,
+        )
 
     async def validation(self, raw):
         """Normalize a draft and record validator feedback before review."""
         state = lane_state(raw)
+        spec = self.types.spec(state.slot.type)
+        record_id = record_ids.record_id(state.slot.slot_id, "validator", state.attempt)
+        inputs = self._validation_input(state)
+
+        saved = self.replay.reuse("drafts", record_id, DraftRecord, inputs, legacy_ok=True)
 
         result = validate(
             state.draft,
             state.pack,
-            load_type(self.root, state.slot.type),
+            spec,
             self.rules,
             self.context.settings.max_tweet_chars,
         )
@@ -927,13 +855,19 @@ class Pipeline:
             result, self.context.settings.max_tweet_chars
         )
 
+        if saved is not None:
+            self.replay.confirm_audit(saved, state.audit)
+
+            return state.model_dump(mode="json")
+
         await self.record(
             "drafts",
             DraftRecord(
-                record_id=f"{state.slot.slot_id}/validator/{state.attempt}/1",
+                record_id=record_id,
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 audit=state.audit,
+                input_sha256=request_fingerprint(inputs),
             ),
         )
 
@@ -948,33 +882,39 @@ class Pipeline:
 
         state.feedback = state.review.reasons if state.review else []
 
-    async def review(self, raw):
-        """Review an approved draft or reuse its matching saved assessment."""
-        state = lane_state(raw)
-        spec = load_type(self.root, state.slot.type)
-
-        request = ReviewRequest(
+    def _review_request(self, state):
+        return ReviewRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             draft=state.audit.approved(),
             research=state.pack,
-            post_type=spec,
-            rubric=load_rubric(self.root, spec),
+            post_type=self.types.spec(state.slot.type),
+            rubric=self.types.rubric(state.slot.type),
         )
 
-        record_id = f"{state.slot.slot_id}/reviewer/{state.attempt}/1"
+    async def review(self, raw):
+        """Review an approved draft or reuse its matching saved assessment."""
+        state = lane_state(raw)
+        request = self._review_request(state)
+
+        record_id = record_ids.record_id(state.slot.slot_id, "reviewer", state.attempt)
+
+        saved = None
 
         try:
-            saved = self.saved_record("review_report", record_id, ReviewRecord, request)
+            saved = self.replay.reuse("review_report", record_id, ReviewRecord, request)
 
             if saved:
-                self._restore_review_state(state, saved)
+                self._restore_review_state(state, saved.record)
 
                 return state.model_dump(mode="json")
 
             if state.slot.slot_id not in self.reviewers:
                 self.reviewers[state.slot.slot_id] = Reviewer(
-                    self.root, state.slot.type, self.client("reviewer", state.slot.slot_id)
+                    self.root,
+                    state.slot.type,
+                    self.client("reviewer", state.slot.slot_id),
+                    self.types,
                 )
 
             state.review = await self.reviewers[state.slot.slot_id](request)
@@ -984,6 +924,10 @@ class Pipeline:
             state.outcome = failure(error)
             state.reasons = [state.outcome.value]
 
+            if saved or isinstance(error, SavedStageMismatch):
+                # The saved record stays on the trail as the evidence.
+                return state.model_dump(mode="json")
+
         await self.record(
             "review_report",
             ReviewRecord(
@@ -992,7 +936,7 @@ class Pipeline:
                 attempt=state.attempt,
                 review=state.review,
                 failure=state.outcome.value if state.outcome else None,
-                input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest(),
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -1012,61 +956,39 @@ class Pipeline:
 
         return state.model_dump(mode="json")
 
-    def _validate_saved_visual(self, saved, request, state):
-        from pathlib import PureWindowsPath
-
-        relative = PureWindowsPath(saved.result.path)
-
-        if relative.anchor or ".." in relative.parts:
-            raise ValueError("invalid saved image path")
-
-        path = local_file(self.context.run_dir, Path(*relative.parts).as_posix())
-
-        stored = local_file(
-            self.context.run_dir,
-            path.with_suffix(".json").relative_to(self.context.run_dir).as_posix(),
-        )
-
-        if json.loads(stored.read_text(encoding="utf-8")) != saved.spec.model_dump(
-            mode="json"
-        ) or overlay_errors(saved.spec, request, self.rules):
-            raise ValueError("saved visual artifact mismatch")
-
-        if saved.result.slot_id != state.slot.slot_id:
-            raise ValueError("saved visual identity mismatch")
-
-        if saved.result.backend == "pillow_card":
-            from PIL import Image
-
-            with Image.open(path) as image:
-                if image.format != "PNG" or image.size != CARD_SIZE:
-                    raise ValueError("invalid saved card")
-
-                image.verify()
-
     async def _visual_spec(self, state, request):
         reason = None
+        detail = None
 
         try:
             if state.slot.slot_id not in self.visuals:
                 self.visuals[state.slot.slot_id] = VisualAgent(
-                    self.root, self.client("visual", state.slot.slot_id)
+                    self.root, self.client("visual", state.slot.slot_id), self.types
                 )
 
             spec = await self.visuals[state.slot.slot_id](request)
 
-            if overlay_errors(spec, request, self.rules):
-                raise ValueError("invalid_overlay")
-        except Exception:
+            detail = overlay_errors(spec, request, self.rules)
+
+            if detail:
+                repair = request.model_copy(update={"attempt": 2})
+                spec = await self.visuals[state.slot.slot_id](repair, feedback=detail)
+                detail = overlay_errors(spec, request, self.rules)
+
+            if detail:
+                reason = "visual_fallback"
+                spec = fallback_spec(request, self.rules)
+        except Exception as error:
             reason = "visual_fallback"
+            detail = [type(error).__name__]
             spec = fallback_spec(request, self.rules)
 
         if overlay_errors(spec, request, self.rules):
             raise ValueError("fallback overlay failed grounding")
 
-        return spec, reason
+        return spec, reason, detail or None
 
-    async def _render_visual(self, state, spec, reason):
+    async def _render_visual(self, state, spec, reason, detail=None):
         filename = "slot-" + safe_name(state.slot.slot_id)
         spec_path = self.context.run_dir / "images" / (filename + ".json")
 
@@ -1079,7 +1001,18 @@ class Pipeline:
         await self.image_count("image_calls")
 
         try:
-            await asyncio.to_thread(self.renderer, spec, path)
+            backend, backend_reason, backend_detail = await render_image(
+                spec,
+                path,
+                load_visual_backends(self.root),
+                self.context.credential_root,
+                self.renderer,
+                self.image_count,
+            )
+
+            if backend_reason:
+                reason = backend_reason
+                detail = [*(detail or []), *(backend_detail or [])]
 
             from PIL import Image
 
@@ -1089,9 +1022,8 @@ class Pipeline:
 
                 image.verify()
 
-            await self.image_count("pillow_cards")
-
-            backend = "pillow_card"
+            if backend == "pillow_card":
+                await self.image_count("pillow_cards")
         except Exception:
             path = spec_path
             backend = "spec_json"
@@ -1102,40 +1034,43 @@ class Pipeline:
             path=path.relative_to(self.context.run_dir).as_posix(),
             backend=backend,
             fallback_reason=reason,
+            fallback_detail=detail,
         )
 
-    async def visual(self, raw):
-        """Reuse or render a grounded visual, retaining fallback artifacts."""
-        state = lane_state(raw)
-
+    def _visual_request(self, state):
         severity = next(
             (entry["severity"] for entry in self.kb.entries if entry["id"] == state.pack.topic_id),
             None,
         )
 
-        request = VisualRequest(
+        return VisualRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
             draft=state.audit.approved(),
             research=state.pack,
-            post_type=load_type(self.root, state.slot.type),
+            post_type=self.types.spec(state.slot.type),
             severity=severity,
         )
 
-        record_id = f"{state.slot.slot_id}/visual/{state.attempt}/1"
-        saved = self.saved_record("visuals", record_id, VisualRecord, request)
+    async def visual(self, raw):
+        """Reuse or render a grounded visual, retaining fallback artifacts."""
+        state = lane_state(raw)
+        request = self._visual_request(state)
+
+        record_id = record_ids.record_id(state.slot.slot_id, "visual", state.attempt)
+        saved = self.replay.reuse("visuals", record_id, VisualRecord, request)
 
         if saved:
-            self._validate_saved_visual(saved, request, state)
+            self.replay.validate_visual(saved.record, request, state.slot.slot_id, self.rules)
 
-            state.image = saved.result
+            state.image = saved.record.result
             state.outcome = SlotOutcome.shipped
 
             return state.model_dump(mode="json")
 
-        spec, reason = await self._visual_spec(state, request)
+        spec, reason, detail = await self._visual_spec(state, request)
 
-        state.image = await self._render_visual(state, spec, reason)
+        state.image = await self._render_visual(state, spec, reason, detail)
 
         state.outcome = SlotOutcome.shipped
 
@@ -1147,7 +1082,7 @@ class Pipeline:
                 attempt=state.attempt,
                 spec=spec,
                 result=state.image,
-                input_sha256=hashlib.sha256(request.model_dump_json().encode()).hexdigest(),
+                input_sha256=request_fingerprint(request),
             ),
         )
 
@@ -1161,19 +1096,100 @@ class Pipeline:
             raise ValueError("nonterminal slot at join")
 
         if state.outcome == SlotOutcome.shipped:
-            piece = FinalPiece(
-                record_id=f"{state.slot.slot_id}/final/{state.attempt}/1",
-                slot_id=state.slot.slot_id,
-                attempt=state.attempt,
-                topic_id=state.pack.topic_id,
-                topic_name=state.pack.topic_name,
-                draft=state.audit.approved(),
-                image=state.image,
-            )
-
-            await self.record("final", piece)
+            await self.record("final", self._final_piece(state))
 
         return {"slots": {state.slot.slot_id: state.model_dump(mode="json")}}
+
+    def _final_piece(self, state):
+        return FinalPiece(
+            record_id=record_ids.record_id(state.slot.slot_id, "final", state.attempt),
+            slot_id=state.slot.slot_id,
+            attempt=state.attempt,
+            topic_id=state.pack.topic_id,
+            topic_name=state.pack.topic_name,
+            draft=state.audit.approved(),
+            image=state.image,
+        )
+
+    def _confirm_saved_slot(self, state, collected):
+        slot_id = state.slot.slot_id
+
+        if state.pack is not None:
+            self.replay.confirm_research(slot_id, state.pack)
+
+        if state.audit is None:
+            return
+
+        saved = self.replay.reuse(
+            "drafts",
+            record_ids.record_id(slot_id, "validator", state.attempt),
+            DraftRecord,
+            self._validation_input(state),
+            legacy_ok=True,
+        )
+
+        if saved is None:
+            raise SavedStageMismatch()
+
+        self.replay.confirm_audit(saved, state.audit)
+
+        if state.review is not None:
+            saved = self.replay.reuse(
+                "review_report",
+                record_ids.record_id(slot_id, "reviewer", state.attempt),
+                ReviewRecord,
+                self._review_request(state),
+            )
+
+            if saved is None or saved.record.review != state.review:
+                raise SavedStageMismatch()
+
+        if state.image is not None:
+            request = self._visual_request(state)
+
+            saved = self.replay.reuse(
+                "visuals",
+                record_ids.record_id(slot_id, "visual", state.attempt),
+                VisualRecord,
+                request,
+            )
+
+            if saved is None or saved.record.result != state.image:
+                raise SavedStageMismatch()
+
+            self.replay.validate_visual(saved.record, request, slot_id, self.rules)
+
+        if collected and state.outcome == SlotOutcome.shipped:
+            self.replay.confirm_final(self._final_piece(state))
+
+    def _confirm_saved_advice(self, week):
+        if week.get("advisor") != "completed" or not self.context.settings.advisor_enabled:
+            return
+
+        saved = self.replay.reuse(
+            "advisor",
+            record_ids.record_id("_run", "advisor", 1),
+            AdvisorRecord,
+            self._advisor_request(),
+        )
+
+        if saved is None or saved.record.status != "completed":
+            raise SavedStageMismatch()
+
+    async def confirm_saved(self, graph, config):
+        """Refuse a checkpoint whose finished stages no longer match their saved records."""
+        saved = await graph.aget_state(config, subgraphs=True)
+
+        for value in (saved.values or {}).get("slots", {}).values():
+            self._confirm_saved_slot(SlotState.model_validate(value), True)
+
+        for task in saved.tasks:
+            lane = getattr(task.state, "values", None)
+
+            if lane:
+                self._confirm_saved_slot(lane_state(lane), False)
+
+        self._confirm_saved_advice(saved.values or {})
 
     async def export(self, week):
         """Export shipped posts in plan order."""
@@ -1184,7 +1200,7 @@ class Pipeline:
             if state.outcome == SlotOutcome.shipped:
                 accepted.append(
                     ExportPost(
-                        record_id=f"{state.slot.slot_id}/export/{state.attempt}/1",
+                        record_id=record_ids.record_id(state.slot.slot_id, "export", state.attempt),
                         slot_id=state.slot.slot_id,
                         attempt=state.attempt,
                         type=state.slot.type,
@@ -1199,7 +1215,7 @@ class Pipeline:
 
         return {}
 
-    async def _record_advice(self, status, reason, output, patch, input_hash):
+    async def _record_advice(self, status, reason, output, patch, input_hash, keep_saved=False):
         (self.context.run_dir / "advice.md").write_text(
             "# Run advice\n\n"
             + (
@@ -1213,10 +1229,13 @@ class Pipeline:
 
         (self.context.run_dir / "advice.patch").write_text(patch, encoding="utf-8")
 
+        if keep_saved:
+            return
+
         await self.record(
             "advisor",
             AdvisorRecord(
-                record_id="_run/advisor/1/1",
+                record_id=record_ids.record_id("_run", "advisor", 1),
                 slot_id="_run",
                 attempt=1,
                 status=status,
@@ -1226,6 +1245,17 @@ class Pipeline:
             ),
         )
 
+    def _advisor_request(self):
+        evidence = {
+            name: json.loads(self.trails[name].path.read_text(encoding="utf-8"))
+            for name in ["research_log", "drafts", "review_report", "final"]
+        }
+
+        return AdvisorRequest(
+            evidence=evidence,
+            instructions=instruction_files(self.root, self.plan, self.types),
+        )
+
     async def advise(self, week):
         """Produce suggest-only advice and record any fail-closed outcome."""
         status = "not_enabled"
@@ -1233,36 +1263,36 @@ class Pipeline:
         output = None
         patch = ""
         input_hash = None
+        saved = None
+        keep_saved = False
 
         if self.context.settings.advisor_enabled:
             try:
-                evidence = {
-                    name: json.loads(self.trails[name].path.read_text(encoding="utf-8"))
-                    for name in ["research_log", "drafts", "review_report", "final"]
-                }
+                request = self._advisor_request()
 
-                request = AdvisorRequest(
-                    evidence=evidence, instructions=instruction_files(self.root, self.plan)
+                input_hash = request_fingerprint(request)
+                saved = self.replay.reuse(
+                    "advisor", record_ids.record_id("_run", "advisor", 1), AdvisorRecord, request
                 )
 
-                input_hash = hashlib.sha256(request.model_dump_json().encode()).hexdigest()
-                saved = self.saved_record("advisor", "_run/advisor/1/1", AdvisorRecord, request)
-
                 if saved:
-                    if saved.output is not None:
-                        advice_patch(request, saved.output)
+                    if saved.record.output is not None:
+                        advice_patch(request, saved.record.output)
 
                     local_file(self.context.run_dir, "advice.md")
                     local_file(self.context.run_dir, "advice.patch")
 
-                    return {"advisor": saved.status, "advisor_reason": saved.reason}
+                    return {"advisor": saved.record.status, "advisor_reason": saved.record.reason}
 
-                output = await Advisor(self.root, self.client("advisor", "_run"))(request)
+                output = await Advisor(self.root, self.client("advisor", "_run"), self.types)(
+                    request
+                )
 
                 patch = advice_patch(request, output)
                 status = "completed"
             except Exception as error:
                 status = "failed"
+                keep_saved = saved is not None or isinstance(error, SavedStageMismatch)
 
                 reason = (
                     SlotOutcome.failed_output.value
@@ -1270,7 +1300,7 @@ class Pipeline:
                     else failure(error).value
                 )
 
-        await self._record_advice(status, reason, output, patch, input_hash)
+        await self._record_advice(status, reason, output, patch, input_hash, keep_saved)
 
         return {"advisor": status, "advisor_reason": reason}
 
@@ -1299,7 +1329,7 @@ class Pipeline:
         ]
 
         return RunSummary(
-            record_id="_run/summary/1/1",
+            record_id=record_ids.record_id("_run", "summary", 1),
             slot_id="_run",
             attempt=1,
             run_id=self.context.identity.run_id
@@ -1414,10 +1444,6 @@ def _prepare_run_inputs(root, slots, output, settings, resume, budget_overrides)
             raise ValueError("resume uses saved plan/settings; only budget increases allowed")
 
         run_dir = resume.resolve()
-
-        snapshot_root, slots, settings, identity = resume_inputs(run_dir, budget_overrides)
-
-        validate_inputs(snapshot_root, slots, settings)
     else:
         if budget_overrides:
             raise ValueError("budget overrides are for resume")
@@ -1457,23 +1483,6 @@ def _initialize_new_run(root, run_dir, slots, settings):
     (run_dir / "usage.jsonl").write_text("", encoding="utf-8")
 
     return snapshot_root, identity
-
-
-async def _completed_checkpoint(graph, config, slots):
-    saved = await graph.aget_state(config)
-
-    state = WeekSnapshot.model_validate(saved.values)
-
-    if list(state.slots) != [slot.slot_id for slot in slots]:
-        raise ValueError("checkpoint plan mismatch")
-
-    if not saved.next and state.summary is not None:
-        return state.summary
-
-    if not saved.next:
-        raise ValueError("checkpoint has no unfinished nodes")
-
-    return None
 
 
 async def _invoke_pipeline(context, graph, config, slots, resume):
@@ -1521,7 +1530,9 @@ async def _execute_pipeline(
     }
 
     if resume is not None:
-        completed = await _completed_checkpoint(graph, config, slots)
+        await pipeline.confirm_saved(graph, config)
+
+        completed = await completed_summary(graph, config, slots)
 
         if completed is not None:
             return completed
@@ -1549,8 +1560,12 @@ async def run_pipeline(
     resume: Path | None = None,
     budget_overrides=None,
     interrupt_after=None,
+    on_resume_inputs=None,
 ) -> RunSummary:
-    """Run or resume a content plan with durable checkpoints and accounting."""
+    """Run or resume a content plan; a resume reads its preflight once, after taking the lock.
+
+    on_resume_inputs, when given, is called with that preflight before any stage runs.
+    """
     root = root.resolve()
 
     run_dir, slots, settings = _prepare_run_inputs(
@@ -1561,7 +1576,14 @@ async def run_pipeline(
         if resume is None:
             snapshot_root, identity = _initialize_new_run(root, run_dir, slots, settings)
         else:
-            snapshot_root, slots, settings, identity = resume_inputs(run_dir, budget_overrides)
+            saved_inputs = load_resume_inputs(run_dir, budget_overrides)
+
+            snapshot_root, slots, settings, identity = saved_inputs
+
+            validate_inputs(snapshot_root, slots, settings)
+
+            if on_resume_inputs is not None:
+                on_resume_inputs(saved_inputs)
 
         context = RunContext(
             snapshot_root, root, run_dir, settings, None, None, asyncio.Lock(), identity

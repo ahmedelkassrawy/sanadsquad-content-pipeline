@@ -1,17 +1,14 @@
 import asyncio
-import json
 from pathlib import Path
-import yaml
 from pydantic import ValidationError
-from .config import load_agent, load_angles, load_prompt, load_type, local_file
+from . import record_ids
+from .config import local_file
 from .contracts import (
     ResearchAction,
     ResearchRecord,
     ResearchRequest,
     ResearchTurn,
-    ReviewAssessment,
     ReviewRequest,
-    Rubric,
     TopicChoiceRequest,
     TopicChoices,
     VisualOutput,
@@ -20,8 +17,17 @@ from .contracts import (
 )
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
+from .post_types import PostTypes, load_rubric
 from .tools import research_tools
-from .review_wire import canonical_review, review_wire_schema
+from .review_scoring import (
+    canonical_review,
+    review_contract_errors,
+    review_wire_schema,
+    score_review,
+)
+
+
+__all__ = ["load_rubric"]
 
 
 def identity(slot_id, attempt, output):
@@ -29,115 +35,21 @@ def identity(slot_id, attempt, output):
         raise ModelFailure("failed_output")
 
 
-def load_rubric(root: Path, spec):
-    text = local_file(root / "post_types" / spec.name, spec.rubric).read_text(encoding="utf-8")
-
-    if not text.startswith("---\n"):
-        raise ValueError("rubric needs criteria front matter")
-
-    return Rubric.model_validate(yaml.safe_load(text.split("---", 2)[1]))
-
-
-def score_review(request: ReviewRequest, assessment: ReviewAssessment) -> Review:
-    identity(request.slot_id, request.attempt, assessment)
-
-    criteria = set(request.rubric.criteria)
-    hard = set(request.post_type.review.hard_fail)
-
-    if set(assessment.scores) != criteria or set(assessment.hard_fail) != hard:
-        raise ModelFailure("failed_output")
-
-    if any(not 1 <= score <= 5 for score in assessment.scores.values()):
-        raise ModelFailure("failed_output")
-
-    required_reasons = criteria | {key for key, value in assessment.hard_fail.items() if value}
-
-    if any(not assessment.reasons.get(key, "").strip() for key in required_reasons):
-        raise ModelFailure("failed_output")
-
-    hard_fail = [key for key, value in assessment.hard_fail.items() if value]
-    average = sum(assessment.scores.values()) / len(criteria)
-    accepted = average >= request.post_type.review.pass_avg and not hard_fail
-
-    reasons = [
-        assessment.reasons[key]
-        for key in request.rubric.criteria
-        if assessment.scores[key] < request.post_type.review.pass_avg
-    ]
-
-    reasons.extend(assessment.reasons[key] for key in hard_fail)
-
-    if not accepted and not reasons:
-        reasons = [assessment.reasons[key] for key in request.rubric.criteria]
-
-    return Review(
-        slot_id=request.slot_id,
-        scores=assessment.scores,
-        reasons=reasons,
-        hard_fail=hard_fail,
-        accepted=accepted,
-    )
-
-
-def review_contract_errors(request, assessment):
-    errors = []
-    criteria = set(request.rubric.criteria)
-    hard = set(request.post_type.review.hard_fail)
-
-    for field, required in [("scores", criteria), ("hard_fail", hard)]:
-        values = getattr(assessment, field)
-
-        errors.extend(
-            {"type": "missing", "loc": (field, key), "input": None}
-            for key in sorted(required - set(values))
-        )
-
-        if set(values) - required:
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": (field,),
-                    "input": None,
-                    "ctx": {"error": ValueError("unexpected rubric fields")},
-                }
-            )
-
-    for field in ["slot_id", "attempt"]:
-        if getattr(assessment, field) != getattr(request, field):
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": (field,),
-                    "input": None,
-                    "ctx": {"error": ValueError("identity mismatch")},
-                }
-            )
-
-    for key in criteria:
-        if key in assessment.scores and not 1 <= assessment.scores[key] <= 5:
-            errors.append(
-                {
-                    "type": "value_error",
-                    "loc": ("scores", key),
-                    "input": None,
-                    "ctx": {"error": ValueError("score outside 1..5")},
-                }
-            )
-
-    for key in criteria | {key for key in hard if assessment.hard_fail.get(key)}:
-        if not assessment.reasons.get(key, "").strip():
-            errors.append({"type": "missing", "loc": ("reasons", key), "input": None})
-
-    return errors
-
-
 class Agent:
-    def __init__(self, root: Path, name: str, client, post_type: str | None = None):
+    def __init__(
+        self,
+        root: Path,
+        name: str,
+        client,
+        post_type: str | None = None,
+        types: PostTypes | None = None,
+    ):
         self.root = root
         self.name = name
         self.client = client
-        self.config = load_agent(root, name)
-        self.prompt = load_prompt(root, name, post_type)
+        self.types = types or PostTypes(root)
+        self.config = self.types.agent(name)
+        self.prompt = self.types.prompt(name, post_type)
 
     async def invoke(
         self, schema, payload, slot_id, attempt, node=None, instructions="", output_validator=None
@@ -159,8 +71,8 @@ class Agent:
 
 
 class ResearchAgent(Agent):
-    def __init__(self, root, client, kb, searcher, usage_callback=None):
-        super().__init__(root, "research", client)
+    def __init__(self, root, client, kb, searcher, usage_callback=None, types=None):
+        super().__init__(root, "research", client, types=types)
 
         self.kb = kb
         self.searcher = searcher
@@ -170,36 +82,10 @@ class ResearchAgent(Agent):
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
-        spec = load_type(self.root, slot.type)
+        assigned = self.types.assigned_pack(slot, self.kb)
 
-        if slot.topic_id and spec.research.topic_source == "kb" and not slot.focus:
-            source = self.kb.source(slot.topic_id)
-
-            return ResearchPack(
-                slot_id=slot.slot_id,
-                topic_id=source.source_id,
-                topic_name=source.title,
-                sources=[source],
-            )
-
-        if slot.topic_id and spec.research.topic_source == "angles" and not slot.focus:
-            angle = next(a for a in load_angles(self.root, spec) if a.id == slot.topic_id)
-
-            from .config import load_brand
-
-            rules, _ = load_brand(self.root / "inputs/brand-voice.md")
-
-            sources = [
-                SourceRecord(source_id=id, kind="stat", title=rules.brand_name, evidence_text=text)
-                for id, text in rules.approved_stats.items()
-            ]
-
-            if angle.source_ids is not None:
-                sources = [self.kb.source(source_id) for source_id in angle.source_ids] + sources
-
-            return ResearchPack(
-                slot_id=slot.slot_id, topic_id=slot.topic_id, topic_name=angle.name, sources=sources
-            )
+        if assigned is not None:
+            return assigned
 
         evidence = {}
         searches = 0
@@ -228,7 +114,9 @@ class ResearchAgent(Agent):
 
             self.records.append(
                 ResearchRecord(
-                    record_id=f"{slot.slot_id}/research_search/{request.attempt}/{searches}",
+                    record_id=record_ids.record_id(
+                        slot.slot_id, "research_search", request.attempt, searches
+                    ),
                     slot_id=slot.slot_id,
                     attempt=request.attempt,
                     evidence=records,
@@ -290,8 +178,8 @@ class ResearchAgent(Agent):
 
 
 class TopicSelector(Agent):
-    def __init__(self, root, client):
-        super().__init__(root, "research", client)
+    def __init__(self, root, client, types=None):
+        super().__init__(root, "research", client, types=types)
 
     async def __call__(self, request: TopicChoiceRequest) -> TopicChoices:
         instructions = local_file(self.root / "agents/research", "topics.md").read_text(
@@ -313,10 +201,10 @@ class TopicSelector(Agent):
 
 
 class Writer(Agent):
-    def __init__(self, root, post_type, client):
-        spec = load_type(root, post_type)
+    def __init__(self, root, post_type, client, types=None):
+        types = types or PostTypes(root)
 
-        super().__init__(root, spec.writer, client, post_type)
+        super().__init__(root, types.writer(post_type), client, post_type, types)
 
     async def __call__(self, request: WriteRequest) -> Draft:
         if request.research.slot_id != request.slot_id:
@@ -330,8 +218,8 @@ class Writer(Agent):
 
 
 class Reviewer(Agent):
-    def __init__(self, root, post_type, client):
-        super().__init__(root, "reviewer", client, post_type)
+    def __init__(self, root, post_type, client, types=None):
+        super().__init__(root, "reviewer", client, post_type, types)
 
     async def __call__(self, request: ReviewRequest) -> Review:
         if (
@@ -360,12 +248,23 @@ class Reviewer(Agent):
 
 
 class VisualAgent(Agent):
-    def __init__(self, root, client):
-        super().__init__(root, "visual", client)
+    def __init__(self, root, client, types=None):
+        super().__init__(root, "visual", client, types=types)
 
-    async def __call__(self, request: VisualRequest):
+    async def __call__(self, request: VisualRequest, feedback: list[str] | None = None):
+        instructions = (
+            "\nRepair the previous visual spec. Validation errors: " + ", ".join(feedback)
+            if feedback
+            else ""
+        )
+
         output = await self.invoke(
-            VisualOutput, request, request.slot_id, request.attempt, node="visual"
+            VisualOutput,
+            request,
+            request.slot_id,
+            request.attempt,
+            node="visual",
+            instructions=instructions,
         )
 
         identity(request.slot_id, request.attempt, output)

@@ -99,8 +99,13 @@ async def test_http_failure_diagnostics_preserve_retry_and_accounting(tmp_path, 
     rows = records(tmp_path / "usage.jsonl")
     record = rows[0]
     diagnostic(record, kind, code, None)
-    assert record["status"] == "uncertain"
-    assert ledger.entries[record["call_id"]]["status"] == "uncertain"
+    if code in {429, 402, 403}:
+        assert record["status"] == "confirmed"
+        assert record["input_tokens"] == record["output_tokens"] == record["cost_usd"] == 0
+        assert ledger.entries[record["call_id"]]["status"] == "released"
+    else:
+        assert record["status"] == "uncertain"
+        assert ledger.entries[record["call_id"]]["status"] == "uncertain"
     assert len(rows) == (4 if code in {429, 503} else 1)
     assert all(row["http_status"] == code for row in rows)
     assert "SECRET_REQUEST_TOKEN" not in (tmp_path / "usage.jsonl").read_text()

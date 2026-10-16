@@ -3,9 +3,11 @@ import json
 import math
 import re
 from contextlib import nullcontext
+from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
 from pydantic import BaseModel
+from . import record_ids
 from .ledger import Ledger
 from .models import CallFailureKind, CallFinishReason, UsageRecord
 
@@ -49,21 +51,18 @@ def _safe_http_status(*values):
 
 def _retry_delay(error, status, transient):
     delay = 2 ** (transient - 1)
-
-    if status != 429:
-        return delay
-
+    fallback = 5 * delay if status == 429 else delay
     headers = getattr(getattr(error, "response", None), "headers", None) or {}
 
     try:
-        retry_after = float(headers.get("Retry-After", headers.get("retry-after", 0)))
+        retry_after = float(headers.get("Retry-After", headers.get("retry-after")))
     except (TypeError, ValueError):
-        retry_after = 0
+        return fallback
 
-    if not math.isfinite(retry_after):
-        retry_after = 0
+    if not math.isfinite(retry_after) or retry_after < 0:
+        return fallback
 
-    return max(5 * delay, min(retry_after, 60))
+    return min(retry_after, 60)
 
 
 def _safe_finish_reason(value):
@@ -479,12 +478,13 @@ def configured_client(
     usage_path: Path,
     settings=None,
     credential_root: Path | None = None,
+    types=None,
     **kwargs,
 ):
     from .config import Settings, load_agent, resolve_model
 
     settings = settings or Settings.load(root)
-    agent = load_agent(root, agent_name)
+    agent = types.agent(agent_name) if types else load_agent(root, agent_name)
     model = resolve_model(settings, agent)
 
     return ModelClient(
@@ -500,6 +500,115 @@ def configured_client(
         repair_prompt=root / "config/repair.md",
         **kwargs,
     )
+
+
+@dataclass
+class _Attempt:
+    row: UsageRecord
+    parsed: BaseModel | None = None
+    error: BaseException | None = None
+    transport_error: bool = False
+    repairable: bool = False
+
+
+@dataclass
+class _AttemptOutcome:
+    accounting: str
+    action: str
+    failure: str | None = None
+    delay: float = 0
+
+
+def _exception_status(error):
+    response = getattr(error, "response", None)
+    status = _safe_http_status(
+        getattr(error, "status_code", None),
+        getattr(error, "code", None),
+        getattr(response, "status_code", None),
+    )
+
+    if status is None:
+        from langchain_google_genai.chat_models import GoogleRateLimitError
+
+        if isinstance(error, GoogleRateLimitError):
+            status = _safe_http_status(getattr(error.__cause__, "code", None))
+
+    return status
+
+
+def _decide_attempt(attempt, transient, truncation, repair):
+    row = attempt.row
+
+    if attempt.transport_error:
+        error = attempt.error
+        status = row.http_status
+        cancelled = isinstance(error, asyncio.CancelledError)
+        definite = status is not None and 400 <= status < 500 and status != 408
+        accounting = "release" if definite and not cancelled else "uncertain"
+
+        if cancelled:
+            return _AttemptOutcome(accounting, "raise")
+
+        if status in {401, 402, 403}:
+            failure = "failed_budget" if status == 402 else "failed_api"
+            return _AttemptOutcome(accounting, "fail", failure)
+
+        from langchain_google_genai.chat_models import GoogleRateLimitError
+        from openai import APIConnectionError
+        from anthropic import APIConnectionError as AnthropicConnectionError
+
+        retryable = isinstance(
+            error,
+            (
+                TimeoutError,
+                ConnectionError,
+                APIConnectionError,
+                AnthropicConnectionError,
+                GoogleRateLimitError,
+            ),
+        ) or status in {408, 429, 500, 502, 503, 504}
+
+        if retryable and transient < 3:
+            retry_status = 429 if isinstance(error, GoogleRateLimitError) else status
+            return _AttemptOutcome(
+                accounting, "retry", delay=_retry_delay(error, retry_status, transient + 1)
+            )
+
+        return _AttemptOutcome(accounting, "fail", "failed_api")
+
+    if row.status == "uncertain":
+        failure = (
+            "failed_output"
+            if row.failure_kind == CallFailureKind.malformed_envelope
+            else "failed_api"
+        )
+        return _AttemptOutcome("uncertain", "fail", failure)
+
+    if attempt.error is not None:
+        if attempt.repairable:
+            return (
+                _AttemptOutcome("settle", "fail", "failed_output")
+                if repair
+                else (_AttemptOutcome("settle", "repair"))
+            )
+
+        return _AttemptOutcome("settle", "raise")
+
+    if row.failure_kind == CallFailureKind.provider_error:
+        return (
+            _AttemptOutcome("settle", "retry", delay=2**transient)
+            if transient < 3
+            else _AttemptOutcome("settle", "fail", "failed_api")
+        )
+
+    if row.failure_kind == CallFailureKind.truncated:
+        return (
+            _AttemptOutcome("settle", "fail", "failed_output")
+            if truncation
+            else _AttemptOutcome("settle", "expand")
+        )
+
+    return _AttemptOutcome("settle", "return")
 
 
 class ModelClient:
@@ -539,15 +648,285 @@ class ModelClient:
             return None, "unknown"
 
     async def record(self, record: UsageRecord):
-        slot, node, attempt, _ = record.call_id.rsplit("/", 3)
+        parsed = record_ids.parse_record_id(record.call_id)
 
-        record = record.model_copy(update={"slot_id": slot, "node": node, "attempt": int(attempt)})
+        record = record.model_copy(
+            update={"slot_id": parsed.slot_id, "node": parsed.node, "attempt": parsed.attempt}
+        )
 
         async with self.usage_lock:
             self.usage_path.parent.mkdir(parents=True, exist_ok=True)
 
             with self.usage_path.open("a", encoding="utf-8") as stream:
                 stream.write(record.model_dump_json() + "\n")
+
+    def _uncertain_usage(
+        self,
+        call_id,
+        inputs,
+        outputs,
+        cost,
+        cost_source,
+        failure,
+        http_status=None,
+        estimated=True,
+    ):
+        return UsageRecord(
+            call_id=call_id,
+            model=self.model,
+            input_tokens=inputs,
+            output_tokens=outputs,
+            estimated=estimated,
+            cost_usd=cost,
+            cost_source=cost_source,
+            status="uncertain",
+            failure_kind=failure,
+            http_status=http_status,
+        )
+
+    def _response_usage(self, result, call_id, inputs, reserve_tokens, cost, cost_source):
+        raw = result["raw"]
+        usage = getattr(raw, "usage_metadata", None) or {}
+        metadata = getattr(raw, "response_metadata", None) or {}
+        provider_usage = metadata.get("token_usage") or metadata.get("usage") or {}
+
+        if not isinstance(usage, dict):
+            usage = {}
+
+        if not isinstance(provider_usage, dict):
+            provider_usage = {}
+
+        output_text = _visible_output(raw, result.get("parsed"))
+
+        in_tokens, estimated_input = _reported_count(
+            usage, provider_usage, "input_tokens", "prompt_tokens", inputs
+        )
+
+        out_tokens, estimated_output = _reported_count(
+            usage,
+            provider_usage,
+            "output_tokens",
+            "completion_tokens",
+            math.ceil(len(output_text) / 3.5),
+        )
+
+        estimated = estimated_input or estimated_output
+        details = usage.get("input_token_details") or {}
+
+        if not isinstance(details, dict):
+            details = {}
+
+        output_details = usage.get("output_token_details") or {}
+
+        if not isinstance(output_details, dict):
+            output_details = {}
+
+        cached = details.get("cache_read", 0)
+        creation = details.get("cache_creation", 0)
+        reasoning = output_details.get("reasoning", 0)
+        cached = cached if _valid_token_count(cached) else 0
+        creation = creation if _valid_token_count(creation) else 0
+        reasoning = reasoning if _valid_token_count(reasoning) else 0
+
+        if provider_usage.get("cost") is not None:
+            cost = float(provider_usage["cost"]) + float(
+                (provider_usage.get("cost_details") or {}).get("upstream_inference_cost") or 0
+            )
+
+            cost_source = "provider"
+        else:
+            try:
+                cost, cost_source = self.quote(in_tokens, out_tokens, cached, creation)
+            except Exception:
+                return self._uncertain_usage(
+                    call_id,
+                    in_tokens,
+                    out_tokens,
+                    cost,
+                    cost_source,
+                    CallFailureKind.unknown.value,
+                    estimated=estimated,
+                )
+
+        raw_status = _safe_http_status(
+            metadata.get("http_status"), metadata.get("status_code"), metadata.get("status")
+        )
+
+        finish_value = metadata.get("finish_reason") or metadata.get("stop_reason")
+        finish = _safe_finish_reason(finish_value)
+
+        return UsageRecord(
+            call_id=call_id,
+            model=self.model,
+            input_tokens=in_tokens,
+            output_tokens=out_tokens,
+            cached_input_tokens=cached,
+            reasoning_tokens=reasoning,
+            estimated=estimated,
+            cost_usd=cost,
+            cost_source=cost_source,
+            overshoot_tokens=max(0, in_tokens + out_tokens - reserve_tokens),
+            http_status=raw_status,
+            finish_reason=finish,
+        )
+
+    async def _run_attempt(
+        self,
+        prepared,
+        schema,
+        messages,
+        max_output_tokens,
+        call_id,
+        inputs,
+        reserve_tokens,
+        cost,
+        cost_source,
+        output_validator,
+        retries,
+    ):
+        try:
+            async with self.limiter if self.limiter is not None else nullcontext():
+                result = (
+                    await prepared.ainvoke(messages)
+                    if prepared is not None
+                    else await self.transport(messages, schema, max_output_tokens)
+                )
+        except BaseException as error:
+            status = _exception_status(error)
+            row = self._uncertain_usage(
+                call_id,
+                inputs,
+                max_output_tokens,
+                cost,
+                cost_source,
+                _failure_for_exception(error, status),
+                status,
+            )
+            completed = await self._finish_attempt(
+                _Attempt(row, error=error, transport_error=True), retries
+            )
+
+            if completed[0].action == "raise":
+                raise
+
+            return completed
+
+        if not isinstance(result, dict) or "raw" not in result:
+            return await self._finish_attempt(
+                _Attempt(
+                    self._uncertain_usage(
+                        call_id,
+                        inputs,
+                        max_output_tokens,
+                        cost,
+                        cost_source,
+                        CallFailureKind.malformed_envelope.value,
+                    )
+                ),
+                retries,
+            )
+
+        row = self._response_usage(result, call_id, inputs, reserve_tokens, cost, cost_source)
+
+        if row.status == "uncertain":
+            return await self._finish_attempt(_Attempt(row), retries)
+
+        metadata = getattr(result["raw"], "response_metadata", None) or {}
+        finish_value = metadata.get("finish_reason") or metadata.get("stop_reason")
+
+        try:
+            route_finish = str(finish_value or "").lower()
+        except BaseException as error:
+            await self._finish_attempt(_Attempt(row, error=error), retries)
+
+            raise
+
+        if route_finish in {"error", "length", "max_tokens"}:
+            failure = (
+                CallFailureKind.provider_error
+                if route_finish == "error"
+                else CallFailureKind.truncated
+            )
+            return await self._finish_attempt(
+                _Attempt(row.model_copy(update={"failure_kind": failure})), retries
+            )
+
+        failure = CallFailureKind.malformed_output
+
+        try:
+            if result.get("parsing_error") or result.get("parsed") is None:
+                raise ValueError("malformed structured response")
+
+            parsed = schema.model_validate(result["parsed"])
+            failure = CallFailureKind.output_rejected
+
+            if output_validator is not None:
+                output_validator(parsed)
+        except (ValueError, TypeError) as error:
+            return await self._finish_attempt(
+                _Attempt(
+                    row.model_copy(update={"failure_kind": failure}), error=error, repairable=True
+                ),
+                retries,
+            )
+        except BaseException as error:
+            if failure == CallFailureKind.output_rejected:
+                row = row.model_copy(update={"failure_kind": failure})
+
+            await self._finish_attempt(_Attempt(row, error=error), retries)
+
+            raise
+
+        return await self._finish_attempt(_Attempt(row, parsed=parsed), retries)
+
+    async def _finish_attempt(self, result, retries):
+        outcome = _decide_attempt(result, *retries)
+        row = result.row
+        call_id = row.call_id
+
+        if outcome.accounting == "release":
+            await self.ledger.release(call_id)
+            row = row.model_copy(
+                update={
+                    "status": "confirmed",
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "cost_usd": 0,
+                    "estimated": False,
+                }
+            )
+        elif outcome.accounting == "uncertain":
+            await self.ledger.uncertain(call_id)
+        else:
+            await self.ledger.settle(call_id, row.input_tokens + row.output_tokens, row.cost_usd)
+
+        await self.record(row)
+
+        if outcome.action == "fail":
+            raise ModelFailure(outcome.failure) from None
+
+        return outcome, result
+
+    def _repair_messages(self, messages, error):
+        # Only locations/types enter repair feedback, never model input or credentials.
+        errors = (
+            error.errors(include_input=False, include_context=False)
+            if hasattr(error, "errors")
+            else [{"type": "malformed_structured_response"}]
+        )
+        safe_error = json.dumps(
+            [{"loc": item.get("loc", []), "type": item["type"]} for item in errors]
+        )
+
+        return [
+            *messages,
+            {
+                "role": "user",
+                "content": self.repair_prompt.read_text(encoding="utf-8").replace(
+                    "{parse_error}", safe_error
+                ),
+            },
+        ]
 
     async def call(
         self,
@@ -561,20 +940,10 @@ class ModelClient:
     ):
         repair = truncation = transient = 0
         messages = list(messages)
-        prefix = f"{slot_id}/{node}/{attempt}/"
-
-        call_n = max(
-            (
-                int(key[len(prefix) :])
-                for key in self.ledger.entries
-                if key.startswith(prefix) and key[len(prefix) :].isdigit()
-            ),
-            default=0,
-        )
+        call_n = record_ids.next_call_n(self.ledger.entries, slot_id, node, attempt)
 
         while True:
-            call_n += 1
-            call_id = f"{slot_id}/{node}/{attempt}/{call_n}"
+            call_id = record_ids.call_id(slot_id, node, attempt, call_n)
             inputs = math.ceil(sum(len(str(m["content"])) for m in messages) / 3.5 * 1.15)
             reserve_tokens = inputs + max_output_tokens
 
@@ -592,296 +961,30 @@ class ModelClient:
             await self.ledger.reserve(call_id, reserve_tokens, cost)
             await self.ledger.dispatch(call_id)
 
-            try:
-                async with self.limiter if self.limiter is not None else nullcontext():
-                    result = (
-                        await prepared.ainvoke(messages)
-                        if prepared is not None
-                        else await self.transport(messages, schema, max_output_tokens)
-                    )
-            except BaseException as error:
-                await self.ledger.uncertain(call_id)
-
-                status = getattr(error, "status_code", None) or getattr(error, "code", None)
-                diagnostic_status = _safe_http_status(status)
-                failure = _failure_for_exception(error, diagnostic_status)
-
-                await self.record(
-                    UsageRecord(
-                        call_id=call_id,
-                        model=self.model,
-                        input_tokens=inputs,
-                        output_tokens=max_output_tokens,
-                        estimated=True,
-                        cost_usd=cost,
-                        cost_source=cost_source,
-                        status="uncertain",
-                        failure_kind=failure,
-                        http_status=diagnostic_status,
-                    )
-                )
-
-                if isinstance(error, asyncio.CancelledError):
-                    raise
-
-                from langchain_google_genai.chat_models import GoogleRateLimitError
-
-                if isinstance(error, GoogleRateLimitError):
-                    status = getattr(error.__cause__, "code", None) or 429
-
-                if status in {402, 403}:
-                    raise ModelFailure("failed_budget") from None
-
-                from openai import APIConnectionError
-
-                from anthropic import APIConnectionError as AnthropicConnectionError
-
-                retryable = isinstance(
-                    error,
-                    (TimeoutError, ConnectionError, APIConnectionError, AnthropicConnectionError),
-                ) or status in {408, 429, 500, 502, 503, 504}
-
-                if retryable and transient < 3:
-                    transient += 1
-
-                    await self.sleep(_retry_delay(error, _safe_http_status(status), transient))
-
-                    continue
-
-                raise ModelFailure("failed_api") from None
-
-            if not isinstance(result, dict) or "raw" not in result:
-                await self.ledger.uncertain(call_id)
-
-                await self.record(
-                    UsageRecord(
-                        call_id=call_id,
-                        model=self.model,
-                        input_tokens=inputs,
-                        output_tokens=max_output_tokens,
-                        estimated=True,
-                        cost_usd=cost,
-                        cost_source=cost_source,
-                        status="uncertain",
-                        failure_kind=CallFailureKind.malformed_envelope.value,
-                    )
-                )
-
-                raise ModelFailure("failed_output")
-
-            raw = result["raw"]
-            usage = getattr(raw, "usage_metadata", None) or {}
-            metadata = getattr(raw, "response_metadata", None) or {}
-            provider_usage = metadata.get("token_usage") or metadata.get("usage") or {}
-
-            if not isinstance(usage, dict):
-                usage = {}
-
-            if not isinstance(provider_usage, dict):
-                provider_usage = {}
-
-            output_text = _visible_output(raw, result.get("parsed"))
-
-            in_tokens, estimated_input = _reported_count(
-                usage, provider_usage, "input_tokens", "prompt_tokens", inputs
+            outcome, result = await self._run_attempt(
+                prepared,
+                schema,
+                messages,
+                max_output_tokens,
+                call_id,
+                inputs,
+                reserve_tokens,
+                cost,
+                cost_source,
+                output_validator,
+                (transient, truncation, repair),
             )
 
-            out_tokens, estimated_output = _reported_count(
-                usage,
-                provider_usage,
-                "output_tokens",
-                "completion_tokens",
-                math.ceil(len(output_text) / 3.5),
-            )
-
-            estimated = estimated_input or estimated_output
-            details = usage.get("input_token_details") or {}
-
-            if not isinstance(details, dict):
-                details = {}
-
-            output_details = usage.get("output_token_details") or {}
-
-            if not isinstance(output_details, dict):
-                output_details = {}
-
-            cached = details.get("cache_read", 0)
-            creation = details.get("cache_creation", 0)
-            reasoning = output_details.get("reasoning", 0)
-            cached = cached if _valid_token_count(cached) else 0
-            creation = creation if _valid_token_count(creation) else 0
-            reasoning = reasoning if _valid_token_count(reasoning) else 0
-
-            if provider_usage.get("cost") is not None:
-                cost = float(provider_usage["cost"]) + float(
-                    (provider_usage.get("cost_details") or {}).get("upstream_inference_cost") or 0
-                )
-
-                cost_source = "provider"
-            else:
-                try:
-                    cost, cost_source = self.quote(in_tokens, out_tokens, cached, creation)
-                except Exception:
-                    await self.ledger.uncertain(call_id)
-
-                    await self.record(
-                        UsageRecord(
-                            call_id=call_id,
-                            model=self.model,
-                            input_tokens=in_tokens,
-                            output_tokens=out_tokens,
-                            cost_usd=cost,
-                            cost_source=cost_source,
-                            status="uncertain",
-                            estimated=estimated,
-                            failure_kind=CallFailureKind.unknown.value,
-                        )
-                    )
-
-                    raise ModelFailure("failed_api") from None
-
-            await self.ledger.settle(call_id, in_tokens + out_tokens, cost)
-
-            raw_status = _safe_http_status(
-                metadata.get("http_status"), metadata.get("status_code"), metadata.get("status")
-            )
-
-            finish_value = metadata.get("finish_reason") or metadata.get("stop_reason")
-            finish = _safe_finish_reason(finish_value)
-
-            row = UsageRecord(
-                call_id=call_id,
-                model=self.model,
-                input_tokens=in_tokens,
-                output_tokens=out_tokens,
-                cached_input_tokens=cached,
-                reasoning_tokens=reasoning,
-                estimated=estimated,
-                cost_usd=cost,
-                cost_source=cost_source,
-                overshoot_tokens=max(0, in_tokens + out_tokens - reserve_tokens),
-                http_status=raw_status,
-                finish_reason=finish,
-            )
-
-            try:
-                route_finish = str(finish_value or "").lower()
-            except BaseException:
-                await self.record(row)
-
-                raise
-
-            if route_finish == "error":
-                row = row.model_copy(update={"failure_kind": CallFailureKind.provider_error})
-
-                await self.record(row)
-
-                if transient < 3:
-                    transient += 1
-
-                    await self.sleep(2 ** (transient - 1))
-
-                    continue
-
-                raise ModelFailure("failed_api")
-
-            if route_finish in {"length", "max_tokens"}:
-                row = row.model_copy(update={"failure_kind": CallFailureKind.truncated})
-
-                await self.record(row)
-
-                if truncation:
-                    raise ModelFailure("failed_output")
-
+            if outcome.action == "retry":
+                transient += 1
+                await self.sleep(outcome.delay)
+            elif outcome.action == "expand":
                 truncation += 1
                 max_output_tokens = math.ceil(max_output_tokens * 1.5)
-
-                continue
-
-            try:
-                if result.get("parsing_error") or result.get("parsed") is None:
-                    raise ValueError("malformed structured response")
-
-                parsed = schema.model_validate(result["parsed"])
-            except (ValueError, TypeError) as parse_error:
-                row = row.model_copy(update={"failure_kind": CallFailureKind.malformed_output})
-
-                await self.record(row)
-
-                if repair:
-                    raise ModelFailure("failed_output") from None
-
+            elif outcome.action == "repair":
                 repair += 1
+                messages = self._repair_messages(messages, result.error)
+            else:
+                return result.parsed
 
-                # Only locations/types enter repair feedback, never echoed model input or credentials.
-                errors = (
-                    parse_error.errors(include_input=False, include_context=False)
-                    if hasattr(parse_error, "errors")
-                    else [{"type": "malformed_structured_response"}]
-                )
-
-                safe_error = json.dumps(
-                    [{"loc": error.get("loc", []), "type": error["type"]} for error in errors]
-                )
-
-                messages = [
-                    *messages,
-                    {
-                        "role": "user",
-                        "content": self.repair_prompt.read_text(encoding="utf-8").replace(
-                            "{parse_error}", safe_error
-                        ),
-                    },
-                ]
-
-                continue
-            except BaseException:
-                await self.record(row)
-
-                raise
-
-            if output_validator is not None:
-                try:
-                    output_validator(parsed)
-                except (ValueError, TypeError) as validation_error:
-                    row = row.model_copy(update={"failure_kind": CallFailureKind.output_rejected})
-
-                    await self.record(row)
-
-                    if repair:
-                        raise ModelFailure("failed_output") from None
-
-                    repair += 1
-
-                    # Only locations/types enter repair feedback, never echoed model input or credentials.
-                    errors = (
-                        validation_error.errors(include_input=False, include_context=False)
-                        if hasattr(validation_error, "errors")
-                        else [{"type": "malformed_structured_response"}]
-                    )
-
-                    safe_error = json.dumps(
-                        [{"loc": error.get("loc", []), "type": error["type"]} for error in errors]
-                    )
-
-                    messages = [
-                        *messages,
-                        {
-                            "role": "user",
-                            "content": self.repair_prompt.read_text(encoding="utf-8").replace(
-                                "{parse_error}", safe_error
-                            ),
-                        },
-                    ]
-
-                    continue
-                except BaseException:
-                    row = row.model_copy(update={"failure_kind": CallFailureKind.output_rejected})
-
-                    await self.record(row)
-
-                    raise
-
-            await self.record(row)
-
-            return parsed
+            call_n += 1

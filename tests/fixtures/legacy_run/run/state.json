@@ -1,0 +1,40 @@
+{
+  "slots": {
+    "a": {
+      "slot": {
+        "slot_id": "a",
+        "type": "tech-thread",
+        "focus": "reentrancy",
+        "topic_id": "KB-01"
+      },
+      "attempt": 0,
+      "pack": {
+        "slot_id": "a",
+        "topic_id": "KB-01",
+        "topic_name": "Reentrancy",
+        "sources": [
+          {
+            "source_id": "KB-01",
+            "kind": "kb",
+            "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+            "title": "Reentrancy",
+            "retrieved_at": "2026-10-15T22:29:38.782010Z",
+            "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+            "status": "ok"
+          }
+        ]
+      },
+      "draft": null,
+      "audit": null,
+      "review": null,
+      "image": null,
+      "outcome": null,
+      "reasons": [],
+      "feedback": []
+    }
+  },
+  "warnings": [],
+  "summary": null,
+  "advisor": null,
+  "advisor_reason": null
+}

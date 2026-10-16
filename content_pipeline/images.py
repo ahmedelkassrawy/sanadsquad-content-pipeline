@@ -2,11 +2,14 @@ import re
 from pathlib import Path
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 from .models import ImageSpec
-from .validation import check_brand
+from skills import brand_rules
+
+
+CARD_SIZE = (1200, 675)
 
 
 def overlay_errors(spec, request, rules):
-    errors = check_brand(spec.overlay_text, rules)
+    errors = brand_rules.check_brand(spec.overlay_text, rules)
 
     texts = (
         [tweet.text for tweet in request.draft.tweets]
@@ -14,7 +17,13 @@ def overlay_errors(spec, request, rules):
         + [source.title for source in request.research.sources if source.status == "ok"]
     )
 
-    if not spec.overlay_text.strip() or not any(spec.overlay_text in text for text in texts):
+    def normalized(text):
+        quotes = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
+        return " ".join(text.translate(quotes).casefold().split())
+
+    overlay = normalized(spec.overlay_text)
+
+    if not overlay or not any(overlay in normalized(text) for text in texts):
         errors.append("ungrounded_overlay")
 
     supported_numbers = set(
@@ -46,7 +55,7 @@ def overlay_errors(spec, request, rules):
         errors.append("source_severity")
 
     if spec.severity:
-        errors.extend(check_brand(spec.severity, rules))
+        errors.extend(brand_rules.check_brand(spec.severity, rules))
 
     return errors
 
@@ -70,7 +79,7 @@ def fallback_spec(request, rules):
             else None,
         )
 
-        if spec.severity and check_brand(spec.severity, rules):
+        if spec.severity and brand_rules.check_brand(spec.severity, rules):
             spec.severity = None
 
         if not overlay_errors(spec, request, rules):
@@ -124,8 +133,13 @@ def wrap(draw, text, typeface, width):
     return lines
 
 
-def render_card(spec: ImageSpec, path: Path):
-    image = Image.new("RGB", (1200, 675), ImageColor.getrgb(spec.palette[0]))
+def render_card(spec: ImageSpec, path: Path, background: Image.Image | None = None):
+    """Draw the approved overlay and badge over a plain or generated background."""
+    image = (
+        background.copy()
+        if background is not None
+        else Image.new("RGB", CARD_SIZE, ImageColor.getrgb(spec.palette[0]))
+    )
     draw = ImageDraw.Draw(image)
     selected = None
 
@@ -147,6 +161,9 @@ def render_card(spec: ImageSpec, path: Path):
 
     typeface, lines = selected
     y = 110
+
+    if background is not None:
+        draw.rectangle((48, 80, 1152, 540), fill=spec.palette[0])
 
     for line in lines:
         draw.text((80, y), line, font=typeface, fill=spec.palette[-1])

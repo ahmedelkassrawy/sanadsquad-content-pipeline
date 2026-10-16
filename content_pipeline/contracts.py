@@ -182,6 +182,7 @@ class ResearchRecord(Trace):
 
 
 class DraftRecord(Trace):
+    input_sha256: str | None = None
     audit: DraftAudit | None = None
     failure: str | None = None
 
@@ -226,6 +227,7 @@ class ExternalUsage(Contract):
     tavily_credits: float = 0
     tavily_credits_estimated: bool = False
     image_calls: int = 0
+    cloudflare_images: int = 0
     cloudflare_neurons: int = 0
     pillow_cards: int = 0
 

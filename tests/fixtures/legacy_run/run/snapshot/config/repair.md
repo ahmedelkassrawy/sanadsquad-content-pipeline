@@ -1,0 +1,1 @@
+The previous response did not parse into the required schema. Repair its structure and return a complete valid structured response using the supplied evidence and original constraints. Parse error: {parse_error}

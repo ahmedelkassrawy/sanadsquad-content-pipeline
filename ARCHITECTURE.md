@@ -63,12 +63,15 @@ Why only research can search: a writer that can search can invent a source. Writ
 from the research pack alone, and `config.py` refuses a writer that lists a search skill.
 Why a separate reviewer: the model that wrote a draft should not approve it.
 
-A skill is two files in `skills/`: `<name>.md` (prompt text) and `<name>.py` (code).
-Start-up fails if an agent lists a skill and either file is missing. `brand_rules.md` is
-added to the prompts of five agents. `brand_rules.py` calls `check_brand`, the same
-function the validator uses, and the rules themselves live once, in the front matter of
-`inputs/brand-voice.md`. Research gets `search_kb` and `web_search` as callable tools; the
-tool descriptions come from the `.md` files and the tool code is in `tools.py`.
+A skill is one module with two faces, both in the `skills/` package: `<name>.md` (prompt
+text) and `<name>.py` (the code the pipeline calls). Start-up fails if an agent lists a
+skill and either file is missing. `brand_rules.md` is added to the prompts of five agents.
+`brand_rules.py` owns `check_brand`; the validator and the image overlay check both call it,
+and the rules themselves live once, in the front matter of `inputs/brand-voice.md`.
+`search_kb.py` owns `KnowledgeBase` and the search function, `web_search.py` owns
+`WebSearch` and its function. Research gets the two as callable tools; `tools.py` only wraps
+them and takes each tool description from the `.md` file. The old import paths
+(`validation.check_brand`, `research.KnowledgeBase`, `research.WebSearch`) are re-exports.
 
 ## Where code is used instead of the model
 
@@ -80,11 +83,14 @@ The brief says rules belong in code and judgement in the model. The split:
 | Safe fixes: replace banned characters (em dash, U+2011), normalise whitespace, straight quotes, remove a trailing hashtag block. Every fix is logged. | `validation.py` `validate()` |
 | Tweet numbering (`1/7`) | `validation.py` |
 | Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text | `validation.py` |
-| Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, hard-fail flags. The model's own "accepted" is never trusted. | `agents.py` `score_review()` |
+| Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, hard-fail flags. The model's own "accepted" is never trusted. One module builds the reviewer's wire schema and judges an assessment as accepted, rejected or malformed (malformed fails closed). | `review_scoring.py` `judge_review()`; `review_wire.py` only re-exports |
 | Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic fallback when the model's choice is missing or invalid | `research.py` `assign_topics()` |
-| Budget guard: reserve the worst case before each call, refuse if it does not fit, keep uncertain charges | `model_client.py`, `ledger.py` |
+| What a post type means: its writer, rubric, prompts, topic pool (knowledge base or angles) and brand rules, each read once per run | `post_types.py` `PostTypes` |
+| The stable id `slot_id/node/attempt/call_n` of every record and model call: build, parse, next call number | `record_ids.py` |
+| Budget guard: reserve the worst case before each call, refuse if it does not fit, keep uncertain charges, release the reservation after a definite provider refusal | `model_client.py`, `ledger.py` |
 | Model call retries: transient errors up to three times with backoff, one longer retry after truncation, one repair re-prompt for malformed output | `model_client.py` |
-| Image: checks the overlay text against brand rules and the piece, builds a fallback spec if the agent's is unusable, draws the 1200x675 PNG card and badge | `images.py` |
+| Image: checks the overlay text against brand rules and the piece, repairs a bad spec once, builds a fallback spec if that fails, draws the 1200x675 PNG card and badge | `images.py`, `pipeline.py` (visual node) |
+| Image backends: tries Cloudflare FLUX when both keys are set, otherwise or on any failure draws the Pillow card; records safe failure codes | `image_backends.py` |
 | Safe web fetching (public addresses only, redirects checked), CSV and JSON export, run folder trail | `research.py`, `trail.py` |
 
 Order inside `validate()`: safe fixes first, then numbering, then the hard checks. The
@@ -118,9 +124,11 @@ alone proves no claim, so the reviewer checks every factual clause, cited or not
 
 ## Data flow and boundaries
 
-`config.py` loads settings, post types, agent configs and brand rules. `pipeline.py`
-validates every input before the first call, freezes a snapshot of the inputs into the run
-folder, builds the graph and keeps expected failures inside their slot.
+`config.py` loads settings and holds the file readers. `post_types.py` uses them to answer
+what each post type, agent, prompt and the brand rules mean for one run. The nodes and
+agents of a run ask that one object instead of re-reading files. `pipeline.py` validates every input
+before the first call, freezes a snapshot of the inputs into the run folder, builds the
+graph and keeps expected failures inside their slot.
 
 `agents.py` defines the agents. Each receives only its request: `ResearchRequest`,
 `WriteRequest`, `ReviewRequest` or `VisualRequest`. Research is the only agent with tools.
@@ -129,7 +137,9 @@ may take at most four search steps. A web hit only counts as evidence when its p
 was fetched; snippets and failed fetches cannot support a claim. Code rejects non-public
 addresses.
 
-`trail.py` appends each record to its stage file once (stable record ids, no duplicates).
+`trail.py` appends each record to its stage file once (stable record ids from
+`record_ids.py`): an identical record under an existing id is skipped, and a different
+record under the same id raises.
 JSON models live in `models.py` and `contracts.py`; `python -m content_pipeline.schemas`
 exports their schemas.
 
@@ -139,17 +149,44 @@ Every model call goes through one wrapper, `model_client.py`. It does four thing
 
 - It keeps the token usage a provider returns, even if the answer cannot be parsed.
 - It retries temporary failures up to three times: timeouts, connection errors and HTTP
-  408, 429, 500, 502, 503 and 504. A 429 waits at least 5, 10, then 20 seconds.
+  408, 429, 500, 502, 503 and 504. The wait is 1, 2, then 4 seconds, or 5, 10, then 20 for a
+  429. If the provider sends a `Retry-After` header, that many seconds are used instead,
+  capped at 60.
 - It retries a cut-off answer once, with a 1.5 times larger output limit, and re-asks once
   when the structured output is malformed or rejected.
 - It sends every attempt through the shared budget ledger.
 
+After each attempt, one function (`_decide_attempt`) decides both the money and the next
+step. Money: settle to the real usage, release the reservation, or keep it as an uncertain
+charge. Next step: return, retry, expand, repair, fail, or raise the error again (cancellation, or
+an error that cannot be repaired). A provider answer with HTTP 400 to
+499 (except 408) is a definite refusal, so its reservation is released and the call is
+recorded as confirmed with zero tokens and zero cost. 401 and 403 end the slot
+`failed_api`, and 402 ends it `failed_budget`. Timeouts, connection errors, 408, 5xx,
+cancellation and errors with no HTTP status stay uncertain charges.
+
 These retries are separate from the single content retry in the graph. Errors saved in the
 run folder use short error names, never provider messages.
+
+The visual step has its own recovery on top of that. A spec with overlay errors gets one
+repair call (attempt 2) with the error codes as feedback. If it still fails, code builds a
+fallback spec and records a short `fallback_detail`. The card then goes through the
+backends in `config/visual.yaml`: Cloudflare FLUX when both keys are set, Pillow
+otherwise or after any Cloudflare failure (`fallback_reason: "cloudflare_failed"`). Calls
+are counted in `external-usage.json` and not priced. The token is never written to a file,
+and a log filter on the `httpx` and `httpcore` loggers drops any record that would repeat
+it. That filter has limits: a logger created after the first Cloudflare call is covered
+only from the next one, secrets stay in memory until the process ends, and each record
+costs a small check. The Cloudflare path is tested offline only; no real call has been made.
 
 A crashed run can be resumed. `durability.py` locks the run folder so two processes cannot
 use it at once, and stores a hashed copy of the inputs. Resume reads that copy, never the
 live files. LangGraph saves checkpoints to SQLite, so finished steps are skipped.
+`stage_replay.py` is the one place that decides whether a saved stage record (research,
+draft, review, visual, advisor) can be reused: only when its input fingerprint and the run
+snapshot match. Otherwise the resume refuses with `saved stage input mismatch` before any
+model call. Before a resume returns a finished run or continues past a checkpoint, it
+re-checks every finished stage against its saved record the same way.
 
 One limit to know: a step that was running when the process died can run again. If its
 model call was already billed, you pay twice. Billing is not exactly once. The ledger
@@ -178,12 +215,13 @@ numbering, research topic source, review threshold and hard-fail keys, visual te
 Name an existing writer agent, or add `agents/<writer>/` with `agent.yaml` and
 `system.md`. Then use the type in a plan. The orchestrator never names a post type. Tests
 copy `marketing-post` to a `case-study` type and run it with no Python change
-(`tests/test_pipeline.py:461`). This covers types that fit research, write, validate,
+(`tests/test_pipeline.py:461` and `tests/test_post_type_module.py:42`;
+`tests/test_post_type_module.py:77` checks that each snapshot file is read once per run). This covers types that fit research, write, validate,
 review and visual. A new stage needs code.
 
 **Add a skill.** Add both `skills/<name>.md` and `skills/<name>.py` (start-up needs both),
-then list it in the agent's `agent.yaml`. Research skills must also be wired as tools in
-`tools.py`.
+put the code in the `.py` file, then list it in the agent's `agent.yaml`. Research skills
+must also be wrapped as tools in `tools.py`.
 
 **Add an agent.** Add `agents/<name>/agent.yaml` and `system.md`, a class in `agents.py`
 that takes one typed request, and a node in `pipeline.py`.
@@ -212,8 +250,8 @@ executor such as Temporal, and send advisor output to a human review queue.
 
 The limits of this version, and what we would do next, are listed in the
 [README](README.md#known-limitations-and-what-we-would-do-next). In short: cost for free
-models is unpriced, the Cloudflare image backend is not built, the knowledge base is not
-owner-reviewed, brand statistics are fictional demo fixtures, and there is no exactly-once
+models is unpriced, the Cloudflare image backend is built but tested offline only (no real
+call yet), the knowledge base is not owner-reviewed, brand statistics are fictional demo fixtures, and there is no exactly-once
 billing on resume. No scheduler import format, publishing service or universal grounding
 accuracy is claimed. Optional LangSmith tracing needs real environment variables (the
 project does not load `.env` into the environment) and is not the source of truth; the run
