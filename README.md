@@ -228,7 +228,9 @@ A run with zero shipped pieces still writes a header-only `posts.csv` and a summ
 
 Resume continues from the saved checkpoint and the saved copy of the inputs. Edits to
 the live files are ignored. The only settings you can change are `--token-budget` and
-`--cost-budget`, and only upward. A finished run returns its saved summary. Two processes cannot use one
+`--cost-budget`, and only upward. A finished run re-checks its saved stage files and returns its saved summary; if a saved
+stage no longer matches its inputs, resume stops with `saved stage input mismatch` before
+any model call. Two processes cannot use one
 run folder at once. Billing is not exactly once: if a process dies after a call was billed
 but before its result was saved, resume can pay for that call again.
 

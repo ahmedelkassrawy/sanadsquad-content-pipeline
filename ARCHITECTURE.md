@@ -138,7 +138,8 @@ was fetched; snippets and failed fetches cannot support a claim. Code rejects no
 addresses.
 
 `trail.py` appends each record to its stage file once (stable record ids from
-`record_ids.py`, no duplicates).
+`record_ids.py`): an identical record under an existing id is skipped, and a different
+record under the same id raises.
 JSON models live in `models.py` and `contracts.py`; `python -m content_pipeline.schemas`
 exports their schemas.
 
@@ -181,6 +182,11 @@ costs a small check. The Cloudflare path is tested offline only; no real call ha
 A crashed run can be resumed. `durability.py` locks the run folder so two processes cannot
 use it at once, and stores a hashed copy of the inputs. Resume reads that copy, never the
 live files. LangGraph saves checkpoints to SQLite, so finished steps are skipped.
+`stage_replay.py` is the one place that decides whether a saved stage record (research,
+draft, review, visual, advisor) can be reused: only when its input fingerprint and the run
+snapshot match. Otherwise the resume refuses with `saved stage input mismatch` before any
+model call. Before a resume returns a finished run or continues past a checkpoint, it
+re-checks every finished stage against its saved record the same way.
 
 One limit to know: a step that was running when the process died can run again. If its
 model call was already billed, you pay twice. Billing is not exactly once. The ledger
