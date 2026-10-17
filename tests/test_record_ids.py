@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 from content_pipeline.ledger import Ledger
 from content_pipeline.model_client import ModelClient

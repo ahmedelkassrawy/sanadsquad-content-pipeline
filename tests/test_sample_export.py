@@ -1,3 +1,5 @@
+"""Exporting a run as the publishable sample output: exact contents, tamper and link rejection."""
+
 import asyncio
 import hashlib
 import importlib.util
@@ -11,12 +13,12 @@ from PIL import Image
 from content_pipeline.config import load_plan
 from content_pipeline.pipeline import run_pipeline
 from content_pipeline.models import ImageSpec
-from test_day3_delivery import DeliveryModels
-from test_pipeline import search_factory
+from test_pipeline_resume_and_advisor_delivery import DeliveryModels
+from test_pipeline_end_to_end import search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 module_spec = importlib.util.spec_from_file_location(
-    "sample_packager", ROOT / "scripts/package_sample.py"
+    "sample_packager", ROOT / "scripts/export_run_as_sample_output.py"
 )
 packager = importlib.util.module_from_spec(module_spec)
 module_spec.loader.exec_module(packager)

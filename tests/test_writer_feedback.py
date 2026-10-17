@@ -1,8 +1,10 @@
+"""Writer requests carry the effective length limit and the rejected draft as feedback."""
+
 import pytest
 
 from content_pipeline.config import Settings
 from content_pipeline.model_client import ModelClient
-from test_pipeline import OfflineModels, plan_pair, run
+from test_pipeline_end_to_end import OfflineModels, plan_pair, run
 
 
 @pytest.mark.asyncio

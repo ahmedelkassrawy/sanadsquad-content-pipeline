@@ -1,3 +1,5 @@
+"""Core rules: config loading, tweet validation, citations, URL safety, research tools, budget ledger."""
+
 import asyncio
 import csv
 import json
@@ -176,7 +178,7 @@ def test_citations_unknown_failed_and_snippet_rejected():
     assert result.accepted is False
 
 
-def test_citation_acceptance_guard():
+def test_unknown_kb_citation_is_rejected():
     result = validate_thread(draft(ids=["KB-99"]))
     assert result.accepted is False
     assert result.violations[0] == "tweet_1:citation:KB-99"

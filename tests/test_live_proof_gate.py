@@ -1,3 +1,5 @@
+"""The live proof harness does nothing without its flag and rejects invalid spend caps."""
+
 import pytest
 from content_pipeline import live_proof
 

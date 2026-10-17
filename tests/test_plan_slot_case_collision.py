@@ -1,10 +1,12 @@
+"""Slots whose ids differ only by case are refused before any model or search starts."""
+
 import json
 from pathlib import Path
 from PIL import Image
 from content_pipeline.cli import main
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -1,3 +1,5 @@
+"""Cloudflare FLUX image backend: overlay, fallbacks, validation and secret-free logs."""
+
 import asyncio
 import base64
 import io
@@ -10,8 +12,8 @@ import httpcore
 import httpx
 import pytest
 from PIL import Image, ImageChops
-from test_pipeline import ROOT, OfflineModels, run, search_factory
-from test_visual_fallback import VisualModels
+from test_pipeline_end_to_end import ROOT, OfflineModels, run, search_factory
+from test_visual_overlay_fallback import VisualModels
 
 from content_pipeline.image_backends import MAX_IMAGE_SIDE, MAX_RESPONSE_BYTES
 from content_pipeline.models import ResolvedSlot

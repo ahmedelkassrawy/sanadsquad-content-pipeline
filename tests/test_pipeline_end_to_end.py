@@ -1,3 +1,5 @@
+"""Whole-pipeline runs with scripted fake models; also the shared offline test helpers."""
+
 import asyncio
 import json
 import shutil

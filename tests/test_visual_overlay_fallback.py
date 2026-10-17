@@ -1,8 +1,10 @@
+"""Visual agent overlay grounding, repair and fallback detail recording."""
+
 import json
 from types import SimpleNamespace
 
 import pytest
-from test_pipeline import OfflineModels, run
+from test_pipeline_end_to_end import OfflineModels, run
 
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import Pipeline

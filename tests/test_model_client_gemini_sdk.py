@@ -1,3 +1,5 @@
+"""Gemini SDK request shape, reasoning settings, raw usage and error retries (local HTTP only)."""
+
 import json
 import pytest
 from google.genai import types

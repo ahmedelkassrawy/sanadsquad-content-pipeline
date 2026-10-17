@@ -1,10 +1,12 @@
+"""Writer length follow-up messages, lane drop reasons and advisor error handling."""
+
 import pytest
 from twitter_text import parse_tweet
 from content_pipeline.config import Settings, load_brand, load_type
 from content_pipeline.models import Draft, ResearchPack, SourceRecord, Tweet
 from content_pipeline.validation import length_feedback, validate
-from test_day3_delivery import DeliveryModels, one_slot
-from test_pipeline import ROOT, OfflineModels, plan_pair, run, search_factory
+from test_pipeline_resume_and_advisor_delivery import DeliveryModels, one_slot
+from test_pipeline_end_to_end import ROOT, OfflineModels, plan_pair, run, search_factory
 from content_pipeline.pipeline import run_pipeline
 
 

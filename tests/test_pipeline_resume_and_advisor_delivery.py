@@ -1,3 +1,5 @@
+"""Resume from saved run state, run ownership, advisor delivery; shared helpers (DeliveryModels)."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -9,7 +11,7 @@ from content_pipeline.cli import main
 from content_pipeline.config import Settings
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 

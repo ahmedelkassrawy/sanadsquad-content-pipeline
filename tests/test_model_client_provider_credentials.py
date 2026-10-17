@@ -1,3 +1,5 @@
+"""Provider-specific credentials (Groq, Google) and rejection of invalid providers."""
+
 import pytest
 
 from content_pipeline.model_client import LangChainTransport

@@ -1,3 +1,5 @@
+"""Preflight accepts well-formed provider:model references and rejects bad ones."""
+
 from pathlib import Path
 
 import pytest

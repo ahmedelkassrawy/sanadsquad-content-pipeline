@@ -1,9 +1,11 @@
+"""Advisor instruction-only targets, evidence-id edits and recommendations-only output."""
+
 import json
 from pathlib import Path
 from types import SimpleNamespace
 from content_pipeline.pipeline import run_pipeline
-from test_day3_delivery import DeliveryModels, one_slot
-from test_pipeline import search_factory
+from test_pipeline_resume_and_advisor_delivery import DeliveryModels, one_slot
+from test_pipeline_end_to_end import search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 PHRASE = "must be exactly one of the keys of the request's instructions map"

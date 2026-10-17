@@ -1,4 +1,9 @@
-"""Copy inspectable sample artifacts; checkpoint/lock/credentials stay private."""
+"""Copy a finished run into the publishable sample output folder.
+
+Checks the run first and leaves out private files (checkpoints, locks, credentials). Example:
+
+    .venv/Scripts/python.exe scripts/export_run_as_sample_output.py --source <run-folder> --output <new-folder>
+"""
 
 import argparse
 import csv

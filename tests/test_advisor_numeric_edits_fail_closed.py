@@ -1,10 +1,12 @@
+"""Advisor edits that change numbers fail closed and never alter the shipped content."""
+
 import json
 from pathlib import Path
 import shutil
 import pytest
 from content_pipeline.pipeline import run_pipeline
-from test_day3_delivery import DeliveryModels, one_slot
-from test_pipeline import search_factory
+from test_pipeline_resume_and_advisor_delivery import DeliveryModels, one_slot
+from test_pipeline_end_to_end import search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 
