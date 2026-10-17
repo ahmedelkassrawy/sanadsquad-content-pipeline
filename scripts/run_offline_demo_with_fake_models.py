@@ -1,6 +1,8 @@
-"""Run the whole pipeline offline with scripted fake models (no API keys, no network).
+"""Run the whole pipeline with scripted fake models: no model or search calls, no LLM keys.
 
-Verification only; the normal CLI never uses these models. Example:
+Cloudflare image generation is still used if CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are
+set; otherwise the card is drawn locally with Pillow. Verification only; the normal CLI never
+uses these models. Example:
 
     .venv/Scripts/python.exe scripts/run_offline_demo_with_fake_models.py --output <new-folder>
 """

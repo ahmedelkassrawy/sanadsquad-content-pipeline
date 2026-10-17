@@ -1,4 +1,4 @@
-"""Real SDK boundary regressions; HTTP is handled by local mock transports."""
+"""Mixed regressions: SDK retries and usage, tweet validation, image export paths, writer search."""
 
 import csv
 import importlib.util

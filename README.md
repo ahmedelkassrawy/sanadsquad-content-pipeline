@@ -251,20 +251,22 @@ Read the patch yourself before using it. Turn the advisor off with `--no-advisor
 Three small files, each loaded by a specific part of the code:
 
 - `config/repair.md`: the prompt sent back to a model when its structured output fails to
-  parse, asking it to re-emit valid output. Loaded by `content_pipeline/model_client.py`.
+  parse or validate, asking it to re-emit valid output. Loaded by `content_pipeline/model_client.py`.
 - `config/visual.yaml`: the ordered list of image backends (for example Cloudflare FLUX, then
   the Pillow card fallback). The first backend that works is used. Loaded by
   `content_pipeline/config.py`.
 - `config/live-review-controls.json`: one known-supported and one known-unsupported draft.
   `content_pipeline/live_proof.py` sends them to the live reviewer to prove it rejects invented
-  claims and accepts grounded ones.
+  claims and accepts grounded ones. The file also has an `unsupported_general_text` entry that
+  no code currently reads.
 
 `repair.md` and `visual.yaml` are copied into every run folder snapshot.
 
 ## Scripts
 
 - `scripts/run_offline_demo_with_fake_models.py --output <new-folder>`: runs the whole
-  pipeline with scripted fake models, no API keys. Verification only.
+  pipeline with scripted fake models: no model or search calls. Cloudflare images are still made
+  if the two Cloudflare keys are set, else a Pillow card. Verification only.
 - `scripts/export_run_as_sample_output.py --source <run-folder> --output <new-folder>`: copies a
   finished run into the publishable sample output folder, leaving out checkpoints, locks and
   credentials.

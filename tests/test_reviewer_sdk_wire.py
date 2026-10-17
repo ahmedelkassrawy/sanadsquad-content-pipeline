@@ -12,7 +12,7 @@ from content_pipeline.ledger import Ledger
 from content_pipeline.model_client import LangChainTransport, ModelClient, ModelFailure
 from content_pipeline.models import Draft, ResearchPack, Tweet
 from content_pipeline.research import KnowledgeBase
-from test_model_client_sdk_boundary import FixedPrices
+from test_regressions_sdk_validator_image_export import FixedPrices
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -13,7 +13,7 @@ import httpx
 import pytest
 from PIL import Image, ImageChops
 from test_pipeline_end_to_end import ROOT, OfflineModels, run, search_factory
-from test_image_visual_fallback import VisualModels
+from test_visual_overlay_fallback import VisualModels
 
 from content_pipeline.image_backends import MAX_IMAGE_SIDE, MAX_RESPONSE_BYTES
 from content_pipeline.models import ResolvedSlot
