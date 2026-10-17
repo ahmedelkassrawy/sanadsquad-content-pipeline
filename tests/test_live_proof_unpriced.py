@@ -1,3 +1,5 @@
+"""The live proof harness passes the unpriced-model policy to both settings objects."""
+
 from types import SimpleNamespace
 import pytest
 from content_pipeline import live_proof

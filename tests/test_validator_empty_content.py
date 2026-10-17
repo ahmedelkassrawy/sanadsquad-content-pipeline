@@ -1,3 +1,5 @@
+"""Validator rejects blank, hashtag-only and otherwise empty thread content."""
+
 from pathlib import Path
 import pytest
 from content_pipeline.config import load_brand, load_type

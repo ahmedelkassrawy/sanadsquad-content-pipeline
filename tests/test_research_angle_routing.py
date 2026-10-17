@@ -1,3 +1,5 @@
+"""Assigned topics are routed to research by their configured source."""
+
 import json
 from pathlib import Path
 import shutil
@@ -5,7 +7,7 @@ import pytest
 from content_pipeline.config import load_brand
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 

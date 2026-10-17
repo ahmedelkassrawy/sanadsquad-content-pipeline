@@ -1,3 +1,5 @@
+"""The marketing writer request includes the angle quality scaffold."""
+
 from pathlib import Path
 
 import pytest

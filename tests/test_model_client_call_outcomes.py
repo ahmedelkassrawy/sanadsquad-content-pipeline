@@ -1,3 +1,5 @@
+"""Model call outcomes: rate-limit retry, provider refusals, ambiguous failures, retry-after."""
+
 import asyncio
 import json
 from types import SimpleNamespace

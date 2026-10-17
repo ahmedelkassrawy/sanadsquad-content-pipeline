@@ -1,3 +1,5 @@
+"""Validator rejects drafts that leak a research pack source id."""
+
 from pathlib import Path
 
 import pytest

@@ -1,3 +1,5 @@
+"""Resuming an interrupted run reuses only identity-bound saved research packs."""
+
 import asyncio
 import json
 from unittest.mock import patch
@@ -7,7 +9,7 @@ from langgraph.errors import NodeCancelledError
 
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import Pipeline, run_pipeline
-from test_day3_delivery import DeliveryModels, ROOT, records, search_factory
+from test_pipeline_resume_and_advisor_delivery import DeliveryModels, ROOT, records, search_factory
 
 
 @pytest.mark.parametrize("tamper_receipt", [False, True])

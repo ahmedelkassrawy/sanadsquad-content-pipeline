@@ -1,3 +1,5 @@
+"""Validator rewrites configured banned characters (such as em dashes) before numbering."""
+
 from pathlib import Path
 
 import pytest

@@ -215,8 +215,8 @@ numbering, research topic source, review threshold and hard-fail keys, visual te
 Name an existing writer agent, or add `agents/<writer>/` with `agent.yaml` and
 `system.md`. Then use the type in a plan. The orchestrator never names a post type. Tests
 copy `marketing-post` to a `case-study` type and run it with no Python change
-(`tests/test_pipeline.py:461` and `tests/test_post_type_module.py:42`;
-`tests/test_post_type_module.py:77` checks that each snapshot file is read once per run). This covers types that fit research, write, validate,
+(`tests/test_pipeline_end_to_end.py:463` and `tests/test_post_type_module.py:44`;
+`tests/test_post_type_module.py:79` checks that each snapshot file is read once per run). This covers types that fit research, write, validate,
 review and visual. A new stage needs code.
 
 **Add a skill.** Add both `skills/<name>.md` and `skills/<name>.py` (start-up needs both),

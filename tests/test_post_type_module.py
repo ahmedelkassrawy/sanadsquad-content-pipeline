@@ -1,3 +1,5 @@
+"""A new post type ships as folders only, and its files are read once per run."""
+
 import json
 import shutil
 from collections import Counter
@@ -5,7 +7,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 from content_pipeline import model_client
 from content_pipeline.config import Settings, load_prompt, load_type

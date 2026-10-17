@@ -1,3 +1,5 @@
+"""Research topic proposal reservation and angle-file preflight before any model call."""
+
 import json
 import shutil
 from contextlib import redirect_stdout, redirect_stderr
@@ -8,7 +10,7 @@ from content_pipeline.cli import main
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
 from content_pipeline.research import KnowledgeBase, assign_topics
-from test_pipeline import OfflineModels, search_factory
+from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 

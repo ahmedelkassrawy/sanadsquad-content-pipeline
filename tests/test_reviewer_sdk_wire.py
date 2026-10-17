@@ -1,3 +1,5 @@
+"""Reviewer sends explicit SDK tool keys and repairs invalid SDK output once."""
+
 import json
 from pathlib import Path
 import httpx
@@ -10,7 +12,7 @@ from content_pipeline.ledger import Ledger
 from content_pipeline.model_client import LangChainTransport, ModelClient, ModelFailure
 from content_pipeline.models import Draft, ResearchPack, Tweet
 from content_pipeline.research import KnowledgeBase
-from test_review_regressions import FixedPrices
+from test_model_client_sdk_boundary import FixedPrices
 
 ROOT = Path(__file__).resolve().parents[1]
 

@@ -1,3 +1,5 @@
+"""Token usage estimation and counting of tool-call payloads without double counting."""
+
 import json
 import math
 from types import SimpleNamespace

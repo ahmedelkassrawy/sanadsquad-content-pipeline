@@ -1,3 +1,5 @@
+"""NVIDIA, OpenRouter and OpenCode use their own credential and base URL."""
+
 import pytest
 
 from content_pipeline.model_client import LangChainTransport
@@ -36,7 +38,7 @@ def captured_chat(monkeypatch):
         ("opencode", "https://opencode.ai/zen/v1"),
     ],
 )
-def test_openai_compatible_prepare(
+def test_openai_compatible_provider_uses_own_key_and_base_url(
     tmp_path, monkeypatch, captured_chat, effort, provider, base_url
 ):
     captured, runnable = captured_chat

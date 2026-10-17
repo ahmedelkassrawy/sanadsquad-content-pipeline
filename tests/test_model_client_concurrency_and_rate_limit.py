@@ -84,7 +84,7 @@ async def test_run_wide_concurrent_dispatches(tmp_path, monkeypatch, limit, prep
     "status,header,expected",
     [(429, None, 5), (429, "12", 12), (429, "999", 60), (429, "bad", 5), (503, "12", 12)],
 )
-async def test_status_backoff(tmp_path, status, header, expected):
+async def test_retry_after_status_sets_backoff_wait(tmp_path, status, header, expected):
     waits = []
     calls = 0
 
@@ -146,7 +146,7 @@ async def test_google_rate_limit_backoff(tmp_path):
 
 
 @pytest.mark.parametrize("status,expected", [(429, [5, 10, 20]), (503, [1, 2, 4])])
-async def test_retry_exhaustion(tmp_path, status, expected):
+async def test_retry_exhaustion_waits_follow_backoff_schedule(tmp_path, status, expected):
     waits = []
 
     async def transport(*args):
@@ -182,7 +182,7 @@ async def test_retry_exhaustion(tmp_path, status, expected):
         assert all(entry["status"] == "released" for entry in client.ledger.entries.values())
 
 
-def test_settings_environment_and_legacy_default(tmp_path, monkeypatch):
+def test_max_concurrency_from_environment_with_legacy_default_unset(tmp_path, monkeypatch):
     monkeypatch.delenv("MAX_CONCURRENCY", raising=False)
     assert Settings.load(tmp_path).max_concurrency is None
     assert Settings.model_validate_json('{"advisor_enabled":false}').max_concurrency is None
@@ -194,7 +194,7 @@ def test_settings_environment_and_legacy_default(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("piece", [False, True])
-def test_cli_override(tmp_path, monkeypatch, piece):
+def test_cli_max_concurrency_overrides_environment(tmp_path, monkeypatch, piece):
     monkeypatch.setenv("MAX_CONCURRENCY", "3")
     seen = []
     monkeypatch.setattr(
@@ -245,7 +245,7 @@ async def test_resume_preserves_saved_concurrency(tmp_path, monkeypatch, legacy)
     from content_pipeline.durability import snapshot_hashes
     from content_pipeline.models import ResolvedSlot
     from content_pipeline.pipeline import RunInterrupted, run_pipeline
-    from test_day3_delivery import DeliveryModels, search_factory
+    from test_pipeline_resume_and_advisor_delivery import DeliveryModels, search_factory
 
     models = DeliveryModels()
     output = tmp_path / "run"

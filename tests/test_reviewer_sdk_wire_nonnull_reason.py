@@ -1,7 +1,9 @@
+"""The SDK reviewer schema makes the optional reason non-nullable."""
+
 import pytest
 from content_pipeline.agents import Reviewer
 from content_pipeline.model_client import ModelFailure
-from test_day3_review_wire import ROOT, review_request, sdk_client
+from test_reviewer_sdk_wire import ROOT, review_request, sdk_client
 
 
 @pytest.mark.parametrize("mode", ["supported", "empty-false-reason", "empty-true-reason"])

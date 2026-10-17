@@ -1,3 +1,5 @@
+"""Reasoning effort per agent, its override, CLI handling and resume provenance."""
+
 import argparse
 import json
 from pathlib import Path
@@ -12,7 +14,7 @@ from content_pipeline.durability import resume_inputs, snapshot_hashes
 from content_pipeline.ledger import Ledger
 from content_pipeline.models import Review, ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline import FixturePrices, OfflineModels, search_factory
+from test_pipeline_end_to_end import FixturePrices, OfflineModels, search_factory
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -26,7 +28,7 @@ def no_dotenv(monkeypatch):
 
 @pytest.mark.parametrize("role,configured", [("reviewer", "medium"), ("thread_writer", "low")])
 @pytest.mark.parametrize("effort", ["none", "low", "medium", "high", None])
-def test_configured_client_effort(tmp_path, role, configured, effort):
+def test_configured_client_uses_agent_effort_unless_overridden(tmp_path, role, configured, effort):
     assert load_agent(ROOT, role).reasoning_effort == configured
     settings = Settings() if effort is None else Settings(reasoning_effort_override=effort)
     client = model_client.configured_client(
