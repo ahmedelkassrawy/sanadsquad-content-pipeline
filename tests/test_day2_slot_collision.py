@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import pytest
 from PIL import Image
 from content_pipeline.cli import main
 from content_pipeline.models import ResolvedSlot

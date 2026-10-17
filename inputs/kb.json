@@ -1,5 +1,5 @@
 {
-  "review_status": "pending_kassra_review",
+  "review_status": "pending_owner_review",
   "severity_note": "Draft educational labels; severity is context dependent. SWC is historical and not a complete current taxonomy.",
   "entries": [
     {
@@ -17,7 +17,7 @@
         "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-107.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-02",
@@ -35,7 +35,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-101.md",
         "https://docs.soliditylang.org/en/latest/control-structures.html#checked-or-unchecked-arithmetic"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-03",
@@ -53,7 +53,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-104.md",
         "https://docs.soliditylang.org/en/latest/control-structures.html#error-handling-assert-require-revert-and-exceptions"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-04",
@@ -70,7 +70,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-118.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-05",
@@ -88,7 +88,7 @@
         "https://eips.ethereum.org/EIPS/eip-6780",
         "https://docs.soliditylang.org/en/latest/introduction-to-smart-contracts.html#deactivate-and-self-destruct"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-06",
@@ -105,7 +105,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-112.md",
         "https://docs.soliditylang.org/en/latest/introduction-to-smart-contracts.html#delegatecall-and-libraries"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-07",
@@ -122,7 +122,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-115.md",
         "https://docs.soliditylang.org/en/latest/security-considerations.html#tx-origin"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-08",
@@ -138,7 +138,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-114.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-09",
@@ -155,7 +155,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
         "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-10",
@@ -172,7 +172,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-120.md",
         "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-11",
@@ -189,7 +189,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-113.md",
         "https://docs.soliditylang.org/en/latest/security-considerations.html#sending-and-receiving-ether"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-12",
@@ -205,7 +205,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-128.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-13",
@@ -221,7 +221,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-124.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-14",
@@ -238,7 +238,7 @@
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-118.md",
         "https://docs.soliditylang.org/en/latest/contracts.html#constructors"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-15",
@@ -256,7 +256,7 @@
         "https://docs.soliditylang.org/en/latest/060-breaking-changes.html",
         "https://docs.soliditylang.org/en/latest/control-structures.html#scoping-and-declarations"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-16",
@@ -272,7 +272,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-121.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-17",
@@ -288,7 +288,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-122.md"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-18",
@@ -303,7 +303,7 @@
       "references": [
         "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-19",
@@ -318,7 +318,7 @@
       "references": [
         "https://scs.owasp.org/sctop10/SC04-FlashLoanAttacks/"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     },
     {
       "id": "KB-20",
@@ -333,7 +333,7 @@
       "references": [
         "https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/"
       ],
-      "review_status": "pending_kassra_review"
+      "review_status": "pending_owner_review"
     }
   ]
 }

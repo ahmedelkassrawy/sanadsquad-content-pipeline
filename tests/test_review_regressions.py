@@ -1,10 +1,8 @@
 """Real SDK boundary regressions; HTTP is handled by local mock transports."""
 
-import asyncio
 import csv
 import importlib.util
 import json
-import os
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,7 +10,7 @@ import httpx
 import pytest
 import yaml
 from langchain_openai import ChatOpenAI
-from content_pipeline.config import Settings, load_agent, load_brand, load_prompt, load_type
+from content_pipeline.config import load_agent, load_brand, load_prompt, load_type
 from content_pipeline.ledger import Ledger
 from content_pipeline.model_client import (
     LangChainTransport,
@@ -284,7 +282,6 @@ async def test_gateway_missing_key_fails_before_sdk_dispatch_and_charge(
     else:
         monkeypatch.setenv(key, missing)
     dispatched = []
-    original = ChatOpenAI.with_structured_output
 
     def structured(chat, schema, **kwargs):
         dispatched.append(chat.openai_api_key.get_secret_value() == "synthetic-openai")

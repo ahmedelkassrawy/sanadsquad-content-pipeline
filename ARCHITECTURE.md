@@ -3,8 +3,8 @@
 The pipeline is a fixed workflow. The orchestrator is plain code, not a model. Each
 agent is a plain typed Python class with one job. LangGraph owns routing, parallel
 lanes, the content retry and SQLite checkpoints. Which model each agent uses is configuration,
-separate from the orchestration. [DESIGN.md](DESIGN.md) section 6 is the settled
-requirements authority; this file describes what the code does today.
+separate from the orchestration. This document describes the implemented boundaries,
+tradeoffs and extension points.
 
 ## Diagram
 

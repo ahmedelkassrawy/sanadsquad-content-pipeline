@@ -26,7 +26,7 @@ def test_numbered_thread_reports_only_the_overlong_tweet_measured_with_prefix():
     weighted = parse_tweet("3/5 " + "x" * 278).weightedLength
     assert weighted == 282 and parse_tweet("x" * 278).weightedLength == 278
     assert length_feedback(result) == [
-        f"tweet_3:weighted_length:282/280:shorten_by_at_least:2:words:2:max_words:37"
+        "tweet_3:weighted_length:282/280:shorten_by_at_least:2:words:2:max_words:37"
     ]
 
 
