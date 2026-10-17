@@ -175,6 +175,11 @@ Five of the six cards used the code-built fallback spec. That happened before th
 visual fix (repair call, case-insensitive excerpt check, recorded reason), so it does not
 describe the current code.
 
+For the evaluator handoff, the snapshot's review-status label was renamed from the personal
+development marker to `pending_owner_review`. This metadata-only sanitation did not change
+the saved research, generated text, reviews, usage, images or exports; it is also recorded in
+`sample-provenance.json`.
+
 The earlier free sample (commit `c234f25`, in git history) used Mistral plus NVIDIA
 `nemotron-3-super-120b-a12b` for the reviewer and marketing writer: 6 of 6 shipped, 100,977
 tokens, 0 USD. See "A free-model alternative" above to switch back.

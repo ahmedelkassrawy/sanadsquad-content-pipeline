@@ -14,13 +14,15 @@ From the repository root, using the project virtual environment:
 & .\.venv\Scripts\python.exe -m ruff check .
 & .\.venv\Scripts\python.exe -m ruff format --check .
 & .\.venv\Scripts\python.exe -m pip check
-& .\.venv\Scripts\python.exe -m content_pipeline.schemas --output <new-empty-folder>
+$schemaOutput = Join-Path ([System.IO.Path]::GetTempPath()) ("sanadsquad-schemas-" + [guid]::NewGuid())
+& .\.venv\Scripts\python.exe -m content_pipeline.schemas --output $schemaOutput
+git diff --no-index --exit-code -- schemas $schemaOutput
 & .\.venv\Scripts\python.exe run_week.py --help
 & .\.venv\Scripts\python.exe run_piece.py --help
 ```
 
-The generated schemas should match the committed files in `schemas/`. Use a fresh output
-folder so verification does not overwrite tracked files.
+The schema command uses a fresh temporary folder and the following command compares every
+generated file with the committed `schemas/` directory. A difference exits nonzero.
 
 ## What the tests prove
 
