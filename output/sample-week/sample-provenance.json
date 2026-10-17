@@ -1,5 +1,6 @@
 {
   "provenance": "live run of run_week.py against real providers; no injected or synthetic models",
+  "handoff_sanitization": "The snapshot-only review_status label was renamed from a personal development marker to pending_owner_review after the run. Research evidence, generated content, reviews, usage, images and exports are unchanged.",
   "commit": "9e19ac2",
   "command": "MODEL_OVERRIDE= python run_week.py --plan inputs/plan.json --output <run> --default-model mistralai:ministral-14b-latest --reasoning-effort-override none --allow-unpriced --max-concurrency 2",
   "models_by_agent_node": {

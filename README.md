@@ -6,14 +6,13 @@ each topic, writes each piece, checks it with code and with a reviewer, makes an
 for each accepted piece, and exports `posts.csv` (columns `Post Text, Image`).
 
 - How it is built and why: [ARCHITECTURE.md](ARCHITECTURE.md)
-- Settled design decisions (section 6 wins): [DESIGN.md](DESIGN.md)
-- Test and proof notes: [docs/verification.md](docs/verification.md)
+- Verification scope and commands: [docs/verification.md](docs/verification.md)
 - A finished run you can open now: [output/sample-week](output/sample-week)
 
 The firm in the inputs, **Sentinel Grove**, is fictional. Its statistics in
 [inputs/brand-voice.md](inputs/brand-voice.md) are demo fixtures. Replace them and set
 `brand_name` before using real claims. The 20 knowledge base entries in
-[inputs/kb.json](inputs/kb.json) are still marked `pending_kassra_review`.
+[inputs/kb.json](inputs/kb.json) are still marked `pending_owner_review`.
 
 ## Setup
 
@@ -176,6 +175,11 @@ Five of the six cards used the code-built fallback spec. That happened before th
 visual fix (repair call, case-insensitive excerpt check, recorded reason), so it does not
 describe the current code.
 
+For the evaluator handoff, the snapshot's review-status label was renamed from the personal
+development marker to `pending_owner_review`. This metadata-only sanitation did not change
+the saved research, generated text, reviews, usage, images or exports; it is also recorded in
+`sample-provenance.json`.
+
 The earlier free sample (commit `c234f25`, in git history) used Mistral plus NVIDIA
 `nemotron-3-super-120b-a12b` for the reviewer and marketing writer: 6 of 6 shipped, 100,977
 tokens, 0 USD. See "A free-model alternative" above to switch back.
@@ -261,7 +265,7 @@ prove routing and rules, not the quality of a real model's judgement.
 
 | Limitation | Next step |
 | --- | --- |
-| `--reasoning-effort-override` applies to every agent. The sample therefore ran the Claude reviewer at effort `none`, although its `agent.yaml` asks for `medium` (DESIGN 2.7). | Add a per-agent effort override, so only agents on a model that rejects effort are changed. |
+| `--reasoning-effort-override` applies to every agent. The sample therefore ran the Claude reviewer at effort `none`, although its `agent.yaml` asks for `medium`. | Add a per-agent effort override, so only agents on a model that rejects effort are changed. |
 | The advisor failed with `failed_output` on the Mistral model in the sample. It is optional and the failure is recorded. | Point `agents/advisor/agent.yaml` at a stronger model and rerun. |
 | In the committed sample, 5 of 6 image cards use the spec built by code (`visual_fallback`) and all six are plain Pillow cards. That run was made before the visual fix: it checked overlay text with a case-sensitive match, had no repair call and recorded no reason. Since then a case-only difference passes, a spec with overlay errors gets one repair call, and `fallback_detail` names the cause. The sample was not rerun, so it still shows the old result. | Make a fresh sample to see the new fallback rate. |
 | The Cloudflare image backend (`cloudflare_flux`) is built and tested offline only, with a mocked HTTP transport. No real Cloudflare call has been made, so no live image exists and the 60-second timeout and response shape are unproven against the real service. Without the two Cloudflare keys, every card is a Pillow card. | Add the keys, make one real image and check it by eye. |

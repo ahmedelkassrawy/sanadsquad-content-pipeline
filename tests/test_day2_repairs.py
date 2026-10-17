@@ -1,4 +1,3 @@
-import asyncio
 import json
 import shutil
 from contextlib import redirect_stdout, redirect_stderr
