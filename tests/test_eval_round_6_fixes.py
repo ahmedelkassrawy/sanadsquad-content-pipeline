@@ -143,6 +143,8 @@ def test_attribution_versions_and_technical_counts_pass(text):
         "Other mitigations",
         "Two things to verify in pre-0.6.0 code",
         "Areas to focus on",
+        "Areas worth focusing on",
+        "Areas needing review",
     ],
 )
 def test_noun_phrase_labels_are_flagged(label):

@@ -304,7 +304,7 @@ _LABEL_PHRASES = frozenset("code pattern|why this is dangerous|tl;dr".split("|")
 
 _QUESTION_WORDS = frozenset("why what how when where which who".split())
 # "Areas to focus on" is a noun phrase: a preposition after a plural is not its verb.
-_PREPOSITIONS = frozenset("to of for in on at with from by about into under over".split())
+_PREPOSITIONS = frozenset("to of for in on at with from by about into under over worth".split())
 # Words before a plural noun that make it a counted noun, not a verb: "two things", "more entries".
 _QUANTIFIERS = frozenset(
     "a an the this that these those our your their its my one two three four five six more "
@@ -333,8 +333,9 @@ def _has_finite_verb(words: list[str]) -> bool:
     if len(words) >= 2 and _is_plural_noun(words[0]):
         second = words[1]
 
+        # A participle after a plural ("Lessons learned", "Areas needing review") is a noun phrase.
         return (
-            not second.endswith("ed")
+            not second.endswith(("ed", "ing"))
             and second not in _DETERMINERS
             and second not in _PREPOSITIONS
             and not second.isdigit()
