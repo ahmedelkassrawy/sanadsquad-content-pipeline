@@ -1,0 +1,22 @@
+Post Text,Image
+"1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.
+2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.
+3/9 The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.
+4/9 Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.
+5/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.
+6/9 The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.
+7/9 In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.
+8/9 A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.
+9/9 For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?",images/slot-thread_1.png
+"1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.
+2/9 These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.
+3/9 The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.
+4/9 A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.
+5/9 Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.
+6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.
+7/9 For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.
+8/9 Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.
+9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",images/slot-thread_3.png
+"Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review.",images/slot-marketing_1.png
+"12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready.",images/slot-marketing_2.png
+How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.,images/slot-marketing_3.png

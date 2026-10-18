@@ -1,12 +1,12 @@
 {
-  "concept": "Technical card on ERC-4626 vault inflation attack: a donation to the vault skews the share price so a depositor's shares round down to zero.",
-  "scene": "Dark navy background with a simple diagram of a vault box. A small token labeled 1 share sits inside, a large arrow labeled donation points into the vault, and a victim deposit arrow leads out to a zero. Amber accent lines highlight the rounding step, with clean white monospace text and ample spacing.",
+  "concept": "ERC-4626 inflation attack: a direct donation to an empty vault inflates the share price so the next depositor's shares round down to zero.",
+  "scene": "Calm technical diagram on a deep navy background: a single vault box holding one glowing amber share, with a straight arrow labelled as a direct token transfer entering the vault, and a second smaller arrow showing a deposit that results in zero shares. Clean lines, minimal, no people.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "rounds down to zero shares",
-  "alt_text": "Diagram of an ERC-4626 vault where a direct token donation inflates the share price, so a victim's deposit is rounded down to zero shares.",
+  "overlay_text": "direct token transfer",
+  "alt_text": "Diagram of a vault holding a single share while a direct token transfer inflates its value and a victim's deposit returns zero shares.",
   "severity": null
 }

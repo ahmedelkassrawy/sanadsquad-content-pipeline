@@ -80,16 +80,16 @@ The brief says rules belong in code and judgement in the model. The split:
 | Done by code | Where |
 | --- | --- |
 | Routing, parallel lanes, one content retry, drop after the second failure | `pipeline.py` |
-| Safe fixes: replace banned characters (em dash, en dash and the other dash look-alikes in `brand-voice.md`), normalise whitespace, straight quotes, remove a trailing hashtag block, turn markdown code fences into inline code and remove emphasis (`*word*`) outside code, since X would show both literally. Every fix is logged. | `validation.py` `validate()` |
-| Tweet numbering (`1/7`); a thread tweet over the length limit is split at a sentence boundary while the thread is below its maximum tweet count, keeping its citations | `validation.py` |
-| Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text, multi-digit numbers appear in the pack evidence, no tweet ends on a dangling colon, a post type's `claim_words` ("thorough", "expertise", "precise") appear only when the evidence uses them, outside code spans; rules match text after NFKC folding. A retry is told to delete the flagged clause, not reword it. These checks hold whichever model writes or reviews. | `validation.py` |
+| Safe fixes: replace banned characters (em dash, en dash and the other dash look-alikes in `brand-voice.md`), normalise whitespace, straight quotes, remove a trailing hashtag block, turn markdown code fences into inline code and remove emphasis (`*word*`) outside code, since X would show both literally. Every fix is logged. | `validation.py` `validate()`; X formatting in `x_format.py` |
+| X formatting, kept apart from the rule checks: tweet numbering (`1/7`); a thread tweet over the length limit split at a sentence boundary while the thread is below its maximum, keeping its citations; markdown X would show literally. None of it adds or changes a word. | `x_format.py` |
+| Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text, multi-digit numbers appear in the pack evidence, no tweet ends on a dangling colon, no text points at the research material ("the article", "the discussion"), no first word opens three distinct tweets of a thread ("OWASP says"), a post type's `claim_words` ("thorough", "expertise", "precise") appear only when the evidence uses them, outside code spans; rules match text after NFKC folding. A retry is told to delete the flagged clause, not reword it. These checks hold whichever model writes or reviews. | `validation.py` |
 | Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, a per-criterion `min_score` floor (3), hard-fail flags. The model's own "accepted" is never trusted. One module builds the reviewer's wire schema and judges an assessment as accepted, rejected or malformed (malformed fails closed). | `review_scoring.py` `judge_review()`; `review_wire.py` only re-exports |
 | Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic fallback when the model's choice is missing or invalid | `research.py` `assign_topics()` |
-| What a post type means: its writer, rubric, prompts, topic pool (knowledge base or angles) and brand rules, each read once per run | `post_types.py` `PostTypes` |
+| What a post type means: its writer, rubric, prompts, topic pool (knowledge base or angles) and brand rules, each read once per run. An angle can limit its approved stats (`stat_ids`) and, with `pick_one`, take the first of several KB topics that no other slot covers that week, recorded as `angle_source` in `plan.resolved.json` (a forced repeat is a `duplicate_topic` warning) | `post_types.py` `PostTypes` |
 | The stable id `slot_id/node/attempt/call_n` of every record and model call: build, parse, next call number | `record_ids.py` |
 | Budget guard: reserve the worst case before each call, refuse if it does not fit, keep uncertain charges, release the reservation after a definite provider refusal | `model_client.py`, `ledger.py` |
 | Model call retries: transient errors up to three times with backoff, one longer retry after truncation, one repair re-prompt for malformed output | `model_client.py` |
-| Image: checks the overlay text against brand rules and the piece, repairs a bad spec once, builds a fallback spec if that fails, draws the 1200x675 PNG card and badge | `images.py`, `pipeline.py` (visual node) |
+| Image: checks the overlay text against brand rules and the piece, repairs a bad spec once, builds a fallback spec if that fails, draws the 1200x675 PNG card. The post type's visual `template` picks the layout: `technical` adds the topic and the post's own longest code span in a code panel, `brand` adds a geometric grove motif. Every word on a card comes from the approved spec or post. | `images.py` (`card_style`, `render_card`), `pipeline.py` (visual node) |
 | Image backends: tries Cloudflare FLUX when both keys are set, otherwise or on any failure draws the Pillow card; records safe failure codes | `image_backends.py` |
 | Safe web fetching (public addresses only, redirects checked), CSV and JSON export, run folder trail | `research.py`, `trail.py` |
 
@@ -167,8 +167,9 @@ recorded as confirmed with zero tokens and zero cost. 401 and 403 end the slot
 `failed_api`, and 402 ends it `failed_budget`. Timeouts, connection errors, 408, 5xx,
 cancellation and errors with no HTTP status stay uncertain charges.
 
-These retries are separate from the single content retry in the graph. Errors saved in the
-run folder use short error names, never provider messages.
+These retries are separate from the single content retry in the graph. A slot that ends in a
+`failed_*` outcome records the exception class and message in `run_summary.json` (`error`) and
+`run.log`, with key-like strings redacted, so a failed run can be diagnosed from its folder.
 
 The visual step has its own recovery on top of that. A spec with overlay errors gets one
 repair call (attempt 2) with the error codes as feedback. If it still fails, code builds a
@@ -179,7 +180,7 @@ are counted in `external-usage.json` and not priced. The token is never written 
 and a log filter on the `httpx` and `httpcore` loggers drops any record that would repeat
 it. That filter has limits: a logger created after the first Cloudflare call is covered
 only from the next one, secrets stay in memory until the process ends, and each record
-costs a small check. The Cloudflare path is tested offline only; no real call has been made.
+costs a small check. Live runs so far got HTTP 429 from Cloudflare and fell back to Pillow.
 
 A crashed run can be resumed. `durability.py` locks the run folder so two processes cannot
 use it at once, and stores a hashed copy of the inputs. Resume reads that copy, never the
@@ -252,8 +253,7 @@ executor such as Temporal, and send advisor output to a human review queue.
 
 The limits of this version, and what we would do next, are listed in the
 [README](README.md#known-limitations-and-what-we-would-do-next). In short: cost for models
-missing from `genai-prices` and `config/prices.yaml` is unpriced (Mistral `ministral-14b` is priced there), the Cloudflare image backend is built but tested offline only (no real
-call yet), the knowledge base is not owner-reviewed, and there is no exactly-once
+missing from `genai-prices` and `config/prices.yaml` is unpriced (Mistral `ministral-14b` is priced there), live Cloudflare calls have only returned HTTP 429 so far, so shipped images are Pillow cards, the knowledge base is not owner-reviewed, and there is no exactly-once
 billing on resume. No scheduler import format, publishing service or universal grounding
 accuracy is claimed. Optional LangSmith tracing needs real environment variables (the
 project does not load `.env` into the environment) and is not the source of truth; the run

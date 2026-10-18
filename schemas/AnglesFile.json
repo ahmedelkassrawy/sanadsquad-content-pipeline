@@ -26,6 +26,26 @@
           ],
           "default": null,
           "title": "Source Ids"
+        },
+        "pick_one": {
+          "default": false,
+          "title": "Pick One",
+          "type": "boolean"
+        },
+        "stat_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stat Ids"
         }
       },
       "required": [

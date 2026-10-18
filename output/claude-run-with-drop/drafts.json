@@ -1,0 +1,822 @@
+[
+  {
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "5f7f4e16c7669544a912965cf033ca183a45b2ce3e60b468470671d0b6fb37d0",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/9 The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/9 Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/9 The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "7/9 In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "8/9 A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "9/9 For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "7df9d26f5ba51a8b13bc0cff1789d2a15eaab3afc54ef88d0673b478199e4183",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does exactly what it says, and what it says permits a bad outcome.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "OWASP calls these business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic behavior can be subverted even with correct low-level checks.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "The root cause is an implementation that omits or misapplies a required business invariant. Nothing looks broken line by line, because the missing rule is not in the code at all.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "OWASP's vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants should be expressed in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "For key accounting paths, OWASP also recommends formal verification and property-based fuzzing. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "Governance and operations teams should understand the invariants too, not just auditors. A rule only the auditors know is easy to break later.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+            "source_ids": [
+              "KB-20"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does exactly what it says, and what it says permits a bad outcome.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "2/9 OWASP calls these business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic behavior can be subverted even with correct low-level checks.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "3/9 The root cause is an implementation that omits or misapplies a required business invariant. Nothing looks broken line by line, because the missing rule is not in the code at all.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "4/9 OWASP's vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants should be expressed in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "7/9 For key accounting paths, OWASP also recommends formal verification and property-based fuzzing. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "8/9 Governance and operations teams should understand the invariants too, not just auditors. A rule only the auditors know is easy to break later.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+          "source_ids": [
+            "KB-20"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "b6900bd86eb903cd3c1112e894c54acb195dd1db08d091bb793ae8675bd588a3",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review.",
+            "source_ids": [
+              "STAT-03",
+              "STAT-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review.",
+          "source_ids": [
+            "STAT-03",
+            "STAT-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "dd7a5d0af33b5d655679a2dc0d4477774f1daccdca8c2f783e5229bf81b175eb",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "12 smart contract audits completed by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you are ready.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-02",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "12 smart contract audits completed by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you are ready.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-02",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "ec9be1d5d0ef46c012af1bd39aac53383a3bd5a7da73f7e379faf65e3572c9ca",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A vault that reads its share price from its own token balance can be pushed into handing a depositor zero shares. An attacker only needs 1 wei and a direct token transfer.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-7c6bb2f81270ec91"
+            ]
+          },
+          {
+            "text": "The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that result down. If totalAssets() reads the raw token balance, a plain transfer to the vault changes the divisor.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-7c6bb2f81270ec91",
+              "WEB-1f50d1927023d53fb"
+            ]
+          },
+          {
+            "text": "Here is one example with one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Next the attacker sends 100 tokens or more straight to the vault, never calling deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-0500eb916f66cd39"
+            ]
+          },
+          {
+            "text": "One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+            "source_ids": [
+              "WEB-1f50d1927023d53fb",
+              "WEB-7c6bb2f81270ec91"
+            ]
+          },
+          {
+            "text": "OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
+            "source_ids": [
+              "WEB-7c6bb2f81270ec91",
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does the first deposit work with a 1 wei share and a later donation?",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-7c6bb2f81270ec91"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A vault that reads its share price from its own token balance can be pushed into handing a depositor zero shares. An attacker only needs 1 wei and a direct token transfer.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-7c6bb2f81270ec91"
+          ]
+        },
+        {
+          "text": "2/9 The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that result down. If totalAssets() reads the raw token balance, a plain transfer to the vault changes the divisor.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-7c6bb2f81270ec91",
+            "WEB-1f50d1927023d53fb"
+          ]
+        },
+        {
+          "text": "3/9 Here is one example with one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "4/9 Next the attacker sends 100 tokens or more straight to the vault, never calling deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "5/9 The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "6/9 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-0500eb916f66cd39"
+          ]
+        },
+        {
+          "text": "7/9 One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+          "source_ids": [
+            "WEB-1f50d1927023d53fb",
+            "WEB-7c6bb2f81270ec91"
+          ]
+        },
+        {
+          "text": "8/9 OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
+          "source_ids": [
+            "WEB-7c6bb2f81270ec91",
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "9/9 A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does the first deposit work with a 1 wei share and a later donation?",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-7c6bb2f81270ec91"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_2:citation:WEB-1f50d1927023d53fb",
+        "tweet_7:citation:WEB-1f50d1927023d53fb"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "2b82949d63ee7c9a15f4db41410bb40bd62c208b60ede3ac3fa3fd60d8a81f7e",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
+            "source_ids": [
+              "KB-04",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
+          "source_ids": [
+            "KB-04",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "4ea5265c86acfcc7518f888d728ddf709a96bdf3a2037ac72369af0efb1d733c",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A vault that reads its share price from its own token balance can hand a depositor zero shares. The attacker needs 1 wei and a direct token transfer to the vault.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-f50d1927023d53fb"
+            ]
+          },
+          {
+            "text": "The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that down. If totalAssets() reads the raw token balance, a plain transfer to the vault inflates the divisor.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-7c6bb2f81270ec91",
+              "WEB-f50d1927023d53fb"
+            ]
+          },
+          {
+            "text": "One example, one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Next the attacker sends 100 tokens or more straight to the vault, never touching deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-0500eb916f66cd39"
+            ]
+          },
+          {
+            "text": "One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+            "source_ids": [
+              "WEB-f50d1927023d53fb",
+              "WEB-7c6bb2f81270ec91"
+            ]
+          },
+          {
+            "text": "OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
+            "source_ids": [
+              "WEB-7c6bb2f81270ec91",
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does a 1 wei first deposit followed by a donation leave the next depositor with shares?",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-7c6bb2f81270ec91"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A vault that reads its share price from its own token balance can hand a depositor zero shares. The attacker needs 1 wei and a direct token transfer to the vault.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-f50d1927023d53fb"
+          ]
+        },
+        {
+          "text": "2/9 The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that down. If totalAssets() reads the raw token balance, a plain transfer to the vault inflates the divisor.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-7c6bb2f81270ec91",
+            "WEB-f50d1927023d53fb"
+          ]
+        },
+        {
+          "text": "3/9 One example, one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "4/9 Next the attacker sends 100 tokens or more straight to the vault, never touching deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "5/9 The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "6/9 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-0500eb916f66cd39"
+          ]
+        },
+        {
+          "text": "7/9 One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+          "source_ids": [
+            "WEB-f50d1927023d53fb",
+            "WEB-7c6bb2f81270ec91"
+          ]
+        },
+        {
+          "text": "8/9 OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
+          "source_ids": [
+            "WEB-7c6bb2f81270ec91",
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "9/9 A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does a 1 wei first deposit followed by a donation leave the next depositor with shares?",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-7c6bb2f81270ec91"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "cc2a0c6fc7681dd58e61af4691fa211e7bf2ccc749977c109273713c57a776db",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-02",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-02",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "52e6464a63161746ad5cb758b5a455d9a30786ccb00676812f2c2831cfe8f5b6",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.",
+            "source_ids": [
+              "KB-20"
+            ]
+          },
+          {
+            "text": "A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+            "source_ids": [
+              "KB-20"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "2/9 These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "3/9 The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "4/9 A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "5/9 Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "7/9 For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "8/9 Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.",
+          "source_ids": [
+            "KB-20"
+          ]
+        },
+        {
+          "text": "9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+          "source_ids": [
+            "KB-20"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  }
+]

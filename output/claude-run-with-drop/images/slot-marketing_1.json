@@ -1,0 +1,12 @@
+{
+  "concept": "A smart contract review reports each finding with its severity, root cause and a recommended fix",
+  "scene": "Clean brand card on a deep navy background with a simple abstract checklist motif of three stacked horizontal bars in amber, suggesting severity, root cause and fix. Large white overlay text centered, generous margins, no extra icons or badges.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "its severity, its root cause and a recommended fix",
+  "alt_text": "Navy card with three amber bars and the white text: its severity, its root cause and a recommended fix.",
+  "severity": null
+}

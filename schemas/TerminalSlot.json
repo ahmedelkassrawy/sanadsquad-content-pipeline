@@ -39,6 +39,18 @@
       },
       "title": "Reasons",
       "type": "array"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
     }
   },
   "required": [

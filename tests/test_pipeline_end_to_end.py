@@ -95,7 +95,7 @@ class OfflineModels:
                 text = (
                     "State before calls."
                     if source_id.startswith("KB-")
-                    else "Sentinel Grove completed 12 fictional audits."
+                    else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
                     else "Source evidence supports this topic."
                 )
@@ -383,6 +383,24 @@ async def test_slot_failure_isolation_and_fail_closed_output(tmp_path, mode, out
         )
     for path in [tmp_path / "run/usage.jsonl", tmp_path / "run/run_summary.json"]:
         assert "synthetic-key-must-not-leak" not in path.read_text()
+
+
+async def test_a_failed_api_slot_records_its_error_in_the_summary_and_log(tmp_path):
+    summary = await run(tmp_path, OfflineModels({"a": {"api": True}}))
+
+    error = summary.slots["a"].error
+    saved = json.loads((tmp_path / "run/run_summary.json").read_text())["slots"]["a"]
+    log = (tmp_path / "run/run.log").read_text()
+
+    assert summary.slots["a"].outcome.value == "failed_api"
+    assert error and error.startswith("ModelFailure:")
+    assert saved["error"] == error
+    assert f"   error      {error}" in log
+    assert summary.slots["b"].error is None
+    # The provider message (a stand-in for a key) never reaches the run folder.
+    for path in (tmp_path / "run").rglob("*"):
+        if path.is_file() and path.suffix in {".json", ".log", ".jsonl", ".md"}:
+            assert "synthetic-key-must-not-leak" not in path.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("focus", ["unknown", "endless", "no-evidence", "fetch-failed"])

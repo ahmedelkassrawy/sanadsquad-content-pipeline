@@ -1,12 +1,12 @@
 {
-  "concept": "Brand card asking who reviews smart contract code before it ships, anchored by the firm's audit focus",
-  "scene": "Deep navy background with a minimal amber grove-of-trees motif made of simple geometric lines, a thin amber rule beneath a large centered white headline, calm and precise engineering feel, no characters or extra text",
+  "concept": "A smart contract audit review that reports each finding with its severity, root cause and a recommended fix",
+  "scene": "Clean brand card on a deep navy background with a simple amber shield outline beside a short list of three finding lines, suggesting a structured audit report. Minimal, calm and engineering-focused, with generous spacing.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "smart contract audit firm",
-  "alt_text": "Navy brand card with a minimal amber grove motif and the words smart contract audit firm in white",
+  "overlay_text": "its severity, its root cause and a recommended fix",
+  "alt_text": "Navy brand card with an amber shield outline and a short list of report lines, with the text: its severity, its root cause and a recommended fix.",
   "severity": null
 }

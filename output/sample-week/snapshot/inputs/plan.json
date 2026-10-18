@@ -4,37 +4,43 @@
       "slot_id": "thread_1",
       "type": "tech-thread",
       "focus": "reentrancy",
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     },
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
       "focus": "ERC-4626 vault inflation attack",
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     },
     {
       "slot_id": "thread_3",
       "type": "tech-thread",
       "focus": null,
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     },
     {
       "slot_id": "marketing_1",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     },
     {
       "slot_id": "marketing_2",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     },
     {
       "slot_id": "marketing_3",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": null
+      "topic_id": null,
+      "angle_source": null
     }
   ]
 }

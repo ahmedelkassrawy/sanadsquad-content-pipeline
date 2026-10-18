@@ -7,37 +7,43 @@
       "slot_id": "thread_1",
       "type": "tech-thread",
       "focus": "reentrancy",
-      "topic_id": "KB-01"
+      "topic_id": "KB-01",
+      "angle_source": null
     },
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
       "focus": "ERC-4626 vault inflation attack",
-      "topic_id": "WEB-a0fdaa7b887ec446"
+      "topic_id": "WEB-99daca103b3ce22c",
+      "angle_source": null
     },
     {
       "slot_id": "thread_3",
       "type": "tech-thread",
       "focus": null,
-      "topic_id": "KB-20"
+      "topic_id": "KB-18",
+      "angle_source": null
     },
     {
       "slot_id": "marketing_1",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": "ANGLE-service"
+      "topic_id": "ANGLE-service",
+      "angle_source": null
     },
     {
       "slot_id": "marketing_2",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": "ANGLE-credibility"
+      "topic_id": "ANGLE-credibility",
+      "angle_source": null
     },
     {
       "slot_id": "marketing_3",
       "type": "marketing-post",
       "focus": null,
-      "topic_id": "ANGLE-education"
+      "topic_id": "ANGLE-education",
+      "angle_source": "KB-04"
     }
   ],
   "warnings": [

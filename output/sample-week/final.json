@@ -1,36 +1,5 @@
 [
   {
-    "record_id": "marketing_1/final/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "topic_id": "ANGLE-service",
-    "topic_name": "service",
-    "draft": {
-      "slot_id": "marketing_1",
-      "attempt": 1,
-      "tweets": [
-        {
-          "text": "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-02",
-            "STAT-03"
-          ]
-        }
-      ]
-    },
-    "image": {
-      "slot_id": "marketing_1",
-      "path": "images/slot-marketing_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "thread_1/final/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
@@ -41,49 +10,55 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "1/8 A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
+          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again and again, because the balance is still unchanged when control comes back.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/8 Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
+          "text": "2/9 The mechanism: calling another contract hands it control. It can call back before the first call returns. State updates that come after an untrusted call allow repeated execution.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/8 Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
+          "text": "3/9 In the withdrawal case, the callback runs while the stored balance has not been cleared yet. So the second withdrawal is checked against the same old balance as the first.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
+          "text": "4/9 Ether transfers are not the only way in. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
+          "text": "5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "text": "6/9 For the withdrawal, save the amount and clear the stored balance before calling the recipient, as in `balances[msg.sender] = 0;` placed ahead of the external call.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
+          "text": "7/9 Then require the call to succeed, so a failure reverts the whole operation instead of leaving state half finished.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/8 Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too.",
+          "text": "8/9 A callback may enter through another function or dependency, not just the one you are reading. Review other callable paths and contracts that share the affected state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "9/9 Closing check for your own code: in each function, does any external call happen before the storage it depends on is updated? And which other paths share that state?",
           "source_ids": [
             "KB-01"
           ]
@@ -93,6 +68,83 @@
     "image": {
       "slot_id": "thread_1",
       "path": "images/slot-thread_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_3/final/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "topic_id": "KB-18",
+    "topic_name": "Price oracle manipulation",
+    "draft": {
+      "slot_id": "thread_3",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "1/9 A lending protocol that values collateral with a price an attacker can move is making decisions on incorrect values. That is price oracle manipulation, listed by OWASP as SC03.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "2/9 The root cause is trust. A contract implicitly assumes the price reflects market conditions, so the oracle becomes a trust boundary. Manipulation, staleness or misconfiguration can violate that trust.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "3/9 Spot price manipulation can come from large trades, flash loans or just-in-time liquidity in the same block. If core prices read a single spot value, the attacker only needs to move that one input.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "4/9 TWAPs are not automatically safe. OWASP lists TWAP manipulation over short windows or low-liquidity periods, plus stale or stuck data when freshness is not enforced.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "5/9 Aggregation can fail too. If it does not reject outliers, one manipulated source can still skew the result.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "6/9 Mitigation starts with inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "7/9 Limit exposure to any single source. Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "8/9 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Also monitor deviations between the oracle and reference markets with automated alerts.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "9/9 Check your own contract: which price inputs can an attacker move, directly or indirectly? Is freshness enforced, are outliers rejected, and what pauses when the price feed fails?",
+          "source_ids": [
+            "KB-18"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [
@@ -112,9 +164,10 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code.",
+          "text": "12 smart contract audits completed, by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you're ready.",
           "source_ids": [
             "STAT-01",
+            "STAT-02",
             "STAT-03"
           ]
         }
@@ -132,74 +185,27 @@
     }
   },
   {
-    "record_id": "thread_3/final/1/1",
-    "slot_id": "thread_3",
+    "record_id": "marketing_1/final/1/1",
+    "slot_id": "marketing_1",
     "attempt": 1,
-    "topic_id": "KB-20",
-    "topic_name": "Business logic errors",
+    "topic_id": "ANGLE-service",
+    "topic_name": "service",
     "draft": {
-      "slot_id": "thread_3",
+      "slot_id": "marketing_1",
       "attempt": 1,
       "tweets": [
         {
-          "text": "1/9 A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
+          "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports findings this way. Want a review of your smart contract code? Request one.",
           "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "2/9 OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "3/9 The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "4/9 Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "6/9 Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "7/9 OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "8/9 For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
-          "source_ids": [
-            "KB-20"
-          ]
-        },
-        {
-          "text": "9/9 Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
-          "source_ids": [
-            "KB-20"
+            "STAT-03",
+            "STAT-04"
           ]
         }
       ]
     },
     "image": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
+      "slot_id": "marketing_1",
+      "path": "images/slot-marketing_1.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [
@@ -219,9 +225,10 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?",
+          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer. Restrict withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
           "source_ids": [
-            "KB-01"
+            "KB-04",
+            "STAT-03"
           ]
         }
       ]
@@ -241,75 +248,71 @@
     "record_id": "thread_2/final/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "topic_id": "WEB-a0fdaa7b887ec446",
+    "topic_id": "WEB-99daca103b3ce22c",
     "topic_name": "ERC-4626 vault inflation attack",
     "draft": {
       "slot_id": "thread_2",
       "attempt": 2,
       "tweets": [
         {
-          "text": "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+          "text": "1/10 An empty ERC-4626 vault, a 1 unit deposit and a direct token transfer to the vault can leave the next depositor with zero shares. The attacker then redeems for the vault's whole balance.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-a0fdaa7b887ec446"
+            "WEB-99daca103b3ce22c"
           ]
         },
         {
-          "text": "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+          "text": "2/10 The root cause is the share price. A donation sent straight to the vault mints no shares, so the attacker's single share is now worth everything in the vault.",
           "source_ids": [
-            "WEB-a0fdaa7b887ec446",
-            "WEB-2daca0aeb740f7f4"
+            "WEB-99daca103b3ce22c"
           ]
         },
         {
-          "text": "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-f50d1927023d53fb"
-          ]
-        },
-        {
-          "text": "4/10 Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "5/10 Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+          "text": "3/10 Take a victim about to deposit 100 tokens into a brand-new vault. The attacker front-runs with a deposit of 1 wei and gets exactly one share. Then the attacker transfers 100 tokens directly to the vault.",
           "source_ids": [
             "WEB-2daca0aeb740f7f4"
           ]
         },
         {
-          "text": "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+          "text": "4/10 The vault now holds 100 tokens plus 1 wei behind one share. The victim's 100-token deposit divides by that balance and rounds down to zero shares, so the victim receives nothing tradeable.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "5/10 The vault then holds about 200 tokens, and the attacker owns its only share. Redeeming that share takes the whole balance, including the victim's deposit.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "6/10 No access control bug is needed. The vault in that example reads its live token balance with `balanceOf(address(this))`, so a plain transfer shifts the exchange rate without calling deposit.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "7/10 OpenZeppelin's fix uses virtual shares and assets with a decimal offset. The rate becomes `totalAssets() + 1` over `totalSupply()+10**offset`, so even an empty vault has a defined rate.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "8/10 The offset raises the donation an attacker needs by that many orders of magnitude. The virtual shares also capture part of the donation, which sets a high price for inflating the rate.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "9/10 Other mitigations: dead shares minted to an unrecoverable address at deployment, an initial deposit made atomically at deploy, and minimum share checks that revert a deposit receiving too few shares.",
+          "source_ids": [
+            "WEB-99daca103b3ce22c"
+          ]
+        },
+        {
+          "text": "10/10 Before trusting a vault, check how it computes `totalAssets()`, whether it uses virtual shares or seeds an initial deposit, and whether deposits revert on too few shares. Does yours do all three?",
           "source_ids": [
             "WEB-2daca0aeb740f7f4",
-            "WEB-f352e6124ca0c40d",
-            "WEB-a0fdaa7b887ec446"
+            "WEB-99daca103b3ce22c"
           ]
         }
       ]

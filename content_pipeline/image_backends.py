@@ -1,6 +1,7 @@
 """Render configured image backends without retaining provider credentials."""
 
 import asyncio
+import inspect
 import base64
 import binascii
 import io
@@ -158,7 +159,7 @@ async def _cloudflare_image(spec, account_id, token):
     return background, None
 
 
-async def render_image(spec, path, backends, credential_root, renderer, image_count):
+async def render_image(spec, path, backends, credential_root, renderer, image_count, style=None):
     """Render the first available backend, falling back with safe failure codes."""
     detail = None
 
@@ -183,12 +184,16 @@ async def render_image(spec, path, backends, credential_root, renderer, image_co
 
         if background is not None:
             try:
-                await asyncio.to_thread(render_card, spec, path, background)
+                await asyncio.to_thread(render_card, spec, path, background, style)
             except (OSError, ValueError, TypeError, IndexError) as error:
                 detail = ["render_error", type(error).__name__]
             else:
                 return "cloudflare_flux", None, None
 
-    await asyncio.to_thread(renderer, spec, path)
+    # A custom renderer (tests, other brands) may not take a style; the default one does.
+    if style is not None and "style" in inspect.signature(renderer).parameters:
+        await asyncio.to_thread(renderer, spec, path, style=style)
+    else:
+        await asyncio.to_thread(renderer, spec, path)
 
     return "pillow_card", "cloudflare_failed" if detail else None, detail

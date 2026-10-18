@@ -8,9 +8,9 @@ from content_pipeline.validation import (
     check_claim_words,
     claim_feedback,
     is_writer_note,
-    split_at_sentence,
     validate,
 )
+from content_pipeline.x_format import split_at_sentence
 
 ROOT = Path(__file__).resolve().parents[1]
 RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
@@ -162,7 +162,7 @@ def test_markdown_emphasis_is_removed_outside_code_and_logged():
 
 
 def test_markdown_emphasis_keeps_code_and_arithmetic():
-    from content_pipeline.validation import strip_markdown
+    from content_pipeline.x_format import strip_markdown
 
     assert strip_markdown("Use `a * b` and `*ptr*`.") == "Use `a * b` and `*ptr*`."
     assert strip_markdown("2 * 3 * 4 and a*b*c") == "2 * 3 * 4 and a*b*c"
@@ -180,19 +180,25 @@ def test_link_feedback_explains_how_to_rewrite_code_that_x_would_link():
     assert not is_writer_note("tweet_1:link_domain:target.call")
 
 
-def test_every_marketing_pack_gets_the_review_deliverable_stat():
+def test_each_angle_pack_holds_only_its_configured_stats():
     from content_pipeline.models import ResolvedSlot
     from content_pipeline.post_types import PostTypes
     from content_pipeline.research import KnowledgeBase
 
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
+    packs = {}
 
     for angle in types.angles("marketing-post"):
         slot = ResolvedSlot(slot_id="marketing_1", type="marketing-post", topic_id=angle.id)
-        pack = types.assigned_pack(slot, kb)
+        stats = {s.source_id for s in types.assigned_pack(slot, kb).sources if s.kind == "stat"}
+        packs[angle.name] = stats
 
-        assert "STAT-04" in {source.source_id for source in pack.sources}, angle.id
+        assert stats == set(angle.stat_ids), angle.id
+
+    # Service and credibility differ, so the two posts cannot be built from the same facts.
+    assert packs["service"] != packs["credibility"]
+    assert "STAT-04" in packs["service"]
 
 
 def test_claim_words_inside_code_spans_are_not_claims():
@@ -205,7 +211,7 @@ def test_claim_words_inside_code_spans_are_not_claims():
 
 
 def test_untagged_code_fence_keeps_its_first_word():
-    from content_pipeline.validation import strip_markdown
+    from content_pipeline.x_format import strip_markdown
 
     assert strip_markdown("Guard it: ```require(msg.sender == owner);``` first.") == (
         "Guard it: `require(msg.sender == owner);` first."
@@ -229,7 +235,7 @@ def test_no_split_when_widening_the_numbering_would_push_another_tweet_over():
 
 
 def test_code_fences_become_inline_code():
-    from content_pipeline.validation import strip_markdown
+    from content_pipeline.x_format import strip_markdown
 
     fenced = "Restrict it: ```solidity require(msg.sender == owner); ``` today."
 
@@ -245,7 +251,7 @@ def test_a_stray_backtick_does_not_hide_claim_words():
 
 
 def test_a_tag_word_used_as_code_is_kept():
-    from content_pipeline.validation import strip_markdown
+    from content_pipeline.x_format import strip_markdown
 
     assert strip_markdown("Do ```text = load()``` now.") == "Do `text = load()` now."
     assert strip_markdown("Do ```json.parse(x)``` now.") == "Do `json.parse(x)` now."

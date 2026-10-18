@@ -41,7 +41,7 @@ def test_one_blank_unit_rejects_otherwise_nonempty_thread():
         "Explain the root cause.",
         " \t ",
         "Check the invariant.",
-        "Review the evidence.",
+        "Review the call order.",
     ]
     result = validate_texts(texts)
     assert result.accepted is False
@@ -51,7 +51,7 @@ def test_one_blank_unit_rejects_otherwise_nonempty_thread():
         "2/5 Explain the root cause.",
         "3/5 ",
         "4/5 Check the invariant.",
-        "5/5 Review the evidence.",
+        "5/5 Review the call order.",
     ]
     assert [tweet.text for tweet in result.original.tweets] == texts
     assert result.fixes == ["tweet_3:whitespace"]

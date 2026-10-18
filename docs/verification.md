@@ -42,14 +42,18 @@ model will make sound editorial or grounding judgments.
 ## Live sample evidence
 
 `output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5
-reviewer, Sonnet 5.5 for every other agent), one Tavily search and six Cloudflare images.
+reviewer, Sonnet 5.5 for every other agent) and one Tavily search. Cloudflare returned HTTP 429,
+so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; `thread_2` shows a code-rule rejection and a retry. It excludes the
+cost. It shipped 6 of 6; `thread_2` shows a reviewer rejection (a worked example that did not add
+up) and a retry. `output/claude-run-with-drop/` is the run before it on the same models:
+`thread_2`'s first draft failed a code citation check, the second was rejected by the reviewer
+for the source's wrong "101" total, and the slot was dropped. It excludes the
 SQLite checkpoint, lock and identity files and therefore cannot be resumed.
 
-`output/sample-week/` predates the claim-word check, length split, link note, markdown fix and
-STAT-04, so it should be rerun on the current commit before it is cited as current behaviour.
+`output/failed-source-example/` is a live single-piece run on a made-up topic: research finds
+nothing that supports it and the slot ends `failed_research`, with the error in `run.log`.
 
 `output/free-run-with-drops/` holds the readable files of a free run (Ministral writers,
 Nemotron reviewer) on the older code that shows reviewer rejections and drops: 3 of 6 shipped.
@@ -58,8 +62,9 @@ rejections and one reviewer rejection each fixed on the retry.
 
 ## Boundaries not claimed
 
-- The Cloudflare image backend is unit-tested with mocked HTTP responses; the sample's six real
-  FLUX images are its only live check.
+- The Cloudflare image backend is unit-tested with mocked HTTP responses. Every live call so far
+  returned HTTP 429, so no generated background has been checked live; the sample's cards are
+  Pillow-drawn.
 - Provider availability, quotas and free-tier pricing can change independently of this code.
 - The knowledge base remains pending owner
   review before real publication.
