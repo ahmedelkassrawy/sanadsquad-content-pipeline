@@ -53,3 +53,5 @@ Rephrase or explain supplied facts without padding the thread with new facts; us
 If `previous_draft` is present, revise that actual rejected draft using every supplied feedback item; do not repeat it unchanged. Treat feedback as constraints to fix, not copy to publish.
 
 When feedback says a claim is unsupported, delete it or restate exactly what the evidence says. Do not swap in a different unsupported detail, formula or number.
+
+When feedback says a worked example does not add up, recompute every figure from your own earlier tweets and write the corrected total, or drop the total. Never restate the source's figure: sources make arithmetic slips too.
