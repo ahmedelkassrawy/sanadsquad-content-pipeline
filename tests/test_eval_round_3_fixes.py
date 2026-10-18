@@ -114,3 +114,28 @@ async def test_research_failures_say_why():
     assert describe_error(error) == (
         "ModelFailure: failed_research (step_limit_reached_without_supporting_evidence)"
     )
+
+
+def test_natural_rewordings_of_a_joined_or_misbound_stat_are_caught():
+    pack = stat_pack()
+
+    assert check_stat_claims(
+        "Our three auditors have completed 12 smart contract audits.", pack
+    ) == ["joined_stats:STAT-01+STAT-02"]
+    assert check_stat_claims(
+        "Sentinel Grove has completed twelve smart contract audits with 3 auditors.", pack
+    ) == ["joined_stats:STAT-01+STAT-02"]
+    assert check_stat_claims("Sentinel Grove has 12 smart contract auditors.", pack) == [
+        "stat_misbound:12 smart"
+    ]
+
+
+def test_reordered_or_linked_stat_numbers_are_not_false_positives():
+    pack = stat_pack()
+
+    for text in [
+        "12 completed smart contract audits.",
+        "A 3-auditor team.",
+        "See https://example.com/12 for details.",
+    ]:
+        assert check_stat_claims(text, pack) == [], text

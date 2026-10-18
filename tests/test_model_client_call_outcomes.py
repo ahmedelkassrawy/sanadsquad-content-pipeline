@@ -112,9 +112,11 @@ async def test_rate_limit_then_success_releases_reservation(tmp_path):
 async def test_definite_provider_refusal_is_confirmed_zero_usage(tmp_path, status, kind, failure):
     client, delays = client_for(tmp_path, ProviderError(status))
 
-    with pytest.raises(ModelFailure, match=kind):
+    with pytest.raises(ModelFailure, match=kind) as raised:
         await call(client)
 
+    # The failure kind is joined by the HTTP status, so a summary says what the provider sent.
+    assert raised.value.detail == f"{failure}:http_{status}"
     assert delays == []
     assert client.ledger.totals()["tokens"] == 0
     assert client.ledger.totals()["uncertain_cost_usd"] == 0

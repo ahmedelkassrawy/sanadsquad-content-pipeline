@@ -198,30 +198,47 @@ def check_repeated_openings(texts: list[str]) -> list[str]:
     ]
 
 
-# How many words after a stat's number its noun may come ("12 smart contract audits").
+# How many words after a number the stat's noun may come ("12 smart contract audits").
 _STAT_NOUN_WINDOW = 4
 _SENTENCE = re.compile(r"(?<=[.?!])\s+")
 _WORDS = re.compile(r"[^\W_]+")
+# Spelled-out numbers count too: "our three auditors" uses STAT-02's 3.
+_NUMBER_WORDS = {
+    word: str(value)
+    for value, word in enumerate(
+        "zero one two three four five six seven eight nine ten eleven twelve thirteen "
+        "fourteen fifteen sixteen seventeen eighteen nineteen twenty".split()
+    )
+}
 
 
-def _stat_nouns(stat_text: str, number: str) -> set[str]:
-    """Words that follow a number in an approved stat, such as {"smart", "contract", "audits"}."""
-    words = _WORDS.findall(stat_text.casefold())
+def _singular(word: str) -> str:
+    return word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
 
-    return {
-        word
-        for index, token in enumerate(words)
-        if token == number
-        for word in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]
-    }
+
+def _stat_head_noun(stat_text: str, number: str) -> str | None:
+    """The noun a stat attaches to its number: the last word of the phrase after it.
+
+    "has completed 12 smart contract audits." gives "audit"; "has 3 auditors." gives "auditor".
+    """
+    for clause in re.split(r"[.,;:]", stat_text.casefold()):
+        words = [_NUMBER_WORDS.get(w, w) for w in _WORDS.findall(clause)]
+
+        if number in words:
+            phrase = words[words.index(number) + 1 : words.index(number) + 1 + _STAT_NOUN_WINDOW]
+
+            return _singular(phrase[-1]) if phrase else None
+
+    return None
 
 
 def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     """Keep approved firm stats as the separate facts they are.
 
-    A number taken from a stat must keep that stat's noun ("12 auditors" from "12 audits" and
-    "3 auditors" fails), and numbers from two different stats may not share a sentence ("12
-    audits completed by a team of 3 auditors" claims the three did all twelve).
+    A number taken from a stat must keep that stat's noun within a few words ("12 smart contract
+    auditors" or "12 auditors" fails, "12 completed audits" passes), and numbers from two
+    different stats may not share a sentence ("our three auditors completed 12 audits" claims the
+    three did all twelve). Spelled-out numbers count; numbers in code spans and links do not.
     """
     stats = [s for s in pack.sources if s.kind == "stat" and s.status == "ok"]
 
@@ -230,24 +247,29 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
 
     violations = []
     prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
+    prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
 
     for sentence in _SENTENCE.split(prose):
-        words = _WORDS.findall(sentence.casefold())
+        words = [_NUMBER_WORDS.get(w, w) for w in _WORDS.findall(sentence.casefold())]
         used = set()
 
         for index, word in enumerate(words):
-            owners = [s for s in stats if word in numbers_in(s.evidence_text)]
-
-            if not word.isdigit() or not owners:
+            if not word.isdigit():
                 continue
 
-            following = words[index + 1] if index + 1 < len(words) else ""
-            bound = [s for s in owners if following in _stat_nouns(s.evidence_text, word)]
+            owners = [s for s in stats if word in numbers_in(s.evidence_text)]
 
-            if not bound:
-                violations.append(f"stat_misbound:{word} {following}".rstrip())
-            else:
+            if not owners:
+                continue
+
+            window = {_singular(w) for w in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]}
+            bound = [s for s in owners if _stat_head_noun(s.evidence_text, word) in window]
+
+            if bound:
                 used.add(bound[0].source_id)
+            else:
+                following = words[index + 1] if index + 1 < len(words) else ""
+                violations.append(f"stat_misbound:{word} {following}".rstrip())
 
         if len(used) > 1:
             violations.append("joined_stats:" + "+".join(sorted(used)))

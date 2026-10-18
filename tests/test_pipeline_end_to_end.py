@@ -425,6 +425,10 @@ async def test_research_web_fallback_retained_evidence_and_step_cap(tmp_path, fo
         call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"
     ]
     assert len(research_calls) <= 4
+    if focus != "unknown":
+        # The summary says why research failed, not just that it did.
+        assert summary.slots["a"].error.startswith("ModelFailure: failed_research (")
+        assert summary.slots["a"].error != "ModelFailure: failed_research"
 
 
 @pytest.mark.parametrize("mode", ["visual_api", "banned", "new-stat"])
