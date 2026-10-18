@@ -11,13 +11,13 @@
       "reasons": [
         "failed_research"
       ],
-      "error": "ModelFailure: failed_research"
+      "error": "ModelFailure: failed_research (search_limit_reached:4_searches)"
     }
   },
   "shipped": 0,
-  "confirmed_tokens": 59969,
+  "confirmed_tokens": 48579,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.0119938,
+  "confirmed_cost_usd": 0.0097158,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {
