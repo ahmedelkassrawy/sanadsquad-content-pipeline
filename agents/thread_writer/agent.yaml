@@ -1,5 +1,5 @@
 model: anthropic:claude-sonnet-5-5
 max_output_tokens: 6000
-reasoning_effort: low
+reasoning_effort: medium
 skills:
 - brand_rules

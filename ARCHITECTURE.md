@@ -108,7 +108,8 @@ alone proves no claim, so the reviewer checks every factual clause, cited or not
   set its own.
 - An agent's `agent.yaml` can set `model:` to override it. The committed config pins the
   reviewer to `anthropic:claude-opus-5-5`, a larger model than the writers, and every other
-  agent to `anthropic:claude-sonnet-5-5`, all at reasoning effort low. genai-prices prices
+  agent to `anthropic:claude-sonnet-5-5`, all at reasoning effort low except the thread writer
+  (medium). genai-prices prices
   both. Anthropic calls use native JSON-schema structured output, because Opus 5.5 rejects
   forced tool calls. A free setup is in `docs/providers-and-cost.md`.
 - `MODEL_OVERRIDE` (or `--model-override`) replaces the model of every agent at once.

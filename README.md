@@ -40,7 +40,8 @@ provider name decides which key is read. The committed config needs:
 - `ANTHROPIC_API_KEY`: every agent. The reviewer runs on Claude Opus 5.5
   (`anthropic:claude-opus-5-5`), a larger model than the writers; the writers, research,
   visual and advisor run on Claude Sonnet 5.5 (`anthropic:claude-sonnet-5-5`). All use
-  reasoning effort low.
+  reasoning effort low, except the thread writer at medium, so it explains the evidence
+  instead of copying it.
 - Optional: `TAVILY_API_KEY` (web search; DDGS is used without it), `CLOUDFLARE_ACCOUNT_ID`
   and `CLOUDFLARE_API_TOKEN` (FLUX image background; otherwise a Pillow card).
 
