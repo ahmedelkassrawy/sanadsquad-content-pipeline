@@ -167,3 +167,101 @@ def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
         assert image.getpixel((68, 300)) == (0xFC, 0xA3, 0x11)
 
     assert plain.read_bytes() != styled.read_bytes()
+
+
+def test_week_selection_records_angle_source_and_warns_on_a_forced_repeat():
+    from types import SimpleNamespace
+    from content_pipeline.contracts import SlotState
+    from content_pipeline.pipeline import Pipeline
+
+    types = PostTypes(ROOT)
+    candidates = next(a for a in types.angles("marketing-post") if a.pick_one).source_ids
+    threads = [
+        SlotState(slot=ResolvedSlot(slot_id=f"t{i}", type="tech-thread", topic_id=kb_id))
+        for i, kb_id in enumerate(candidates)
+    ]
+    education = SlotState(slot=education_slot())
+    host = SimpleNamespace(types=types)
+
+    warnings = Pipeline._choose_angle_sources(host, threads[:1] + [education])
+
+    assert education.slot.angle_source == candidates[1] and warnings == []
+
+    education = SlotState(slot=education_slot())
+    warnings = Pipeline._choose_angle_sources(host, threads + [education])
+
+    assert education.slot.angle_source == candidates[0]
+    assert warnings == [f"duplicate_topic:marketing_3:{candidates[0]}"]
+
+
+def test_redaction_covers_key_values_of_any_shape():
+    from content_pipeline.model_client import ModelFailure
+
+    error = ValueError(
+        "GET https://api.example.com/v1?api_key=tvly1234abcd5678 failed: "
+        "secret=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY Authorization: Bearer ab.cd.ef"
+    )
+    described = describe_error(error)
+
+    for leaked in ["tvly1234abcd5678", "wJalrXUtnFEMI", "ab.cd.ef"]:
+        assert leaked not in described
+    assert describe_error(ModelFailure("auth")) == "ModelFailure: auth"
+    assert describe_error(ModelFailure("failed_output", "slot_id_mismatch")) == (
+        "ModelFailure: failed_output (slot_id_mismatch)"
+    )
+
+
+def test_numbered_steps_and_closing_checklists_may_share_an_opening():
+    assert check_repeated_openings(["Step 1: a.", "Step 2: b.", "Step 3: c."]) == []
+    assert check_repeated_openings(["Is a set?", "Is b set?", "Is c set?"]) == []
+
+
+def test_a_two_colour_palette_still_draws_a_card(tmp_path):
+    spec = ImageSpec(
+        concept="c", scene="s", palette=["#14213d", "#ffffff"], overlay_text="Order", alt_text="a"
+    )
+
+    render_card(spec, tmp_path / "card.png")
+
+    with Image.open(tmp_path / "card.png") as image:
+        assert image.size == (1200, 675)
+
+
+def test_an_unknown_angle_stat_id_is_refused(tmp_path):
+    import shutil
+    import pytest
+
+    root = tmp_path / "root"
+    for folder in ["inputs", "agents", "post_types", "skills", "config"]:
+        shutil.copytree(ROOT / folder, root / folder)
+    path = root / "post_types/marketing-post/angles.yaml"
+    path.write_text(path.read_text().replace("STAT-04", "STAT-99"))
+
+    with pytest.raises(ValueError, match="unknown approved stat"):
+        PostTypes(root).angles("marketing-post")
+
+
+async def test_the_style_reaches_renderers_that_accept_it_only(tmp_path):
+    from content_pipeline.image_backends import render_image
+    from content_pipeline.images import CardStyle
+
+    calls = []
+
+    def plain(spec, path):
+        calls.append(("plain", None))
+
+    def styled(spec, path, style=None):
+        calls.append(("styled", style))
+
+    async def count(key):
+        pass
+
+    spec = ImageSpec(concept="c", scene="s", palette=RULES.palette, overlay_text="o", alt_text="a")
+    style = CardStyle(template="technical", brand_name="B")
+
+    for renderer in (plain, styled):
+        await render_image(
+            spec, tmp_path / "x.png", ["pillow_card"], tmp_path, renderer, count, style
+        )
+
+    assert calls == [("plain", None), ("styled", style)]

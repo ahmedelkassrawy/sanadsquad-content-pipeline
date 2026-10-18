@@ -425,6 +425,8 @@ class LaneState(TypedDict):
     outcome: str | None
     reasons: list[str]
     feedback: list[str]
+    # Declared so LangGraph carries it between nodes; undeclared keys are dropped.
+    error: str | None
     slots: dict
 
 
@@ -441,14 +443,28 @@ def _writer_failure_note(detail):
 
 
 # Long runs of key-like characters (API keys, tokens, account ids) never reach the run folder.
-_SECRET_LIKE = re.compile(r"(?:sk|nvapi|gsk|AIza)[-_A-Za-z0-9]{8,}|[A-Za-z0-9_\-]{28,}")
+_SECRET_LIKE = re.compile(r"(?:sk|nvapi|gsk|AIza|tvly)[-_A-Za-z0-9]{8,}|[A-Za-z0-9_\-+/=]{28,}")
+# The value after a credential-looking name or an auth scheme, whatever its shape.
+_SECRET_VALUE = re.compile(
+    r"(?i)(authorization\s*[=:]\s*(?:(?:bearer|basic)\s+)?|(?:bearer|basic)\s+"
+    r"|(?:api[_-]?key|key|token|secret|password)\s*[=:]\s*)[^\s&,;\"']+"
+)
 
 
 def describe_error(error) -> str:
-    """A short, key-free description of a stage exception for the run summary."""
-    detail = getattr(error, "detail", None)
-    message = str(detail if detail else error)
-    message = _SECRET_LIKE.sub("[redacted]", " ".join(message.split()))
+    """A short, key-free description of a stage exception for the run summary.
+
+    A ModelFailure carries only its failure kind and detail code. Any other exception keeps
+    its message, with credential values and long key-like strings replaced by [redacted].
+    """
+    if isinstance(error, ModelFailure):
+        detail = error.detail if isinstance(error.detail, str) else None
+
+        return f"ModelFailure: {error.outcome}" + (f" ({detail})" if detail else "")
+
+    message = " ".join(str(error).split())
+    message = _SECRET_VALUE.sub(r"\1[redacted]", message)
+    message = _SECRET_LIKE.sub("[redacted]", message)
 
     return f"{type(error).__name__}: {message}"[:300]
 

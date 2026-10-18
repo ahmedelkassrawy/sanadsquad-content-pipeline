@@ -594,6 +594,9 @@ async def test_advisor_disabled_and_zero_export_budget_failure_are_explicit(tmp_
     )
     assert disabled.shipped == 1 and disabled.advisor == "not_enabled"
     assert not any(call[2] == "AdvisorOutput" for call in models.calls)
+    # With the advisor off there is no advice, so no empty advice files ship.
+    assert not (tmp_path / "disabled/advice.md").exists()
+    assert not (tmp_path / "disabled/advice.patch").exists()
     failed = await run_pipeline(
         ROOT,
         one_slot(),

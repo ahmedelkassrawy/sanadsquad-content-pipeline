@@ -22,7 +22,6 @@ banned_words:
 - this article
 - the discussion
 - the evidence
-- the supplied
 - the research pack
 - according to the source
 banned_characters:

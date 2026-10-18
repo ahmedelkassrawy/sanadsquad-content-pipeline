@@ -230,7 +230,11 @@ def render_card(
     """Draw the approved overlay, brand header, code panel and badge over a plain or generated
     background. Every word on the card comes from the approved spec or the approved post."""
     style = style or CardStyle()
-    navy, accent, white = (ImageColor.getrgb(color) for color in spec.palette[:3])
+    # First colour is the background, the last is the text, and the second (if any) the accent,
+    # so any palette with at least one colour still draws.
+    navy = ImageColor.getrgb(spec.palette[0])
+    white = ImageColor.getrgb(spec.palette[-1])
+    accent = ImageColor.getrgb(spec.palette[1]) if len(spec.palette) > 2 else white
     width, height = CARD_SIZE
 
     if background is not None:

@@ -166,7 +166,9 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
 
 # Opening words common enough that three tweets may share them.
 _OPENING_STOPWORDS = frozenset(
-    "a an and but for if in it so the this that to when you your we".split()
+    "a an and but for if in it so the this that to when you your we "
+    # Numbered steps and closing checklists ("Step 1:", "Is ...?") legitimately repeat.
+    "step is are does do can what how why".split()
 )
 REPEATED_OPENING_LIMIT = 3
 
