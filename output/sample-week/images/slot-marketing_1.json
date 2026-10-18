@@ -1,6 +1,6 @@
 {
-  "concept": "A review that reports each finding with its severity, root cause and recommended fix",
-  "scene": "Clean brand card with a deep navy background, a thin amber accent rule above the overlay text, and a minimal outlined shield motif in the corner. Text is left-aligned in white with generous margins.",
+  "concept": "A Sentinel Grove review reports each finding with its severity, root cause and a recommended fix, presented as a clear, structured brand card.",
+  "scene": "Solid deep navy background with a simple amber accent line and a minimal grove-inspired shield motif. The overlay text sits centered in white with generous spacing.",
   "palette": [
     "#14213d",
     "#fca311",

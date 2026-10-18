@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy happens when state is updated after an external call, so the order of steps matters",
-  "scene": "Technical card on a deep navy background: two stacked blocks of contract code, with an amber arrow looping from an external call back up into the function before the balance is cleared. A second block below shows the corrected order with the state update placed first.",
+  "concept": "Reentrancy risk: state updated after an external call lets a callback repeat the withdrawal",
+  "scene": "Flat technical diagram on a deep navy background: a contract block sends an arrow to an external contract, and a looping amber arrow returns to the first block, showing a callback before the balance is cleared. Minimal line icons, calm and precise, with a clear space for overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "update the relevant storage state",
-  "alt_text": "Diagram of a contract function where an external call loops back into the function before the balance is cleared, beside the corrected order that updates state first.",
+  "overlay_text": "State updates after untrusted calls",
+  "alt_text": "Diagram of a contract calling an external contract, with a looping arrow showing a callback re-entering before the balance is cleared.",
   "severity": "high"
 }

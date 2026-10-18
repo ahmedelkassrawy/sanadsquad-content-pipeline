@@ -2,7 +2,7 @@
   "record_id": "_run/summary/1/1",
   "slot_id": "_run",
   "attempt": 1,
-  "run_id": "week-55",
+  "run_id": "week-61",
   "slots": {
     "thread_1": {
       "outcome": "shipped",
@@ -13,15 +13,15 @@
     },
     "thread_2": {
       "outcome": "shipped",
-      "attempts": 2,
-      "topic_id": "WEB-584322e81b0c7db3",
+      "attempts": 1,
+      "topic_id": "KB-18",
       "reasons": [],
       "error": null
     },
     "thread_3": {
       "outcome": "shipped",
       "attempts": 1,
-      "topic_id": "KB-11",
+      "topic_id": "KB-07",
       "reasons": [],
       "error": null
     },
@@ -48,17 +48,17 @@
     }
   },
   "shipped": 6,
-  "confirmed_tokens": 217153,
+  "confirmed_tokens": 92890,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.726694,
+  "confirmed_cost_usd": 0.352182,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {
-    "search_calls": 1,
-    "tavily_calls": 1,
+    "search_calls": 0,
+    "tavily_calls": 0,
     "ddgs_calls": 0,
     "fetch_calls": 0,
-    "tavily_credits": 1.0,
+    "tavily_credits": 0.0,
     "tavily_credits_estimated": false,
     "image_calls": 6,
     "cloudflare_images": 6,

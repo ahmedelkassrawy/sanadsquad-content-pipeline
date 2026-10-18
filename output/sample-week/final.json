@@ -1,5 +1,159 @@
 [
   {
+    "record_id": "thread_1/final/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "topic_id": "KB-01",
+    "topic_name": "Reentrancy",
+    "draft": {
+      "slot_id": "thread_1",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again, because the balance is still unchanged when control comes back.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/9 The root cause is a state update that comes after an untrusted call. That ordering allows repeated execution of the same logic.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/9 In the withdrawal case, save the withdrawal amount and clear the stored balance with `balances[msg.sender] = 0;` before calling the recipient.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "7/9 Then require the call to succeed, so a failure reverts the whole operation.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "8/9 Review other callable paths and contracts that share the affected state. A callback may enter through another function or a dependency.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "9/9 Check each function: does any storage write come after an external call, and can a callback reach another function that reads that same state?",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_1",
+      "path": "images/slot-thread_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_2/final/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "topic_id": "KB-18",
+    "topic_name": "Price oracle manipulation",
+    "draft": {
+      "slot_id": "thread_2",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "1/9 A lending protocol that values collateral with a price an attacker can move will make decisions on incorrect values. That is price oracle manipulation, listed by OWASP as SC03.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "2/9 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions. Manipulation, staleness or misconfiguration can violate that trust.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "3/9 The root cause is simple: the protocol trusts price inputs attackers can move. Direct or indirect influence over the data is enough to push the protocol to act on wrong values.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "4/9 OWASP lists several ways in. Spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block. TWAP manipulation over short windows or low-liquidity periods.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "5/9 Data can also fail without an attacker trading. Stale or stuck data is a risk when freshness is not enforced, and aggregation that fails to reject outliers lets a bad value through.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "6/9 On the input side, OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "7/9 Limit exposure to any single source too. Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "8/9 Add a brake. Halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data, and monitor deviations between the oracle and reference markets with automated alerts.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "9/9 Check one condition in your lending logic: can a single pool's spot price, moved within one block, change a collateral valuation or trigger a liquidation without any staleness or outlier check?",
+          "source_ids": [
+            "KB-18"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_2",
+      "path": "images/slot-thread_2.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
     "record_id": "marketing_1/final/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
@@ -10,7 +164,7 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Want one for your smart contract code? Request a review from our team.",
+          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your contracts.",
           "source_ids": [
             "STAT-04",
             "STAT-05"
@@ -33,58 +187,58 @@
     "record_id": "thread_3/final/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "topic_id": "KB-11",
-    "topic_name": "Denial of service with failed call",
+    "topic_id": "KB-07",
+    "topic_name": "Authorization through tx.origin",
     "draft": {
       "slot_id": "thread_3",
       "attempt": 1,
       "tweets": [
         {
-          "text": "1/8 A loop that pays every recipient in one transaction has a weak point: one recipient that fails can block the whole operation.",
+          "text": "1/8 A wallet whose transferTo function requires `tx.origin == owner` can be drained when the owner calls into a malicious contract. The check passes for the attacker's call too.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "2/8 External calls can fail accidentally or deliberately. If a batch needs every call to succeed, progress depends on each transfer or call going through, and a single failure stops all of it.",
+          "text": "2/8 tx.origin is a global variable that returns the sender of the transaction across the full call chain. msg.sender is the sender of the current call. Those two values differ as soon as one contract calls another.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "3/8 Sending Ether can fail because the recipient runs out of gas, including through require, assert or revert. The Solidity documentation says that with transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
+          "text": "3/8 The root cause: the original transaction sender is treated as the authorized immediate caller. An authorized account that calls into a malicious contract carries its authority along the whole call chain.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "4/8 Payments pushed to many recipients in a loop are the typical case. One failing recipient in that loop can block the whole operation for everyone else.",
+          "text": "4/8 The Solidity documentation shows the pattern. A wallet's transferTo function requires `tx.origin == owner`. The owner is tricked into sending Ether to an attack wallet.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "5/8 The fix is to isolate each external call into its own transaction that the recipient of the call can initiate. Avoid combining multiple calls in a single transaction, especially inside a loop.",
+          "text": "5/8 The attack wallet's receive function then calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "6/8 For payments, let users withdraw funds rather than pushing funds to them automatically. This also reduces the chance of problems with the gas limit.",
+          "text": "6/8 The fix is to use msg.sender for authorization, not tx.origin: `require(msg.sender == owner);`",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "7/8 Always assume external calls can fail, and write the contract logic to handle failed calls. This guidance comes from SWC-113 in the SWC registry.",
+          "text": "7/8 With a msg.sender check, the victim wallet sees the attack wallet's address rather than the owner's address, so the authorization check fails and the transfer does not go through.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "8/8 Does any loop in your payout code require every external transfer to succeed before the function can finish?",
+          "text": "8/8 Does any authorization check in your wallet logic compare tx.origin to an owner or admin address instead of comparing msg.sender?",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         }
       ]
@@ -92,114 +246,6 @@
     "image": {
       "slot_id": "thread_3",
       "path": "images/slot-thread_3.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
-    "record_id": "thread_1/final/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "topic_id": "KB-01",
-    "topic_name": "Reentrancy",
-    "draft": {
-      "slot_id": "thread_1",
-      "attempt": 1,
-      "tweets": [
-        {
-          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be run against the same balance again. That is reentrancy, and the order of two steps decides it.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "2/9 Calling another contract hands it control. It can call back into yours before the first call returns, while your state is still unchanged.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "3/9 The root cause: state updates that come after untrusted calls allow repeated execution. The callback sees the old state and acts on it.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "4/9 In the withdrawal case, the callback withdraws against the still-unchanged balance again. The balance was never cleared before control left the contract.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "5/9 Ether transfers are not the only way in. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "6/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "7/9 For the withdrawal, save the amount, then clear the balance with `balances[msg.sender] = 0;` before calling the recipient. Require the call to succeed so a failure reverts the operation.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "8/9 A callback may also enter through another function or dependency. Review other callable paths and contracts that share the affected state.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "9/9 Does any storage write in a function come after an external call, or does another function share that state while a call is in flight?",
-          "source_ids": [
-            "KB-01"
-          ]
-        }
-      ]
-    },
-    "image": {
-      "slot_id": "thread_1",
-      "path": "images/slot-thread_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
-    "record_id": "marketing_2/final/1/1",
-    "slot_id": "marketing_2",
-    "attempt": 1,
-    "topic_id": "ANGLE-credibility",
-    "topic_name": "credibility",
-    "draft": {
-      "slot_id": "marketing_2",
-      "attempt": 1,
-      "tweets": [
-        {
-          "text": "Sentinel Grove has completed 12 smart contract audits. The team is 3 auditors. Want a review of your smart contract code? Request one from us.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-02",
-            "STAT-05"
-          ]
-        }
-      ]
-    },
-    "image": {
-      "slot_id": "marketing_2",
-      "path": "images/slot-marketing_2.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [
@@ -219,10 +265,9 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets anyone trigger a transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Request a review of your smart contract code from Sentinel Grove.",
+          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
           "source_ids": [
-            "KB-04",
-            "STAT-05"
+            "KB-04"
           ]
         }
       ]
@@ -239,84 +284,28 @@
     }
   },
   {
-    "record_id": "thread_2/final/2/1",
-    "slot_id": "thread_2",
-    "attempt": 2,
-    "topic_id": "WEB-584322e81b0c7db3",
-    "topic_name": "ERC-4626 vault inflation attack",
+    "record_id": "marketing_2/final/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "topic_id": "ANGLE-credibility",
+    "topic_name": "credibility",
     "draft": {
-      "slot_id": "thread_2",
-      "attempt": 2,
+      "slot_id": "marketing_2",
+      "attempt": 1,
       "tweets": [
         {
-          "text": "1/10 An empty ERC-4626 vault can lose its first deposit to a donation. An attacker deposits 1 wei, sends tokens straight to the vault, and the victim's deposit rounds down to zero shares.",
+          "text": "Sentinel Grove has completed 12 smart contract audits. The team has 3 auditors. Teams can request a review of their smart contract code from Sentinel Grove.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-584322e81b0c7db3"
-          ]
-        },
-        {
-          "text": "2/10 The root cause is the share math. Shares owed equal the deposit times total shares, divided by total assets held. When the vault reads its own token balance, a plain transfer to its address changes the price of a share.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "3/10 Take a brand-new vault where a user is about to deposit 100 tokens. An attacker front-runs with a deposit of 1 wei and receives exactly one share, since an empty vault prices shares 1:1.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "4/10 Next the attacker sends 100 tokens directly to the vault, never calling deposit or mint. The vault balance is now 100 tokens plus 1 wei, all backing a single share.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "5/10 The victim's 100-token deposit is multiplied by one share and divided by that balance of 100 tokens plus 1 wei. Solidity integer division rounds the result down to zero shares, so the victim receives nothing.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "6/10 The attacker still holds the only share, so redeeming it claims the vault balance, which now includes the victim's deposit.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "7/10 Rejecting zero-share mints alone is not enough. In the MixBytes example, the attacker donates less so the victim gets one share, the same as the attacker, and the attacker burns theirs for roughly half the pool.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "8/10 OpenZeppelin ERC4626 since v4.9 adds configurable virtual assets and shares through `_decimalsOffset()`. Its docs say this does not fully prevent the attack, but a larger offset makes it orders of magnitude more expensive than profitable.",
-          "source_ids": [
-            "WEB-584322e81b0c7db3"
-          ]
-        },
-        {
-          "text": "9/10 Vault deployers can also make an initial deposit of a non-trivial amount, so price manipulation becomes infeasible. A UniswapV2-style dead shares mint stops the theft in MixBytes' example, though a griefing opening remains.",
-          "source_ids": [
-            "WEB-584322e81b0c7db3",
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "10/10 Check your vault: does it compute share price from a live token balance while total supply can be a single share, with no virtual offset and no seed deposit?",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-584322e81b0c7db3"
+            "STAT-01",
+            "STAT-02",
+            "STAT-05"
           ]
         }
       ]
     },
     "image": {
-      "slot_id": "thread_2",
-      "path": "images/slot-thread_2.png",
+      "slot_id": "marketing_2",
+      "path": "images/slot-marketing_2.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [

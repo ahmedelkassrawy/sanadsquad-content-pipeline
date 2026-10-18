@@ -18,3 +18,8 @@ review:
 visual:
   template: technical
   severity_badge: auto
+# Counts more specific than the evidence: allowed only when the slot's evidence uses the word
+# (KB-01 says a callback can withdraw "again", which is not "twice").
+claim_words:
+- twice
+- thrice

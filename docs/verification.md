@@ -42,12 +42,13 @@ model will make sound editorial or grounding judgments.
 ## Live sample evidence
 
 `output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5
-reviewer, Sonnet 5.5 for every other agent) and one Tavily search. Cloudflare returned HTTP 429,
+reviewer, Sonnet 5.5 for every other agent), using the brief's `--set thread_2="oracle manipulation"`;
+the knowledge base covers that topic, so no web search ran. Cloudflare returned HTTP 429,
 so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; `thread_2` shows a reviewer rejection (a worked example that did not add
-up) and a retry. `output/claude-run-with-drop/` is the run before it on the same models:
+cost. It shipped 6 of 6, every piece on its first attempt. `output/claude-run-with-drop/` is an
+earlier run on the same models that shows rejections, retries and a drop:
 `thread_2`'s first draft failed a code citation check, the second was rejected by the reviewer
 for the source's wrong "101" total, and the slot was dropped. It excludes the
 SQLite checkpoint, lock and identity files and therefore cannot be resumed.

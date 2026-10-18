@@ -1,12 +1,12 @@
 {
-  "concept": "A payout loop where one failing external call blocks every other recipient, and the fix of letting users withdraw instead",
-  "scene": "Dark navy background with a horizontal row of small square nodes representing recipients connected by a line, one amber node highlighted as the failing call that interrupts the line, with white outlined nodes on either side. Clean technical layout with generous spacing and a calm engineering feel.",
+  "concept": "Authorization should check the immediate caller, not the original transaction sender",
+  "scene": "Technical diagram style card: a chain of three connected contract nodes on a dark navy background, with the origin node at the left and an amber highlight on the final node to show the caller that must be checked. Clean lines, calm and precise, no people.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "one failing recipient can block the whole operation",
-  "alt_text": "Diagram of a row of recipient nodes connected by a line, with one amber node breaking the line to show a failed external call blocking a batch payout.",
-  "severity": "medium"
+  "overlay_text": "use msg.sender instead",
+  "alt_text": "Diagram of three linked contract nodes on a navy background, with the last node highlighted in amber to show the immediate caller being checked for authorization.",
+  "severity": "high"
 }
