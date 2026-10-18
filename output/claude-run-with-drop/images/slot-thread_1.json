@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: finalize state before making external calls",
-  "scene": "A dark navy card with a simple diagram of a contract sending a call out to another contract and a callback arrow returning, with a highlighted state box marked as updated first. Calm, precise engineering style with clean lines and generous spacing.",
+  "concept": "Reentrancy caused by state updates after external calls, fixed by checks-effects-interactions ordering",
+  "scene": "Dark navy background with a simple diagram of two boxes labelled as contract and callee, with an amber arrow looping from the callee back into the contract before the first call returns. A small ordered list of three steps sits beside it, with the final step highlighted in amber. Clean technical style, plenty of empty space, white text area at the center.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "checks-effects-interactions",
-  "alt_text": "Brand image card with a diagram of a contract making an external call and receiving a callback, with the text checks-effects-interactions.",
+  "overlay_text": "State updates after untrusted calls",
+  "alt_text": "Diagram of a contract calling another contract, which calls back into the first before the original call returns, with an ordered list showing checks, effects, then interactions.",
   "severity": "high"
 }

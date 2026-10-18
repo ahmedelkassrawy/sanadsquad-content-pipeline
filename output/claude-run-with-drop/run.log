@@ -2,55 +2,52 @@
    research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
    research   topic KB-01 (Reentrancy) from KB-01
    draft 1    9 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=4 grounding=5 voice=4 clarity=3 cta=4
-   outcome    shipped after 1 attempt(s)
-== thread_2
-   research   search_kb 'ERC-4626 vault inflation attack' -> KB-16:ok, KB-07:ok, KB-01:ok, KB-02:ok, KB-03:ok
-   research   web_search 'ERC-4626 vault inflation attack first depositor donation share price manipulation mitigation virtual shares EIP-4626 security considerations' -> WEB-f50d1927023d53fb:ok, WEB-2daca0aeb740f7f4:ok, WEB-7c6bb2f81270ec91:ok, WEB-6e022746c54737c4:ok, WEB-0500eb916f66cd39:ok
-   research   topic WEB-f50d1927023d53fb (ERC-4626 vault inflation attack) from WEB-f50d1927023d53fb, WEB-2daca0aeb740f7f4, WEB-7c6bb2f81270ec91, WEB-0500eb916f66cd39
-   draft 1    9 tweets, rules FAILED: tweet_2:citation:WEB-1f50d1927023d53fb, tweet_7:citation:WEB-1f50d1927023d53fb
-   draft 2    9 tweets, rules ok
-   review 2   REJECTED  hook=4 technical_accuracy=1 grounding=2 voice=4 clarity=4 cta=4
-              hard fail: unsupported_claim
-              reason: The worked example does not add up. Tweet 4 says the vault holds about 101 tokens backing one share. Tweet 5 then adds the victim's 100-token deposit, but says the attacker takes the full 101-token balance, including the victim's deposit. After that deposit the vault holds about 201 tokens (1 wei, plus the 100-token donation, plus the 100-token deposit), not 101. The rubric scores a miscomputed worked example 1 even when the source repeats the figure.
-              reason: Most clauses trace to the sources. The formula, rounding and attack flow come from WEB-2daca0aeb740f7f4. The seed deposit, burned shares and minimum deposit fixes come from WEB-f50d1927023d53fb and WEB-7c6bb2f81270ec91. The 4.9 decimalsOffset comes from WEB-7c6bb2f81270ec91, and the spec leaving the defense to implementers comes from WEB-2daca0aeb740f7f4. The exception is the 101-token payout in tweet 5, which is arithmetically false in the thread's own sequence and so is not a supportable fact.
-              reason: Tweet 5 claims the attacker redeems and takes 'the full 101-token balance, including the victim's deposit'. After the victim's 100-token deposit lands on the roughly 101-token balance, the vault holds about 201 tokens. A 101-token figure cannot include the victim's deposit, so the clause is false in the thread's own numbers.
-   outcome    dropped_quality after 2 attempt(s), see review 2 reasons above
-== thread_3
-   research   topic KB-20 (Business logic errors) from KB-20
-   draft 1    9 tweets, rules ok
-   review 1   REJECTED  hook=4 technical_accuracy=3 grounding=2 voice=3 clarity=4 cta=4
-              hard fail: unsupported_claim
-              reason: Tweets 2, 4, 5, 6 and 7 match KB-20. Tweet 3's 'the missing rule is not in the code at all' narrows the root cause. The evidence says the implementation 'omits or misapplies' an invariant, and a misapplied rule is in the code.
-              reason: Two clauses do not trace to KB-20. Tweet 3's 'Nothing looks broken line by line, because the missing rule is not in the code at all' is extrapolation. Tweet 8's 'A rule only the auditors know is easy to break later' is an uncited causal claim. KB-20 only recommends that governance and operations teams understand the invariants.
-              reason: The tone is calm and precise, with no hype or banned words. OWASP is credited in several tweets, though ('OWASP calls', 'OWASP's vulnerable lending example', 'OWASP lists', 'OWASP also recommends'), which the rubric caps at 3.
-              reason: Tweet 3 claims 'the missing rule is not in the code at all' and 'nothing looks broken line by line', which ignores the 'misapplies' case in the evidence. Tweet 8 claims 'A rule only the auditors know is easy to break later', an effectiveness claim that KB-20 does not support.
-   draft 2    9 tweets, rules ok
-   review 2   accepted  hook=4 technical_accuracy=5 grounding=5 voice=4 clarity=4 cta=4
+   review 1   REJECTED  hook=5 technical_accuracy=5 grounding=5 voice=2 clarity=3 cta=4
+              reason: The tone is calm and precise, but several tweets reorder evidence sentences nearly verbatim instead of explaining them in the thread's own words. Examples: tweet 2 'Calling another contract hands it control...', tweet 4 'Reentrancy can arise from calls to any other contract, and dependencies spanning several contracts matter too', tweet 5 'state update placed after an untrusted call, which lets the same logic execute repeatedly', and tweet 6's checks-effects-interactions list. Rewrite these in original explanatory wording.
+              reason: The thread builds well from hook to mechanism, mitigation and check. However, tweet 3 largely restates tweet 1: an unchanged balance lets the same funds be withdrawn again. Tweet 9 also re-asks the point tweet 8 already made about every path sharing the state. Cut the overlap.
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=5 technical_accuracy=5 grounding=4 voice=5 clarity=5 cta=5
    outcome    shipped after 2 attempt(s)
+== thread_2
+   research   topic KB-11 (Denial of service with failed call) from KB-11
+   draft 1    8 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=5 grounding=5 voice=2 clarity=2 cta=4
+              reason: The tone is calm, but several tweets reuse evidence sentences nearly verbatim instead of explaining in the thread's own words. Tweet 2 repeats 'External calls can fail... When a contract needs every call in a batch to... a single failing recipient can block the entire operation'. Tweet 5 repeats 'a recipient that always fails... progress depends on every external transfer or call succeeding'. Tweet 7 repeats 'Isolate each external call in its own transaction that the recipient can initiate. Avoid combining several calls in one transaction, especially inside a loop'. This is reordered source text rather than explanation.
+              reason: Tweet 2 restates tweet 1's point that one failing recipient blocks the whole batch. Tweet 5 restates it again ('a recipient that always fails can stall progress'). The repeated core point weakens the build from hook to mechanism to mitigation.
+   draft 2    7 tweets, rules ok
+   review 2   accepted  hook=5 technical_accuracy=5 grounding=4 voice=4 clarity=5 cta=5
+   outcome    shipped after 2 attempt(s)
+== thread_3
+   research   topic KB-08 (Transaction order dependence) from KB-08
+   draft 1    9 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=3 grounding=2 voice=2 clarity=4 cta=4
+              hard fail: unsupported_claim
+              reason: The mechanism, both examples, the n + m versus max(n,m) arithmetic, the commit-reveal hash steps and the ERC20 fixes, including the conformance tradeoff, match KB-08. Tweet 7 adds an effectiveness conclusion the evidence does not state.
+              reason: Most clauses trace to KB-08. Tweet 7's 'so watching the mempool does not let Eve copy the answer' is a causal or effectiveness claim with no support in the evidence_text, which only describes the scheme's steps.
+              reason: The tone is calm and non-promotional. However, tweets 3, 4, 5, 6 and 8 reuse evidence sentences nearly verbatim (the math problem example, the allowance example and the 'best fix ... no longer conforms ... safe approve function is an alternative' wording) instead of explaining them in the thread's own words.
+              reason: Tweet 7 claims commit-reveal means 'watching the mempool does not let Eve copy the answer'. KB-08 describes the commit-reveal steps but never states this effectiveness result or mentions the mempool.
+   draft 2    9 tweets, rules FAILED: repeated_credit:swc
+   outcome    dropped_quality after 2 attempt(s): repeated_credit:swc
 == marketing_1
-   research   topic ANGLE-service (service) from STAT-03, STAT-04
+   research   topic ANGLE-service (service) from STAT-04, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
    outcome    shipped after 1 attempt(s)
 == marketing_2
-   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03
+   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   REJECTED  hook=3 technical_accuracy=5 grounding=1 voice=4 clarity=3 cta=5
-              hard fail: unsupported_claim
-              reason: The opening '12 smart contract audits completed by a team of 3 auditors' is concrete, but it is a plain stat statement with no angle or contrast. It reads as generic credibility copy.
-              reason: STAT-01 says the firm completed 12 audits, and STAT-02 says the firm has 3 auditors. The clause '12 smart contract audits completed by a team of 3 auditors' joins these into a new fact the evidence does not state: that this 3-person team performed all 12 audits. 'Sentinel Grove is a smart contract audit firm' and the review CTA are supported by STAT-03.
-              reason: The text is understandable but reads as three stacked facts. Its order is also awkward: the firm is identified only after the stats.
-              reason: '12 smart contract audits completed by a team of 3 auditors' attributes all 12 audits to the current 3 auditors. STAT-01 and STAT-02 state these facts separately and do not say the 3 auditors completed the 12 audits. Rewrite as two separate facts, for example: 'Sentinel Grove has completed 12 smart contract audits and has 3 auditors.'
-   draft 2    1 tweets, rules ok
-   review 2   accepted  hook=3 technical_accuracy=5 grounding=4 voice=4 clarity=3 cta=4
-   outcome    shipped after 2 attempt(s)
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
 == marketing_3
-   research   topic ANGLE-education (education-to-cta) from KB-04, STAT-03
+   research   topic ANGLE-education (education-to-cta) from KB-04
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=4 voice=5 clarity=5 cta=5
    outcome    shipped after 1 attempt(s)
 
 shipped 5, dropped or failed 1
-tokens 191043, LLM cost $0.6657
+tokens 123644, LLM cost $0.5030
+  research  2 call(s), 6265 tokens, $0.0132
+  writer    9 call(s), 48982 tokens, $0.1308
+  reviewer  8 call(s), 53659 tokens, $0.3205
+  visual    5 call(s), 14738 tokens, $0.0385
 advisor not_enabled

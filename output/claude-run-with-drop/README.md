@@ -1,22 +1,24 @@
-# Claude run with a drop (2026-10-18)
+# Claude run with a drop (2026-10-19, commit 440ab3c)
 
 The readable files and images of a live week on the committed models (Sonnet 5.5 writers, Opus
-5.5 reviewer), run with the same command as `output/sample-week`. It shipped 5 of 6 for $0.666.
+5.5 reviewer), run with
+`python run_week.py --plan inputs/plan.json --output <run>` at commit `440ab3c`
+(`fix/eval-round-4-polish`). It shipped 5 of 6 for $0.503.
 
-It shows the reviewer doing the job the brief asks for. In `run.log`:
+It shows every gate the brief asks about working in one run. In `run.log`:
 
-- `thread_2` (ERC-4626): the first draft failed a code citation check (it cited a mistyped
-  source id) and never reached the reviewer. The second draft was rejected by the reviewer
-  because its worked example does not add up: like the first, it copied the source's own
-  "101-token balance", while the thread's numbers give about 201. With its one retry used, the
-  slot was dropped, not shipped.
-- `thread_3` was rejected for crediting OWASP in several tweets and for one claim the evidence
-  does not support; the retry shipped.
-- `marketing_2` was rejected for joining two stats into a new fact ("12 audits completed by a
-  team of 3 auditors"); the retry shipped.
+- `thread_1` (reentrancy) and `thread_2` (denial of service with failed call): both first
+  drafts were rejected for reordering evidence sentences nearly verbatim and for repeating an
+  earlier point (`voice` and `clarity` at 2). Both retries shipped, with the same minimum score
+  rising from 2 to 4.
+- `thread_3` (transaction order dependence): draft 1 never left review — the reviewer set
+  `unsupported_claim` because tweet 7 added an effectiveness conclusion the evidence does not
+  state. Draft 2 never reached the reviewer: the code's credit rule hard-failed it for crediting
+  SWC in two tweets (`repeated_credit:swc`), so the slot was dropped. With its one retry used
+  and no acceptable draft, the run continued without it.
+- `marketing_1`, `marketing_2` and `marketing_3` shipped on their first attempt.
 
-This run used commit 5dd7f4a. After it, a writer rule was added (on an arithmetic rejection,
-recompute rather than restate the source's figure). Later runs on the same models shipped between
-4 and 6 of 6 (for example 4 of 6 and 5 of 6); their drops were real reviewer rejections. The
-committed `output/sample-week` is a later run that shipped 6 of 6. Only these files were copied, so
-this folder cannot be resumed.
+Start with `run.log`. `posts.csv` holds the five shipped pieces; `review_report.json` holds the
+three first-attempt rejections with the reviewer's reasons. Only these readable files and the
+five shipped images were copied (no checkpoint or snapshot), so this folder cannot be resumed
+or re-exported. The main sample is `output/sample-week`.
