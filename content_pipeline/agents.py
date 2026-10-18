@@ -94,7 +94,7 @@ class ResearchAgent(Agent):
             nonlocal searches
 
             if searches >= 4:
-                raise ModelFailure("failed_research")
+                raise ModelFailure("failed_research", "search_limit_reached:4_searches")
 
             searches += 1
 
@@ -151,13 +151,13 @@ class ResearchAgent(Agent):
                 if not action.source_ids or any(
                     id not in evidence or evidence[id].status != "ok" for id in action.source_ids
                 ):
-                    raise ModelFailure("failed_research")
+                    raise ModelFailure("failed_research", "finish_cited_no_usable_source")
 
                 selected = [evidence[id] for id in dict.fromkeys(action.source_ids)]
                 topic = action.topic_id or selected[0].source_id
 
                 if action.topic_id and action.topic_id not in action.source_ids:
-                    raise ModelFailure("failed_research")
+                    raise ModelFailure("failed_research", "topic_not_among_cited_sources")
 
                 title = (
                     self.kb.source(topic).title
@@ -170,11 +170,11 @@ class ResearchAgent(Agent):
                 )
 
             if not action.query.strip():
-                raise ModelFailure("failed_research")
+                raise ModelFailure("failed_research", "empty_search_query")
 
             await search(action.action, action.query)
 
-        raise ModelFailure("failed_research")
+        raise ModelFailure("failed_research", "step_limit_reached_without_supporting_evidence")
 
 
 class TopicSelector(Agent):

@@ -45,8 +45,9 @@ safe_fixes:
 approved_stats:
   STAT-01: 'Sentinel Grove has completed 12 smart contract audits.'
   STAT-02: 'Sentinel Grove has 3 auditors.'
-  STAT-03: 'Sentinel Grove is a smart contract audit firm. Teams can request a review of their smart contract code.'
+  STAT-03: 'Sentinel Grove is a smart contract audit firm.'
   STAT-04: 'A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix.'
+  STAT-05: 'Teams can request a review of their smart contract code from Sentinel Grove.'
 palette:
 - '#14213d'
 - '#fca311'

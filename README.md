@@ -84,6 +84,12 @@ trace files it contains (internal resume files are not listed), and `run.log` sh
 scores and reasons, and the outcome. `run_summary.json` has tokens and cost. A finished
 example is in [output/sample-week](output/sample-week).
 
+Importing `posts.csv` into a scheduler: each row is one post. A thread is one cell, with its
+tweets separated by newlines and already numbered (`1/8`, `2/8`). In a scheduler's thread
+composer (Typefully, Buffer), paste each line as its own tweet. The `Image` column is a path
+relative to the run folder (`images/slot-thread_1.png`); upload that file with the first
+tweet. The CSV is UTF-8 with standard quoting. Import into a real scheduler has not been tested.
+
 ## Quality gates in short
 
 Code checks tweet count and length, banned words and characters (an en dash is a banned character and is

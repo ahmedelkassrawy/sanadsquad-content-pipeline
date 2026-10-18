@@ -33,6 +33,7 @@ _THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
 _TOKEN = re.compile(r"\S+")
 CLAIM_NOTE_MARKER = ":delete the clause containing"
 LINK_NOTE_MARKER = ":X turns"
+STAT_NOTE_MARKER = ":state"
 
 
 def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
@@ -197,6 +198,63 @@ def check_repeated_openings(texts: list[str]) -> list[str]:
     ]
 
 
+# How many words after a stat's number its noun may come ("12 smart contract audits").
+_STAT_NOUN_WINDOW = 4
+_SENTENCE = re.compile(r"(?<=[.?!])\s+")
+_WORDS = re.compile(r"[^\W_]+")
+
+
+def _stat_nouns(stat_text: str, number: str) -> set[str]:
+    """Words that follow a number in an approved stat, such as {"smart", "contract", "audits"}."""
+    words = _WORDS.findall(stat_text.casefold())
+
+    return {
+        word
+        for index, token in enumerate(words)
+        if token == number
+        for word in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]
+    }
+
+
+def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
+    """Keep approved firm stats as the separate facts they are.
+
+    A number taken from a stat must keep that stat's noun ("12 auditors" from "12 audits" and
+    "3 auditors" fails), and numbers from two different stats may not share a sentence ("12
+    audits completed by a team of 3 auditors" claims the three did all twelve).
+    """
+    stats = [s for s in pack.sources if s.kind == "stat" and s.status == "ok"]
+
+    if not stats:
+        return []
+
+    violations = []
+    prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
+
+    for sentence in _SENTENCE.split(prose):
+        words = _WORDS.findall(sentence.casefold())
+        used = set()
+
+        for index, word in enumerate(words):
+            owners = [s for s in stats if word in numbers_in(s.evidence_text)]
+
+            if not word.isdigit() or not owners:
+                continue
+
+            following = words[index + 1] if index + 1 < len(words) else ""
+            bound = [s for s in owners if following in _stat_nouns(s.evidence_text, word)]
+
+            if not bound:
+                violations.append(f"stat_misbound:{word} {following}".rstrip())
+            else:
+                used.add(bound[0].source_id)
+
+        if len(used) > 1:
+            violations.append("joined_stats:" + "+".join(sorted(used)))
+
+    return violations
+
+
 def check_claim_words(text: str, pack: ResearchPack, claim_words: list[str]) -> list[str]:
     """Report configured claim words that the text uses and no usable source of the pack does."""
     if not claim_words:
@@ -283,6 +341,7 @@ def validate(
         # Checked before numbering, so the "3/8" prefix is not mistaken for a claim.
         unsourced.extend(f"tweet_{i}:{e}" for e in check_numbers(text, pack, focus))
         claims.extend(f"tweet_{i}:{e}" for e in check_claim_words(text, pack, spec.claim_words))
+        claims.extend(f"tweet_{i}:{e}" for e in check_stat_claims(text, pack))
 
         tweet.text = numbering(spec, i, len(fixed.tweets)) + text
 
@@ -353,12 +412,28 @@ def link_feedback(result: ValidationResult) -> list[str]:
     return notes
 
 
+def stat_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for approved stats that were joined or given a new noun."""
+    notes = []
+
+    for violation in result.violations:
+        if ":joined_stats:" in violation or ":stat_misbound:" in violation:
+            notes.append(
+                f"{violation}{STAT_NOTE_MARKER} each approved stat in its own sentence, with the "
+                "number next to the same noun the stat uses (for example two sentences: one for "
+                "the audit count, one for the team size)"
+            )
+
+    return notes
+
+
 def is_writer_note(reason: str) -> bool:
     """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
     return (
         (reason.startswith("tweet_") and ":weighted_length:" in reason)
         or CLAIM_NOTE_MARKER in reason
         or LINK_NOTE_MARKER in reason
+        or STAT_NOTE_MARKER + " each approved stat" in reason
     )
 
 

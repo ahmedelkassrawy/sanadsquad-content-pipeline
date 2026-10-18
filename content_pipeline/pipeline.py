@@ -54,6 +54,7 @@ from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
     link_feedback,
+    stat_feedback,
     colon_feedback,
     is_writer_note,
     length_feedback,
@@ -943,6 +944,7 @@ class Pipeline:
             + colon_feedback(result)
             + claim_feedback(result)
             + link_feedback(result)
+            + stat_feedback(result)
         )
 
         if saved is not None:
