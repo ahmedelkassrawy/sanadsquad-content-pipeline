@@ -95,7 +95,7 @@ class OfflineModels:
                 text = (
                     "State before calls."
                     if source_id.startswith("KB-")
-                    else "Sentinel Grove completed 12 fictional audits."
+                    else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
                     else "Source evidence supports this topic."
                 )

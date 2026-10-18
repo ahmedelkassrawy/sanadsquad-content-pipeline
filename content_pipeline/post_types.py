@@ -133,7 +133,14 @@ class PostTypes:
     def angles(self, slot_type: str):
         """Return the angles of an angles-sourced post type."""
         if slot_type not in self._angles:
-            self._angles[slot_type] = load_angles(self.root, self.spec(slot_type))
+            angles = load_angles(self.root, self.spec(slot_type))
+            rules, _ = self.brand()
+            configured = {stat_id for angle in angles for stat_id in angle.stat_ids or []}
+
+            if configured - set(rules.approved_stats):
+                raise ValueError("angle stat_ids reference an unknown approved stat")
+
+            self._angles[slot_type] = angles
 
         return self._angles[slot_type]
 
@@ -153,6 +160,23 @@ class PostTypes:
             return [e["id"] for e in kb.search(self.hints(slot_type), len(kb.entries))]
 
         return [entry["id"] for entry in kb.entries]
+
+    def choose_angle_source(self, slot: ResolvedSlot, week_topics: set[str]) -> str | None:
+        """For a pick-one angle, the first candidate source no other slot this week covers.
+
+        Returns None for any other slot. Falls back to the first candidate when every candidate
+        is taken; the caller records that as a duplicate-topic warning.
+        """
+        if self.spec(slot.type).research.topic_source != "angles" or not slot.topic_id:
+            return None
+
+        # A focused slot's topic is a researched KB or web id, not an angle.
+        angle = next((a for a in self.angles(slot.type) if a.id == slot.topic_id), None)
+
+        if angle is None or not angle.pick_one:
+            return None
+
+        return next((id for id in angle.source_ids if id not in week_topics), angle.source_ids[0])
 
     def assigned_pack(self, slot: ResolvedSlot, kb) -> ResearchPack | None:
         """Return the pack for an already-assigned topic, or None when research must search."""
@@ -175,9 +199,13 @@ class PostTypes:
         sources = [
             SourceRecord(source_id=id, kind="stat", title=rules.brand_name, evidence_text=text)
             for id, text in rules.approved_stats.items()
+            if angle.stat_ids is None or id in angle.stat_ids
         ]
 
-        if angle.source_ids is not None:
+        if angle.pick_one:
+            chosen = slot.angle_source or angle.source_ids[0]
+            sources = [kb.source(chosen)] + sources
+        elif angle.source_ids is not None:
             sources = [kb.source(source_id) for source_id in angle.source_ids] + sources
 
         return ResearchPack(

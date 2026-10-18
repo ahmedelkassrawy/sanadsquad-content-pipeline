@@ -59,6 +59,18 @@
           ],
           "default": null,
           "title": "Topic Id"
+        },
+        "angle_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angle Source"
         }
       },
       "required": [

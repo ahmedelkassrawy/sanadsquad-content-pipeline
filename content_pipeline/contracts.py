@@ -18,6 +18,12 @@ class Angle(Contract):
     id: StrictStr = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$")
     name: StrictStr
     source_ids: list[StrictStr] | None = None
+    # With pick_one, source_ids are candidates and code uses only the first one no other slot of
+    # the week covers, so a marketing post never repeats a thread's topic.
+    pick_one: bool = False
+    # The approved stats this angle may use; None means all of them. Different stats per angle
+    # keep two marketing posts in one week from saying the same thing.
+    stat_ids: list[StrictStr] | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
@@ -28,6 +34,14 @@ class Angle(Contract):
             not self.source_ids or len(self.source_ids) != len(set(self.source_ids))
         ):
             raise ValueError("configured angle evidence needs unique source ids")
+
+        if self.pick_one and not self.source_ids:
+            raise ValueError("pick_one needs candidate source ids")
+
+        if self.stat_ids is not None and (
+            not self.stat_ids or len(self.stat_ids) != len(set(self.stat_ids))
+        ):
+            raise ValueError("angle stat ids must be unique and nonempty")
 
         return self
 
@@ -165,6 +179,8 @@ class SlotState(Contract):
     outcome: SlotOutcome | None = None
     reasons: list[str] = Field(default_factory=list)
     feedback: list[str] = Field(default_factory=list)
+    # The exception behind a failed_* outcome, with anything key-like removed.
+    error: str | None = None
 
 
 class Trace(Contract):
@@ -238,6 +254,9 @@ class TerminalSlot(Contract):
     attempts: int
     topic_id: str | None
     reasons: list[str]
+    # Why a model, search or budget call failed, so a failed_api slot is diagnosable from the
+    # summary alone. Key-like strings are redacted.
+    error: str | None = None
 
 
 class RunSummary(Trace):

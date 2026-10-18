@@ -50,6 +50,8 @@ class ResolvedSlot(Contract):
     type: str = Field(min_length=1)
     focus: str | None = None
     topic_id: str | None = None
+    # For an angle that picks one of several sources: the source code chose for this week.
+    angle_source: str | None = None
 
 
 class SourceRecord(Contract):

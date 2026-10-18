@@ -17,12 +17,21 @@ banned_words:
 - in the world of
 - look no further
 - elevate your
+# Phrases that point at the research material instead of stating the fact.
+- the article
+- this article
+- the discussion
+- the evidence
+- the supplied
+- the research pack
+- according to the source
 banned_characters:
 - —
 - ‑
 - –
 - ‒
 - ―
+- −
 allowed_links:
 - example.com
 - scs.owasp.org

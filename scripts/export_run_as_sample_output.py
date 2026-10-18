@@ -179,6 +179,7 @@ def validated_files(source):
         "posts": ExportPost,
     }
 
+    optional_names = {"advice.md", "advice.patch"}
     root_names = {
         *(name + ".json" for name in contracts),
         "plan.resolved.json",
@@ -187,8 +188,6 @@ def validated_files(source):
         "ledger.json",
         "external-usage.json",
         "posts.csv",
-        "advice.md",
-        "advice.patch",
         "run.log",
         "README.md",
     }
@@ -205,7 +204,7 @@ def validated_files(source):
     }
 
     if {path.name for path in source.iterdir()} - (
-        root_names | private_names | {"snapshot", "images"}
+        root_names | optional_names | private_names | {"snapshot", "images"}
     ):
         raise ValueError("unexpected run artifact")
 
@@ -241,6 +240,10 @@ def validated_files(source):
         raise ValueError("unexpected snapshot structure")
 
     data = {name: (source / name).read_bytes() for name in root_names}
+    # The advisor files exist only when the advisor ran.
+    data.update(
+        {name: (source / name).read_bytes() for name in optional_names if (source / name).exists()}
+    )
     summary = RunSummary.model_validate_json(data["run_summary.json"])
 
     if (

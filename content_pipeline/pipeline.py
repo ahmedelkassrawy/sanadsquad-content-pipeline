@@ -34,7 +34,7 @@ from .contracts import (
     WeekSnapshot,
     WriteRequest,
 )
-from .images import fallback_spec, overlay_errors, render_card
+from .images import card_style, fallback_spec, overlay_errors, render_card
 from .image_backends import render_image
 from .ledger import BudgetExhausted, Ledger
 from .model_client import (
@@ -440,6 +440,19 @@ def _writer_failure_note(detail):
     return f"writer:failed_output:{detail}" if detail else "writer:failed_output"
 
 
+# Long runs of key-like characters (API keys, tokens, account ids) never reach the run folder.
+_SECRET_LIKE = re.compile(r"(?:sk|nvapi|gsk|AIza)[-_A-Za-z0-9]{8,}|[A-Za-z0-9_\-]{28,}")
+
+
+def describe_error(error) -> str:
+    """A short, key-free description of a stage exception for the run summary."""
+    detail = getattr(error, "detail", None)
+    message = str(detail if detail else error)
+    message = _SECRET_LIKE.sub("[redacted]", " ".join(message.split()))
+
+    return f"{type(error).__name__}: {message}"[:300]
+
+
 def failure(error, research=False):
     """Map a stage exception to its existing terminal slot outcome."""
     if isinstance(error, BudgetExhausted):
@@ -641,6 +654,7 @@ class Pipeline:
         except Exception as error:
             state.outcome = failure(error, research=True)
             state.reasons = [state.outcome.value]
+            state.error = describe_error(error)
 
             if isinstance(error, ResearchReplayRefused):
                 # The refused saved record stays on the trail as the evidence.
@@ -721,6 +735,28 @@ class Pipeline:
             record.model_dump_json(indent=2), encoding="utf-8"
         )
 
+    def _choose_angle_sources(self, states):
+        """Give each pick-one angle a KB topic that no other slot covers this week."""
+        warnings = []
+        taken = {state.slot.topic_id for state in states if state.slot.topic_id}
+
+        for state in states:
+            if state.outcome:
+                continue
+
+            chosen = self.types.choose_angle_source(state.slot, taken)
+
+            if chosen is None:
+                continue
+
+            if chosen in taken:
+                warnings.append(f"duplicate_topic:{state.slot.slot_id}:{chosen}")
+
+            state.slot.angle_source = chosen
+            taken.add(chosen)
+
+        return warnings
+
     async def select(self, week):
         """Assign remaining topics and research the resulting slots."""
         states = [SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
@@ -755,6 +791,8 @@ class Pipeline:
             else:
                 await self._record_topic_exhaustion(state)
 
+        warnings.extend(self._choose_angle_sources(states))
+
         results = await asyncio.gather(
             *(self.research_slot(state) for state in empty if not state.outcome)
         )
@@ -776,6 +814,7 @@ class Pipeline:
             state.feedback = [_writer_failure_note(detail)]
         else:
             state.outcome = outcome
+            state.error = describe_error(error)
             state.reasons = [
                 "unpriced_model"
                 if isinstance(error, ModelFailure) and error.outcome == "unpriced_model"
@@ -955,6 +994,7 @@ class Pipeline:
         except Exception as error:
             state.outcome = failure(error)
             state.reasons = [state.outcome.value]
+            state.error = describe_error(error)
 
             if saved or isinstance(error, SavedStageMismatch):
                 # The saved record stays on the trail as the evidence.
@@ -1018,7 +1058,7 @@ class Pipeline:
 
         return spec, reason, detail or None
 
-    async def _render_visual(self, state, spec, reason, detail=None):
+    async def _render_visual(self, state, spec, reason, detail=None, style=None):
         filename = "slot-" + safe_name(state.slot.slot_id)
         spec_path = self.context.run_dir / "images" / (filename + ".json")
 
@@ -1038,6 +1078,7 @@ class Pipeline:
                 self.context.credential_root,
                 self.renderer,
                 self.image_count,
+                style,
             )
 
             if backend_reason:
@@ -1100,7 +1141,9 @@ class Pipeline:
 
         spec, reason, detail = await self._visual_spec(state, request)
 
-        state.image = await self._render_visual(state, spec, reason, detail)
+        state.image = await self._render_visual(
+            state, spec, reason, detail, card_style(request, self.rules.brand_name)
+        )
 
         state.outcome = SlotOutcome.shipped
 
@@ -1246,18 +1289,20 @@ class Pipeline:
         return {}
 
     async def _record_advice(self, status, reason, output, patch, input_hash, keep_saved=False):
-        (self.context.run_dir / "advice.md").write_text(
-            "# Run advice\n\n"
-            + (
-                "\n".join("- " + line for line in output.recommendations)
-                if status == "completed"
-                else "Advisor " + status + (": " + reason if reason else "")
+        # With the advisor off there is no advice, so no empty advice files ship.
+        if status != "not_enabled":
+            (self.context.run_dir / "advice.md").write_text(
+                "# Run advice\n\n"
+                + (
+                    "\n".join("- " + line for line in output.recommendations)
+                    if status == "completed"
+                    else "Advisor " + status + (": " + reason if reason else "")
+                )
+                + "\n",
+                encoding="utf-8",
             )
-            + "\n",
-            encoding="utf-8",
-        )
 
-        (self.context.run_dir / "advice.patch").write_bytes(patch.encode("utf-8"))
+            (self.context.run_dir / "advice.patch").write_bytes(patch.encode("utf-8"))
 
         if keep_saved:
             return
@@ -1343,6 +1388,7 @@ class Pipeline:
                 attempts=state.attempt,
                 topic_id=state.slot.topic_id,
                 reasons=state.reasons,
+                error=state.error,
             )
 
         return terminal

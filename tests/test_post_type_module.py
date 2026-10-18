@@ -67,7 +67,7 @@ async def test_third_post_type_ships_as_folders_only(tmp_path):
     posts = {post["slot_id"]: post for post in json.loads((output / "posts.json").read_text())}
 
     assert posts["c"]["type"] == "case-study"
-    assert posts["c"]["tweets"] == ["Sentinel Grove completed 12 fictional audits."]
+    assert posts["c"]["tweets"] == ["Sentinel Grove is a smart contract audit firm."]
 
     writer = next(call for call in models.calls if call[2] == "Draft" and call[1] == "c")
 
@@ -200,9 +200,10 @@ def test_post_type_module_assigns_research_packs_by_topic_source():
     )
 
     assert from_angle.topic_name == "service"
-    assert {source.source_id: source.evidence_text for source in from_angle.sources} == (
-        rules.approved_stats
-    )
+    # The service angle gets only its configured stats.
+    assert {source.source_id: source.evidence_text for source in from_angle.sources} == {
+        id: rules.approved_stats[id] for id in ["STAT-03", "STAT-04"]
+    }
 
     assert types.assigned_pack(ResolvedSlot(slot_id="c", type="tech-thread"), kb) is None
     assert (

@@ -67,6 +67,12 @@ current folder, and falls back to `inputs/plan.json` when `plan.json` is missing
 evidence. `--estimate` prints a worst-case cost ceiling without any call. Default budget is
 250,000 tokens and 1 USD per run.
 
+The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
+and every retry, repair and search turn happens (about $52 on the committed Claude models, while
+the sample run cost about $0.56). It is a warning, not a plan. What keeps a run inside the $1
+budget is the guard in `model_client.py`, which reserves each call's worst case before sending
+it and refuses the call (`failed_budget`) when it no longer fits.
+
 The advisor, which suggests instruction edits after export, is optional and outside the
 brief and off by default. Set `ADVISOR_ENABLED=true` in `.env` to turn it on.
 
@@ -100,10 +106,10 @@ rejects the draft even if the average passes.
 | The number check skips bare single digits ("3 steps") and does not see numbers written as words ("three steps"). Both are left to the reviewer. | Extend the check once false positives are measured. |
 | The reviewer (Opus) is a different model from the writers, which reduces shared blind spots but is still an LLM judgement. Tests use scripted models, so they prove routing and rules, not real judgement quality. | Run `live_proof --live` and hand-check a sample after every model change. |
 | The advisor is off by default (`ADVISOR_ENABLED=false`) and did not run in the sample. It is optional and outside the brief. | Set `ADVISOR_ENABLED=true` to try it. |
-| The Cloudflare image backend is unit-tested with mocked HTTP; the sample's six FLUX backgrounds are its only live check. Without the keys every card is a plain Pillow card. | Check new images by eye after a prompt change. |
+| Cloudflare FLUX backgrounds are unit-tested with mocked HTTP. In live runs Cloudflare returned HTTP 429 (rate limit) for every image, so the sample's images are Pillow cards: brand header, title, the post's own code line for threads, an accent bar and a severity badge. | Check new images by eye after a prompt change; retry Cloudflare on a paid plan. |
 | Connection and timeout errors from Groq and Gemini are not retried, and a Groq HTTP 400 `tool_use_failed` gets no repair attempt. A misspelled provider name fails at its first call, not at start-up. | Add those exception classes to the retry list; validate the provider at start-up. |
 | A model with no known price is refused (`failed_budget`) unless you pass `--allow-unpriced`, which leaves only the token limit. The committed models are priced via `config/prices.yaml`. Search and image calls are counted, not priced. | Add prices for any other model you use. |
-| In the Claude sample, `marketing_1` and `marketing_2` open with near-identical questions. Each marketing angle now has its own opening in `writer.md`, but nothing in code checks hooks across slots. | Add a cross-slot similarity check if prompts alone prove not enough. |
+| Marketing variety is enforced by inputs, not by comparing finished posts: each angle has its own approved stats and opening, and the education angle takes a KB topic no thread uses that week. Nothing compares two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
 | Weaker writer models vary from run to run. On the free setup, while the checks and prompt changes went in one at a time, four runs shipped 4, 2, 6 and 6 of 6; the last two used the checks and prompts as of those runs; the claim-word list was narrowed after them. That is a small sample. | Run a week and read `run.log` whenever you change a writer model. |
 | Knowledge base entries are not reviewed by the owner. | Owner review of `kb.json`. |
 | Exercised on Windows with Python 3.13 only; card fonts differ elsewhere. | Run the offline checks and a sample on macOS and Linux. |

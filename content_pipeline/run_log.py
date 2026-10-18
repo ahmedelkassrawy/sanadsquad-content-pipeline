@@ -155,6 +155,9 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
 
         lines.append(f"   outcome    {outcome}")
 
+        if slot.get("error"):
+            lines.append(f"   error      {slot['error']}")
+
     dropped = len(summary["slots"]) - summary["shipped"]
     tokens = summary["confirmed_tokens"] + summary["uncertain_tokens"]
     cost = summary["confirmed_cost_usd"] + summary["uncertain_cost_usd"]

@@ -1,0 +1,38 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "failed-source-run",
+  "slots": {
+    "piece_1": {
+      "outcome": "failed_research",
+      "attempts": 0,
+      "topic_id": null,
+      "reasons": [
+        "failed_research"
+      ],
+      "error": null
+    }
+  },
+  "shipped": 0,
+  "confirmed_tokens": 34541,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.0069082,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": false,
+  "external_usage": {
+    "search_calls": 1,
+    "tavily_calls": 0,
+    "ddgs_calls": 1,
+    "fetch_calls": 5,
+    "tavily_credits": 0.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 0,
+    "cloudflare_images": 0,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 0
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "not_enabled",
+  "advisor_reason": null
+}

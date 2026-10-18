@@ -1,0 +1,15 @@
+{
+  "record_id": "_run/plan/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "slots": [
+    {
+      "slot_id": "piece_1",
+      "type": "tech-thread",
+      "focus": "Zorvex ledger re-pricing exploit in Cairo 9 vaults",
+      "topic_id": null,
+      "angle_source": null
+    }
+  ],
+  "warnings": []
+}

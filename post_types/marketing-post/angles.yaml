@@ -1,9 +1,25 @@
+# Each angle gets its own approved stats, so two marketing posts in one week cannot say the
+# same thing. The education angle picks the first KB topic no thread covers that week.
 angles:
 - id: ANGLE-service
   name: service
+  stat_ids:
+  - STAT-03
+  - STAT-04
 - id: ANGLE-credibility
   name: credibility
+  stat_ids:
+  - STAT-01
+  - STAT-02
+  - STAT-03
 - id: ANGLE-education
   name: education-to-cta
+  pick_one: true
   source_ids:
   - KB-01
+  - KB-04
+  - KB-05
+  - KB-07
+  - KB-03
+  stat_ids:
+  - STAT-03

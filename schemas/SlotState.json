@@ -212,6 +212,18 @@
           ],
           "default": null,
           "title": "Topic Id"
+        },
+        "angle_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Angle Source"
         }
       },
       "required": [
@@ -452,6 +464,18 @@
       },
       "title": "Feedback",
       "type": "array"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
     }
   },
   "required": [
