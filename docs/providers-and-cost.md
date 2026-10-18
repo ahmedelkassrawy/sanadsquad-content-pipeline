@@ -23,8 +23,10 @@ live reviewer control (it rejected the supported text and returned unparseable o
 invented one), while Nemotron passed it, so the stronger model sits on the gate.
 `z-ai/glm-5.3-flash` wrote well but took 36 to 60 s a call on NVIDIA's queue. In that run
 (`output/free-run-with-drops`) 3 of 6 shipped: Ministral padded the marketing posts with unsupported
-claims, which the reviewer dropped. After the claim-word check, length split and link note were
-added, the same models shipped 6 of 6 (`output/free-run-6-of-6`, $0.02). It needs `NVIDIA_API_KEY` and `MISTRALAI_API_KEY`.
+claims, which the reviewer dropped. After the code checks (claim words, length split, link note) and
+the prompt and input changes (grounded openings, STAT-04) went in together, the same models
+shipped 6 of 6 in the last two runs (`output/free-run-6-of-6`, $0.02); runs in between shipped
+4 and 2 of 6. It needs `NVIDIA_API_KEY` and `MISTRALAI_API_KEY`.
 `config/prices.yaml` prices the two NVIDIA models at 0 (their hosted endpoint is free) and
 Mistral at its paid list price, so every call is costed and no `--allow-unpriced` is needed.
 Add other models there.

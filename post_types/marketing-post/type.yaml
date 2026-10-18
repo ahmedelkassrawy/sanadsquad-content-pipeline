@@ -18,38 +18,32 @@ review:
 visual:
   template: brand
   severity_badge: never
-# Quality and outcome words a firm post may use only when the slot's evidence uses them. Code
-# rejects the draft before review and tells the writer to delete the clause, not reword it.
+# Words that praise the firm's quality, which a post may use only when the slot's evidence
+# uses them. Code rejects the draft before review and tells the writer to delete the clause.
+# Action verbs such as "ensure" or "prevent" are left to the reviewer, because security
+# advice uses them legitimately. Text inside backticks is not checked.
 claim_words:
 - thorough
 - thoroughly
 - rigorous
+- rigorously
 - rigor
 - specialized
 - specialist
+- specialists
 - expert
 - experts
 - expertise
 - comprehensive
 - proven
-- ensure
-- ensures
 - precision
+- precise
 - trusted
 - leading
 - world-class
 - battle-tested
-- catch
-- catches
-- prevent
-- prevents
-- protect
-- protects
-- reduce
-- reduces
-- critical
 - meticulous
 - experienced
-- peace of mind
+- seasoned
 - dedicated
-- precise
+- peace of mind

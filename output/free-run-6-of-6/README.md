@@ -14,9 +14,13 @@ and three of them only after a rejection and their one retry:
 - `marketing_1`: the reviewer rejected "detailed" audits as more specific than the
   evidence (grounding 1, `unsupported_claim`); the retry passed.
 - `marketing_3`: code rejected the claim words "ensure" and "prevent", which the evidence
-  does not use. The retry deleted them and passed review.
+  does not use. The retry deleted them and passed review. (After review, those action verbs
+  were taken off the list and left to the reviewer, since security advice uses them
+  legitimately; the current list only holds words that praise the firm.)
 
-The same free models shipped 3 of 6 before these code checks existed; see
+The same free models shipped 3 of 6 before these code checks and the prompt and input
+changes (pack-grounded marketing openings, STAT-04) went in; runs while they went in
+shipped 4 and 2 of 6, and the run just before this one also shipped 6 of 6. See
 `output/free-run-with-drops`, which also shows what a drop looks like. Start with `run.log`.
 
 Only these files were copied (no checkpoint or snapshot), so this folder cannot be resumed

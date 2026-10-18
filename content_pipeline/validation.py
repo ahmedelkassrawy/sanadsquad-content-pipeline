@@ -172,7 +172,9 @@ def check_claim_words(text: str, pack: ResearchPack, claim_words: list[str]) -> 
     if not claim_words:
         return []
 
-    folded = unicodedata.normalize("NFKC", text)
+    # Code spans are code, not claims: `try/catch` is not a promise to catch anything.
+    prose = " ".join(part for index, part in enumerate(text.split("`")) if index % 2 == 0)
+    folded = unicodedata.normalize("NFKC", prose)
 
     evidence = unicodedata.normalize(
         "NFKC", " ".join(source.evidence_text for source in pack.sources if source.status == "ok")
@@ -250,6 +252,18 @@ def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[
 
         # Every later tweet is renumbered, so the halves must fit with the widest prefix.
         widest = _numbering(spec, count + 1, count + 1)
+
+        # Going from 9 to 10 tweets widens every prefix ("1/9 " to "1/10 "); refuse a split
+        # that would push a tweet that already fits over the limit.
+        if len(widest) > len(_numbering(spec, count, count)) and any(
+            parse_tweet(widest + other.text).weightedLength > limit
+            for position, other in enumerate(draft.tweets)
+            if position != index
+        ):
+            index += 1
+
+            continue
+
         text = _NUMBERING_PREFIX.sub("", tweet.text) if spec.numbering else tweet.text
         halves = split_at_sentence(text, limit, widest)
 
@@ -268,8 +282,13 @@ def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[
 # Paired * or ** around a word or phrase. X shows the asterisks literally, so the words stay and
 # the markers go. Code spans are skipped, so `a * b` keeps its operator.
 _EMPHASIS = re.compile(r"(?<![\w*])(\*{1,2})(?=\S)([^*`]+?)(?<=\S)\1(?![\w*])")
-# A fenced block ("```solidity x ```") becomes one inline code span ("`x`").
-_FENCE = re.compile(r"```[A-Za-z]*\s*(.+?)\s*```", re.S)
+# A fenced block ("```solidity x ```") becomes one inline code span ("`x`"). Only a known
+# language tag is dropped, so "```require(x);```" keeps its first word.
+_FENCE = re.compile(
+    r"```(?:(?:solidity|sol|javascript|js|typescript|ts|python|py|bash|sh|json|yaml|text)"
+    r"(?=\s))?\s*(.+?)\s*```",
+    re.S | re.I,
+)
 
 
 def strip_markdown(text: str) -> str:

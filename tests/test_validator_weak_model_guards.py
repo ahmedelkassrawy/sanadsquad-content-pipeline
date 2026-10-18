@@ -42,7 +42,9 @@ def marketing(text, evidence="Sentinel Grove has completed 12 smart contract aud
 def test_marketing_type_loads_its_claim_words():
     words = load_type(ROOT, "marketing-post").claim_words
 
-    assert {"thorough", "specialized", "expertise", "rigorous", "ensure"} <= set(words)
+    assert {"thorough", "specialized", "expertise", "rigorous", "precise"} <= set(words)
+    # Security advice uses these legitimately, so the reviewer judges them, not code.
+    assert not {"ensure", "prevent", "catch", "protect", "critical"} & set(words)
     assert load_type(ROOT, "tech-thread").claim_words == []
 
 
@@ -179,7 +181,51 @@ def test_link_feedback_explains_how_to_rewrite_code_that_x_would_link():
 
 
 def test_every_marketing_pack_gets_the_review_deliverable_stat():
-    assert "STAT-04" in RULES.approved_stats
+    from content_pipeline.models import ResolvedSlot
+    from content_pipeline.post_types import PostTypes
+    from content_pipeline.research import KnowledgeBase
+
+    types = PostTypes(ROOT)
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+
+    for angle in types.angles("marketing-post"):
+        slot = ResolvedSlot(slot_id="marketing_1", type="marketing-post", topic_id=angle.id)
+        pack = types.assigned_pack(slot, kb)
+
+        assert "STAT-04" in {source.source_id for source in pack.sources}, angle.id
+
+
+def test_claim_words_inside_code_spans_are_not_claims():
+    research = pack("marketing_1", "Sentinel Grove has 3 auditors.")
+
+    assert check_claim_words("Wrap it in `try/expert` first.", research, ["expert"]) == []
+    assert check_claim_words("Our expert team.", research, ["expert"]) == [
+        "unsupported_claim_word:expert"
+    ]
+
+
+def test_untagged_code_fence_keeps_its_first_word():
+    from content_pipeline.validation import strip_markdown
+
+    assert strip_markdown("Guard it: ```require(msg.sender == owner);``` first.") == (
+        "Guard it: `require(msg.sender == owner);` first."
+    )
+    assert strip_markdown("Set ```uint256 x = 1;``` once.") == "Set `uint256 x = 1;` once."
+
+
+def test_no_split_when_widening_the_numbering_would_push_another_tweet_over():
+    # Tweet 1 fits exactly with "1/9 " but would be 281 with "1/10 ".
+    filler = "word " * 60
+    first = filler[: 280 - len("1/9 ")].rstrip()
+    first = first + "x" * (280 - len("1/9 ") - len(first))
+    long_tweet = LONG_HALF.strip() + ". " + LONG_HALF.strip() + "."
+
+    result = thread([first] + [SHORT] * 7 + [long_tweet])
+
+    assert parse_tweet("1/9 " + first).weightedLength == 280
+    assert not [f for f in result.fixes if f.endswith("split_for_length")]
+    assert "tweet_9:length" in result.violations
+    assert "tweet_1:length" not in result.violations
 
 
 def test_code_fences_become_inline_code():
