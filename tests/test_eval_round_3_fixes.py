@@ -172,3 +172,11 @@ def test_twice_in_a_thread_needs_evidence_that_says_twice():
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
 
     assert "tweet_1:unsupported_claim_word:twice" in result.violations
+
+
+def test_a_possessive_opening_counts_as_the_same_word():
+    from content_pipeline.validation import check_repeated_openings
+
+    texts = ["OWASP calls this a flaw.", "OWASP's example shows it.", "OWASP lists areas."]
+
+    assert check_repeated_openings(texts) == ["repeated_opening:owasp"]

@@ -187,6 +187,8 @@ def check_repeated_openings(texts: list[str]) -> list[str]:
             continue
 
         first = words[0].strip(".,:;!?\"'()`").casefold()
+        # "OWASP's" opens with the same word as "OWASP".
+        first = re.sub(r"['’]s$", "", first)
 
         if first and first not in _OPENING_STOPWORDS:
             counts[first] = counts.get(first, 0) + 1
