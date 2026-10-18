@@ -274,3 +274,35 @@ def test_plural_labels_with_any_preposition_are_flagged(label):
 )
 def test_dates_times_and_bare_picks_are_not_firm_claims(text):
     assert check_stat_claims(text, stat_pack()) == []
+
+
+@pytest.mark.parametrize(
+    "label",
+    [
+        "Release notes",
+        "Design notes",
+        "Quick notes",
+        "Contract states",
+        "Lessons learned from the DAO",
+        "Issues related to reentrancy",
+        "Bugs caused by reentrancy",
+        "Price feed risks",
+        "Biggest red flags",
+    ],
+)
+def test_labels_ending_in_a_verb_like_noun_stay_flagged(label):
+    assert check_section_labels([f"1/2 {label}: a."]) == [
+        f"tweet_1:section_label:{label.casefold()}"
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Sentinel Grove has done 12 so far.",
+        "We have conducted 12.",
+        "Sentinel Grove: 12 and counting.",
+    ],
+)
+def test_a_bare_number_in_a_sentence_about_the_firm_is_a_firm_claim(text):
+    assert check_stat_claims(text, stat_pack()) != []

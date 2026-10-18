@@ -310,7 +310,13 @@ _PRONOUN_SUBJECTS = frozenset("i we you they he she it".split())
 # "OWASP says:" read as clauses.
 _IRREGULAR_VERBS = frozenset(
     "lost made took found ran broke left sent got gave became held paid stole won saw knew said "
-    "says say warns notes explains states adds defines need needs".split()
+    "says say warns explains adds defines".split()
+)
+# Words that are a noun in a label ("Release notes") but a verb after a source ("SWC entry notes").
+_NOUN_OR_VERB = frozenset("notes states needs".split())
+_SOURCE_NOUNS = frozenset(
+    "owasp swc solidity openzeppelin entry registry docs documentation spec specification guide "
+    "eip team auditor report".split()
 )
 # "Areas to focus on", "Mitigations per OWASP": a preposition after a plural is not its verb.
 _PREPOSITIONS = frozenset(
@@ -350,8 +356,30 @@ def _has_finite_verb(words: list[str]) -> bool:
     if _LEAD_IN_VERBS.intersection(words) or _IRREGULAR_VERBS.intersection(words[1:]):
         return True
 
+    # "notes" and "states" are verbs after a source ("The SWC entry notes") and nouns otherwise
+    # ("Release notes", "Contract states").
+    for index in range(1, len(words)):
+        if words[index] in _NOUN_OR_VERB and words[index - 1] in _SOURCE_NOUNS:
+            return True
+
+    # A plural, then a participle, then a preposition or nothing is a noun phrase ("Lessons
+    # learned from the DAO", "Bugs caused by reentrancy", "Areas needing review"); a past tense
+    # with an object is a clause ("Attackers drained the pool").
+    if len(words) >= 2 and _is_plural_noun(words[0]) and words[1].endswith(("ed", "ing")):
+        return words[1].endswith("ed") and len(words) > 2 and words[2] not in _PREPOSITIONS
+
+    # A past-tense verb with an object ("This pattern caused the DAO hack"). Short words that
+    # only look like -ed verbs ("feed", "red", "need") do not count, and a following preposition
+    # makes it a participle phrase ("Issues related to reentrancy").
     for index in range(1, len(words) - 1):
-        if words[index].endswith("ed") and words[index - 1] not in _QUANTIFIERS:
+        word = words[index]
+
+        if (
+            word.endswith("ed")
+            and len(word) >= 5
+            and words[index - 1] not in _QUANTIFIERS
+            and words[index + 1] not in _PREPOSITIONS
+        ):
             return True
 
     if len(words) >= 2 and _is_plural_noun(words[0]):
@@ -687,7 +715,10 @@ _FIRM_NOUNS = frozenset(
     "people staff developer audit review assessment engagement client customer project "
     "protocol team firm year report finding".split()
 )
-_FIRM_VERBS = frozenset("completed finished delivered shipped audited reviewed".split())
+_FIRM_VERBS = frozenset(
+    "completed finished delivered shipped audited reviewed done conducted performed ran run "
+    "counting".split()
+)
 _MONTHS = frozenset(
     "january february march april may june july august september october november december "
     "jan feb mar apr jun jul aug sep sept oct nov dec".split()
@@ -752,6 +783,8 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
     prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
     stat_numbers = {number for stat in stats for number in numbers_in(stat.evidence_text)}
+    # The firm's own name marks a sentence as a firm claim ("Sentinel Grove has done 12 so far").
+    brand_words = {word for stat in stats for word in _WORDS.findall(stat.title.casefold())}
 
     # "12+ audits" turns an exact count into a lower bound; the word split below drops the "+".
     # Only a count of firm work counts ("Node 12+" is a version requirement).
@@ -794,7 +827,8 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
                 previous = words[index - 1] if index else ""
                 following = words[index + 1] if index + 1 < len(words) else ""
                 firm_context = any(
-                    _singular(other) in _FIRM_NOUNS or other in _FIRM_VERBS for other in words
+                    _singular(other) in _FIRM_NOUNS or other in _FIRM_VERBS or other in brand_words
+                    for other in words
                 )
 
                 if previous in _MONTHS or following in _TIME_UNITS or not firm_context:
