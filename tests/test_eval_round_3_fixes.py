@@ -150,3 +150,25 @@ def test_reordered_or_linked_stat_numbers_are_not_false_positives():
         "See https://example.com/12 for details.",
     ]:
         assert check_stat_claims(text, pack) == [], text
+
+
+def test_twice_in_a_thread_needs_evidence_that_says_twice():
+    pack = ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-01",
+        topic_name="Reentrancy",
+        sources=[
+            SourceRecord(
+                source_id="KB-01",
+                kind="kb",
+                title="Reentrancy",
+                evidence_text="A callback can withdraw again against the unchanged balance.",
+            )
+        ],
+    )
+    texts = [f"Point {n}: the callback can withdraw twice here." for n in "ABCDE"]
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+
+    result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
+
+    assert "tweet_1:unsupported_claim_word:twice" in result.violations
