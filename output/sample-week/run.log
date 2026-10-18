@@ -1,2 +1,38 @@
-export: complete
-summary: complete
+== thread_1
+   research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
+   research   topic KB-01 (Reentrancy) from KB-01
+   draft 1    8 tweets, rules ok
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=4 voice=5 clarity=4 cta=5
+   outcome    shipped after 1 attempt(s)
+== thread_2
+   research   search_kb 'ERC-4626 vault inflation attack' -> KB-16:ok, KB-07:ok, KB-01:ok, KB-02:ok, KB-03:ok
+   research   web_search 'ERC-4626 vault inflation attack first depositor donation share price manipulation mitigation virtual shares OpenZeppelin' -> WEB-2daca0aeb740f7f4:ok, WEB-6e022746c54737c4:ok, WEB-f50d1927023d53fb:ok, WEB-f352e6124ca0c40d:ok, WEB-a0fdaa7b887ec446:ok
+   research   topic WEB-a0fdaa7b887ec446 (ERC-4626 vault inflation attack) from WEB-a0fdaa7b887ec446, WEB-f352e6124ca0c40d, WEB-2daca0aeb740f7f4, WEB-f50d1927023d53fb
+   draft 1    10 tweets, rules FAILED: tweet_5:unsourced_number:10000
+   draft 2    10 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== thread_3
+   research   topic KB-20 (Business logic errors) from KB-20
+   draft 1    9 tweets, rules ok
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=4 voice=5 clarity=5 cta=5
+   outcome    shipped after 1 attempt(s)
+== marketing_1
+   research   topic ANGLE-service (service) from STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=3
+   outcome    shipped after 1 attempt(s)
+== marketing_2
+   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
+   outcome    shipped after 1 attempt(s)
+== marketing_3
+   research   topic ANGLE-education (education-to-cta) from KB-01, STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+
+shipped 6, dropped or failed 0
+tokens 181069, LLM cost $0.5597
+advisor not_enabled

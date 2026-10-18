@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy",
-  "scene": "Reentrancy",
+  "concept": "Education card on reentrancy: state must be updated before external calls to prevent callback-driven repeat withdrawals.",
+  "scene": "Minimal dark navy background with a simple diagram of two boxes labeled contract and callback connected by a looping amber arrow, with a clean white headline area and generous spacing in the brand style.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Reentrancy",
-  "alt_text": "Reentrancy",
+  "overlay_text": "Update state first, then call out.",
+  "alt_text": "Brand card with a navy background and an amber looping arrow between two boxes, illustrating a callback re-entering a contract, with the text: Update state first, then call out.",
   "severity": null
 }

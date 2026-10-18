@@ -37,13 +37,28 @@ from .contracts import (
 from .images import fallback_spec, overlay_errors, render_card
 from .image_backends import render_image
 from .ledger import BudgetExhausted, Ledger
-from .model_client import ModelFailure, Prices, configured_client, valid_provider
+from .model_client import (
+    PRICES_FILE,
+    ModelFailure,
+    Prices,
+    configured_client,
+    load_price_overrides,
+    valid_provider,
+)
 from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .post_types import PostTypes
 from .research import KnowledgeBase, assign_topics
+from .run_log import render_run_index, render_run_log
 from .tools import configured_web_search
 from .trail import Trail, export_posts
-from .validation import length_feedback, validate
+from .validation import (
+    claim_feedback,
+    link_feedback,
+    colon_feedback,
+    is_writer_note,
+    length_feedback,
+    validate,
+)
 from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
 from .contracts import AdvisorRecord, AdvisorRequest, RunIdentity
 from .durability import RunLock, atomic_json, snapshot_hashes
@@ -184,7 +199,7 @@ def estimate(root, slots, settings):
     cost = 0.0
     unpriced = False
     warnings = []
-    prices = Prices(update=False)
+    prices = Prices(update=False, overrides=load_price_overrides(root / PRICES_FILE))
     names = _estimate_agent_names(types, slots, settings)
 
     for name in names:
@@ -290,6 +305,10 @@ def snapshot(root, run_dir, slots, settings):
         shutil.copyfile(source, destination)
 
     files = _snapshot_files(PostTypes(root), slots)
+
+    # Older run folders have no price file, so it is optional rather than required.
+    if (root / PRICES_FILE).is_file():
+        files.add(PRICES_FILE)
 
     for name in sorted(files):
         source = local_file(root, name)
@@ -414,6 +433,11 @@ def lane_state(raw):
     return SlotState.model_validate(
         {key: value for key, value in raw.items() if key in SlotState.model_fields}
     )
+
+
+def _writer_failure_note(detail):
+    """The reason kept for a writer call whose output the pipeline refused."""
+    return f"writer:failed_output:{detail}" if detail else "writer:failed_output"
 
 
 def failure(error, research=False):
@@ -746,8 +770,10 @@ class Pipeline:
     async def _record_writer_failure(self, state, error, request, saved):
         outcome = failure(error)
 
+        detail = getattr(error, "detail", None)
+
         if outcome == SlotOutcome.failed_output:
-            state.feedback = ["writer:failed_output"]
+            state.feedback = [_writer_failure_note(detail)]
         else:
             state.outcome = outcome
             state.reasons = [
@@ -767,6 +793,7 @@ class Pipeline:
                 slot_id=state.slot.slot_id,
                 attempt=state.attempt,
                 failure=outcome.value,
+                failure_detail=detail,
                 input_sha256=request_fingerprint(request),
             ),
         )
@@ -800,7 +827,7 @@ class Pipeline:
         )
 
         if saved and not saved.legacy and saved.record.failure == SlotOutcome.failed_output.value:
-            state.feedback = ["writer:failed_output"]
+            state.feedback = [_writer_failure_note(saved.record.failure_detail)]
 
             return state.model_dump(mode="json")
 
@@ -842,6 +869,7 @@ class Pipeline:
             spec,
             self.rules,
             self.context.settings.max_tweet_chars,
+            state.slot.focus,
         )
 
         state.audit = DraftAudit(
@@ -851,8 +879,12 @@ class Pipeline:
             violations=result.violations,
             accepted=result.accepted,
         )
-        state.feedback = result.violations + length_feedback(
-            result, self.context.settings.max_tweet_chars
+        state.feedback = (
+            result.violations
+            + length_feedback(result, self.context.settings.max_tweet_chars)
+            + colon_feedback(result)
+            + claim_feedback(result)
+            + link_feedback(result)
         )
 
         if saved is not None:
@@ -948,11 +980,9 @@ class Pipeline:
 
         if state.attempt >= MAX_CONTENT_ATTEMPTS:
             state.outcome = SlotOutcome.dropped_quality
-            state.reasons = [
-                reason
-                for reason in state.feedback
-                if not (reason.startswith("tweet_") and ":weighted_length:" in reason)
-            ] or ["quality_rejected"]
+            state.reasons = [reason for reason in state.feedback if not is_writer_note(reason)] or [
+                "quality_rejected"
+            ]
 
         return state.model_dump(mode="json")
 
@@ -1227,7 +1257,7 @@ class Pipeline:
             encoding="utf-8",
         )
 
-        (self.context.run_dir / "advice.patch").write_text(patch, encoding="utf-8")
+        (self.context.run_dir / "advice.patch").write_bytes(patch.encode("utf-8"))
 
         if keep_saved:
             return
@@ -1358,7 +1388,11 @@ class Pipeline:
         )
 
         (self.context.run_dir / "run.log").write_text(
-            "export: complete\nsummary: complete\n", encoding="utf-8"
+            render_run_log(self.context.run_dir, summary.model_dump(mode="json")), encoding="utf-8"
+        )
+
+        (self.context.run_dir / "README.md").write_text(
+            render_run_index(self.context.run_dir), encoding="utf-8"
         )
 
         return {"summary": summary.model_dump(mode="json")}
@@ -1543,7 +1577,10 @@ async def _execute_pipeline(
 
     atomic_json(run_dir / "runtime-settings.json", settings.model_dump())
 
-    context.prices = Prices(update=model_factory is None)
+    context.prices = Prices(
+        update=model_factory is None,
+        overrides=load_price_overrides(context.root / PRICES_FILE),
+    )
 
     return await _invoke_pipeline(context, graph, config, slots, resume)
 

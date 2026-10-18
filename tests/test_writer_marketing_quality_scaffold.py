@@ -80,7 +80,7 @@ async def test_public_marketing_writer_sends_angle_quality_scaffold(topic_id, so
         in prompt
     )
     assert (
-        "Open with a specific question or contrast tied to the supplied angle and evidence"
+        "Open with a specific question, contrast or concrete statement tied to the supplied angle and evidence"
         in prompt
     )
     assert "end with a direct next step that the supplied evidence supports" in prompt

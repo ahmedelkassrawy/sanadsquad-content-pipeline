@@ -185,6 +185,7 @@ class DraftRecord(Trace):
     input_sha256: str | None = None
     audit: DraftAudit | None = None
     failure: str | None = None
+    failure_detail: str | None = None
 
 
 class ReviewRecord(Trace):

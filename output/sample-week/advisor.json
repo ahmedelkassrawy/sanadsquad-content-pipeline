@@ -3,9 +3,9 @@
     "record_id": "_run/advisor/1/1",
     "slot_id": "_run",
     "attempt": 1,
-    "input_sha256": "d6d5dabcd3117b7f08b5d478b11eb5ff100e2e513b9e43a9083ee55c042ed4e4",
-    "status": "failed",
+    "input_sha256": null,
+    "status": "not_enabled",
     "output": null,
-    "reason": "failed_output"
+    "reason": null
   }
 ]

@@ -1,0 +1,588 @@
+[
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "39025553daf522bbe2ce8c919e8cb7dbe7fba4a481f9db25d429417e0aebd047",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Sentinel Grove has completed 12 smart contract audits with 3 auditors. We\u2019re a smart contract audit firm ready to review your code.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-02",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Sentinel Grove has completed 12 smart contract audits with 3 auditors. We're a smart contract audit firm ready to review your code.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-02",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:curly_quotes"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "493cc4a7c9734d75e93333afe3375807e6fbcb6d73334c17c55bda542996a6bf",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Need a review of your smart contract code? Sentinel Grove provides detailed audits, reporting each finding with severity, root cause, and a recommended fix. Request a review today.",
+            "source_ids": [
+              "STAT-03",
+              "STAT-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Need a review of your smart contract code? Sentinel Grove provides detailed audits, reporting each finding with severity, root cause, and a recommended fix. Request a review today.",
+          "source_ids": [
+            "STAT-03",
+            "STAT-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "1a15ad6339af55f4a9595193fff7296a4466dd98905ec6c47667076993e76542",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "External calls can reenter before state updates finish. How might your contract handle a callback that withdraws again? Checks-effects-interactions can prevent this by validating, updating state, then making calls. Request a review to ensure your logic is secure.",
+            "source_ids": [
+              "KB-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "External calls can reenter before state updates finish. How might your contract handle a callback that withdraws again? Checks-effects-interactions can prevent this by validating, updating state, then making calls. Request a review to ensure your logic is secure.",
+          "source_ids": [
+            "KB-01",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_1:unsupported_claim_word:ensure",
+        "tweet_1:unsupported_claim_word:prevent"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "68975a6ee5aa7e2e8119d61ca6cb909f9f314bfbfe4e84a44758db1bb05cee20",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "External calls can reenter before state updates finish, allowing repeated execution. How does your contract handle callbacks that withdraw again? Request a review to assess the risk.",
+            "source_ids": [
+              "KB-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "External calls can reenter before state updates finish, allowing repeated execution. How does your contract handle callbacks that withdraw again? Request a review to assess the risk.",
+          "source_ids": [
+            "KB-01",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "acbc599235e60a5daca4d9b51658d098d0b3e3a3a867a8c8a9d7bf98fd2f1fab",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A contract\u2019s `selfdestruct` can be triggered without checks, letting attackers delete it and steal funds. The impact depends on the EVM version\u2014before Cancun, it wipes storage too.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Root cause: No access control gates the `selfdestruct` call. Even if the contract\u2019s code lacks it, an attacker can invoke it via `delegatecall` or `callcode`.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Before EVM Cancun (Shanghai and earlier), `selfdestruct` sends remaining Ether to a target and deletes the contract\u2019s code and storage. From Cancun onward, only Ether is sent\u2014storage and code persist unless called in the creation transaction.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Solidity deprecated `selfdestruct` in 0.8.18 (EIP-6049) and warns against it in new contracts. If needed, use a multisig scheme to restrict who can trigger it. Otherwise, remove it entirely.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "To deactivate a contract safely, change its internal state so all functions revert. This avoids relying on `selfdestruct`, which can still be exploited.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Check: Does your contract use `selfdestruct`? If so, verify it\u2019s protected by strict access controls\u2014or replace it with state-based deactivation.",
+            "source_ids": [
+              "KB-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 A contract's `selfdestruct` can be triggered without checks, letting attackers delete it and steal funds. The impact depends on the EVM version, before Cancun, it wipes storage too.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "2/6 Root cause: No access control gates the `selfdestruct` call. Even if the contract's code lacks it, an attacker can invoke it via `delegatecall` or `callcode`.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "3/6 Before EVM Cancun (Shanghai and earlier), `selfdestruct` sends remaining Ether to a target and deletes the contract's code and storage. From Cancun onward, only Ether is sent, storage and code persist unless called in the creation transaction.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "4/6 Solidity deprecated `selfdestruct` in 0.8.18 (EIP-6049) and warns against it in new contracts. If needed, use a multisig scheme to restrict who can trigger it. Otherwise, remove it entirely.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "5/6 To deactivate a contract safely, change its internal state so all functions revert. This avoids relying on `selfdestruct`, which can still be exploited.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "6/6 Check: Does your contract use `selfdestruct`? If so, verify it's protected by strict access controls, or replace it with state-based deactivation.",
+          "source_ids": [
+            "KB-05"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:banned_characters",
+        "tweet_1:curly_quotes",
+        "tweet_2:curly_quotes",
+        "tweet_3:banned_characters",
+        "tweet_3:curly_quotes",
+        "tweet_6:banned_characters",
+        "tweet_6:curly_quotes"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "3536c92c47e4ab61079bfe37a2ddcfbe7d82c09ec51308c962ed4ace0b3805d4",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "External calls in Solidity can allow reentrancy attacks. When a contract calls another, control is handed over, letting it call back before the original call completes. This can lead to repeated execution against unchanged state.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The core issue: state updates are not finalized before external calls. For example, in a withdrawal function, sending Ether before clearing the caller\u2019s balance lets a malicious contract call back and withdraw again using the same balance.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Reentrancy isn\u2019t limited to Ether transfers. Any external call\u2014even to dependent contracts\u2014can trigger callbacks that bypass intended state changes. The attack path may not be direct.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The fix follows checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance *before* sending Ether:\n\n`balances[msg.sender] = 0;\nwithdrawalAmount = amount;\nrecipient.call{value: withdrawalAmount}();`",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Also require the external call to succeed. If it fails, the operation reverts, preserving state consistency. Review all callable functions and contracts sharing the affected state\u2014reentrancy can enter through indirect paths.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Check your contracts: are external calls made after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions rigorously.",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 External calls in Solidity can allow reentrancy attacks. When a contract calls another, control is handed over, letting it call back before the original call completes. This can lead to repeated execution against unchanged state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/6 The core issue: state updates are not finalized before external calls. For example, in a withdrawal function, sending Ether before clearing the caller's balance lets a malicious contract call back and withdraw again using the same balance.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/6 Reentrancy isn't limited to Ether transfers. Any external call, even to dependent contracts, can trigger callbacks that bypass intended state changes. The attack path may not be direct.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/6 The fix follows checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0; withdrawalAmount = amount; recipient.call{value: withdrawalAmount}();`",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/6 Also require the external call to succeed. If it fails, the operation reverts, preserving state consistency. Review all callable functions and contracts sharing the affected state, reentrancy can enter through indirect paths.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/6 Check your contracts: are external calls made after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions rigorously.",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:curly_quotes",
+        "tweet_3:banned_characters",
+        "tweet_3:curly_quotes",
+        "tweet_4:whitespace",
+        "tweet_4:markdown",
+        "tweet_5:banned_characters"
+      ],
+      "violations": [
+        "tweet_4:link_domain:recipient.call"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "46942787994080430e67684932ec80c40a04b10a874550828155f40638b65c08",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "ERC-4626 vaults can be manipulated to inflate share value, causing depositors to lose funds due to rounding. This attack exploits the exchange rate calculation, where an attacker front-runs a deposit to dilute the value of shares for legitimate users.",
+            "source_ids": [
+              "WEB-074564991fed74d2",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "The root cause lies in how shares are minted: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker can inflate the denominator (`asset.balanceOf`) before a user deposits, causing the user\u2019s share calculation to round down to zero.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Example: An attacker deposits 1 wei, then transfers 20,000 USDT before a victim deposits 20,000 USDT. The victim\u2019s share calculation becomes `1 * 20,000 / (20,000 + 1)`, rounding down to 0 shares. The attacker then withdraws all funds.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Mitigation: Track total assets internally to exclude direct transfers from the balance used in share calculations. This removes the inflation risk but requires careful handling of re-basing tokens and potential gas overhead.",
+            "source_ids": [
+              "WEB-074564991fed74d2",
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "Alternative: Use virtual shares and assets to offset rounding errors. For example, adding a virtual asset offset of 1 and a share supply offset of 1e8 reduces the impact of inflation attacks by making them unprofitable.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "Check your vault: Does it rely on `asset.balanceOf(address(this))` for share calculations? If so, consider internal asset tracking or virtual offsets to mitigate inflation risks.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 ERC-4626 vaults can be manipulated to inflate share value, causing depositors to lose funds due to rounding. This attack exploits the exchange rate calculation, where an attacker front-runs a deposit to dilute the value of shares for legitimate users.",
+          "source_ids": [
+            "WEB-074564991fed74d2",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "2/6 The root cause lies in how shares are minted: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker can inflate the denominator (`asset.balanceOf`) before a user deposits, causing the user's share calculation to round down to zero.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "3/6 Example: An attacker deposits 1 wei, then transfers 20,000 USDT before a victim deposits 20,000 USDT. The victim's share calculation becomes `1 * 20,000 / (20,000 + 1)`, rounding down to 0 shares. The attacker then withdraws all funds.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "4/6 Mitigation: Track total assets internally to exclude direct transfers from the balance used in share calculations. This removes the inflation risk but requires careful handling of re-basing tokens and potential gas overhead.",
+          "source_ids": [
+            "WEB-074564991fed74d2",
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "5/6 Alternative: Use virtual shares and assets to offset rounding errors. For example, adding a virtual asset offset of 1 and a share supply offset of 1e8 reduces the impact of inflation attacks by making them unprofitable.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "6/6 Check your vault: Does it rely on `asset.balanceOf(address(this))` for share calculations? If so, consider internal asset tracking or virtual offsets to mitigate inflation risks.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:curly_quotes",
+        "tweet_3:curly_quotes"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "46223dea8d1d7efc4457ad6008df10bfaeda7eced82d0ec4fa11ffbf9457c6b0",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "External calls in Solidity can hand control to another contract, allowing it to call back before the original call returns. This creates a window for repeated execution against unchanged state.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The root cause is that state updates are deferred until after external calls. For example, a withdrawal function that sends Ether before clearing the caller\u2019s balance leaves the balance intact for a callback to exploit again.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Reentrancy isn\u2019t limited to Ether transfers. Any external call\u2014including those to dependent contracts\u2014can serve as an entry point for callbacks that bypass intended state changes, even through indirect paths.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Mitigate reentrancy by following checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether:\n\n`balances[msg.sender] = 0;\nrecipient.transfer(amount);`",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Ensure external calls succeed or revert. If the call fails, the operation rolls back, maintaining state consistency. Review all callable functions and contracts sharing the affected state\u2014reentrancy risks extend beyond direct paths.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "A closing check: Are external calls made only after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions consistently.",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 External calls in Solidity can hand control to another contract, allowing it to call back before the original call returns. This creates a window for repeated execution against unchanged state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/6 The root cause is that state updates are deferred until after external calls. For example, a withdrawal function that sends Ether before clearing the caller's balance leaves the balance intact for a callback to exploit again.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/6 Reentrancy isn't limited to Ether transfers. Any external call, including those to dependent contracts, can serve as an entry point for callbacks that bypass intended state changes, even through indirect paths.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/6 Mitigate reentrancy by following checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0; recipient.transfer(amount);`",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/6 Ensure external calls succeed or revert. If the call fails, the operation rolls back, maintaining state consistency. Review all callable functions and contracts sharing the affected state, reentrancy risks extend beyond direct paths.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/6 A closing check: Are external calls made only after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions consistently.",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:curly_quotes",
+        "tweet_3:banned_characters",
+        "tweet_3:curly_quotes",
+        "tweet_4:whitespace",
+        "tweet_5:banned_characters"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "86fdb173fec6b3ca219e487f77913b2fc4a5e8e7d305816c17a0fb2881147453",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "Teams can request a review of their smart contract code. Each review includes findings with severity, root cause, and a recommended fix. Learn more.",
+            "source_ids": [
+              "STAT-03",
+              "STAT-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Teams can request a review of their smart contract code. Each review includes findings with severity, root cause, and a recommended fix. Learn more.",
+          "source_ids": [
+            "STAT-03",
+            "STAT-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  }
+]

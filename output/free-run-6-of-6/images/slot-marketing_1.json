@@ -1,0 +1,12 @@
+{
+  "concept": "Smart Contract Audit Review",
+  "scene": "A clean, minimalist workspace with a terminal displaying code snippets and a document outlining audit findings.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Teams can request a review",
+  "alt_text": "Illustration of a professional smart contract audit process highlighting code review and detailed findings.",
+  "severity": null
+}

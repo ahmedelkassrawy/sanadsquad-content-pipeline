@@ -192,7 +192,16 @@ class ResearchConfig(Contract):
 
 class ReviewConfig(Contract):
     pass_avg: float = Field(ge=1, le=5)
+    # Any single criterion below this floor rejects the piece, whatever the average.
+    min_score: float = Field(default=1, ge=1, le=5)
     hard_fail: list[str]
+
+    @model_validator(mode="after")
+    def floor_not_above_pass(self):
+        if self.min_score > self.pass_avg:
+            raise ValueError("min_score cannot exceed pass_avg")
+
+        return self
 
 
 class VisualConfig(Contract):
@@ -209,6 +218,8 @@ class PostType(Contract):
     research: ResearchConfig
     review: ReviewConfig
     visual: VisualConfig
+    # Words that make a quality or outcome claim; allowed only when the slot's evidence uses them.
+    claim_words: list[str] = Field(default_factory=list)
 
 
 class BrandRules(Contract):
@@ -217,7 +228,13 @@ class BrandRules(Contract):
     banned_characters: list[str]
     allowed_links: list[str]
     safe_fixes: list[
-        Literal["banned_characters", "whitespace", "curly_quotes", "trailing_hashtags"]
+        Literal[
+            "banned_characters",
+            "whitespace",
+            "curly_quotes",
+            "trailing_hashtags",
+            "markdown",
+        ]
     ]
     approved_stats: dict[str, str]
     palette: list[str]

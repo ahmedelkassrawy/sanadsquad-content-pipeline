@@ -32,7 +32,8 @@
           "banned_characters",
           "whitespace",
           "curly_quotes",
-          "trailing_hashtags"
+          "trailing_hashtags",
+          "markdown"
         ],
         "type": "string"
       },

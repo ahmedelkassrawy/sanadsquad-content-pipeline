@@ -598,7 +598,7 @@ async def test_advisor_disabled_and_zero_export_budget_failure_are_explicit(tmp_
         ROOT,
         one_slot(),
         tmp_path / "failed",
-        Settings(run_token_budget=1),
+        Settings(run_token_budget=1, advisor_enabled=True),
         models.factory,
         search_factory,
     )

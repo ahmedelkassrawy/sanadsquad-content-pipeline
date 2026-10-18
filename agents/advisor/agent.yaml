@@ -1,4 +1,4 @@
-model: null
+model: anthropic:claude-sonnet-5-5
 max_output_tokens: 3000
 reasoning_effort: low
 skills:

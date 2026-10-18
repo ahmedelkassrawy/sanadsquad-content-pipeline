@@ -3,33 +3,12 @@
     "record_id": "thread_1/reviewer/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "1dcdfcc0cd4db9c679ad77a149489b95c5096f1d2d5824862c575988c4ef9da0",
+    "input_sha256": "9072928d084c6343e263821b14f169e5272837da59f38f42f19076756f377578",
     "review": {
       "slot_id": "thread_1",
       "scores": {
-        "hook": 4.0,
+        "hook": 5.0,
         "technical_accuracy": 5.0,
-        "grounding": 4.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "b048989487d8f4f8fb1f3c7ffb0a5186406e3b7bfb51f401471b1eede327864e",
-    "review": {
-      "slot_id": "thread_2",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
         "grounding": 4.0,
         "voice": 5.0,
         "clarity": 4.0,
@@ -45,7 +24,7 @@
     "record_id": "marketing_1/reviewer/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "bdcbe67b9e6f368a56a356f75adaeb7fb53215b4457ebd8c9886b623f068beae",
+    "input_sha256": "797b615f71e8c350c3ce48d847185da3372fe0cbac6b1bab0253274611940f17",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
@@ -54,9 +33,11 @@
         "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
-        "cta": 4.0
+        "cta": 3.0
       },
-      "reasons": [],
+      "reasons": [
+        "'Teams can request a review of their code with us.' is supported by STAT-03, but it reads as a descriptive statement rather than a direct next step. It works better as a direct invitation, for example 'Request a review of your code.'"
+      ],
       "hard_fail": [],
       "accepted": true
     },
@@ -66,9 +47,30 @@
     "record_id": "thread_3/reviewer/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "80e8ecf0efd31458e627d8aa9d570d7e3b6efd28012dc56a7c140310be186fa9",
+    "input_sha256": "78bb330234cba4ba9c061bf169da9794f7df102eeeea7a393c1a648e80b9b0bc",
     "review": {
       "slot_id": "thread_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 4.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "031a6fa1751ea49d6ae17a72a165da331bcc70c68f2f7d692a82a83e83a40540",
+    "review": {
+      "slot_id": "marketing_2",
       "scores": {
         "hook": 4.0,
         "technical_accuracy": 5.0,
@@ -84,41 +86,37 @@
     "failure": null
   },
   {
-    "record_id": "marketing_2/reviewer/1/1",
-    "slot_id": "marketing_2",
+    "record_id": "marketing_3/reviewer/1/1",
+    "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "c59a99faec562987700595784ca49286c780f7b72321d47a8b5b548616dcc1e6",
+    "input_sha256": "6ef5e4d78f095335f3dfd614d35bfb590beaced26496ad886d98eeaf67b76574",
     "review": {
-      "slot_id": "marketing_2",
+      "slot_id": "marketing_3",
       "scores": {
-        "hook": 3.0,
+        "hook": 5.0,
         "technical_accuracy": 5.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 2.0
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 4.0
       },
-      "reasons": [
-        "Opens with the question 'What can an audit count tell you?', which fits the credibility angle and the audit-count evidence. It is generic, and the post never answers it, so it is acceptable but plain.",
-        "Three short sentences, but the question is left hanging and does not lead into the facts. 'fictional demo firm' and 'demo offering' repeat the label. The result reads as a fact list more than one finished thought.",
-        "There is no direct next step or engagement question. 'Teams can request a review' describes the fictional offering, but it does not ask the reader to do anything. It makes no unsupported promise, but it is a weak ending."
-      ],
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
     "failure": null
   },
   {
-    "record_id": "marketing_3/reviewer/1/1",
-    "slot_id": "marketing_3",
-    "attempt": 1,
-    "input_sha256": "38c72193f303aa88d34f1ea5395cde94550970f10c62872674066ff306d50277",
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "e5a35b468eea7a241f0459359643224591d177be96e1da0784d3d7d44fdecd83",
     "review": {
-      "slot_id": "marketing_3",
+      "slot_id": "thread_2",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 4.0

@@ -6,6 +6,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
+import yaml
 from pydantic import BaseModel
 from . import record_ids
 from .ledger import Ledger
@@ -334,15 +335,46 @@ def _visible_output(raw, parsed):
 
 
 class ModelFailure(Exception):
-    def __init__(self, outcome):
+    def __init__(self, outcome, detail=None):
         super().__init__(outcome)
 
         self.outcome = outcome
+        self.detail = detail
+
+
+PRICES_FILE = "config/prices.yaml"
+
+
+RATE_KEYS = ("input", "output")
+
+
+def _valid_rate(value) -> bool:
+    """A real, finite, non-negative number (booleans are not prices)."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and (math.isfinite(value) and value >= 0)
+    )
+
+
+def load_price_overrides(path: Path) -> dict:
+    """USD per million tokens for models genai-prices does not know, keyed provider:model."""
+    if not path.exists():
+        return {}
+
+    prices = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+    for model, rate in prices.items():
+        if not isinstance(rate, dict) or not all(_valid_rate(rate.get(key)) for key in RATE_KEYS):
+            raise ValueError(f"price override for {model} needs finite input and output >= 0")
+
+    return prices
 
 
 class Prices:
-    def __init__(self, update=True):
+    def __init__(self, update=True, overrides=None):
         self.updater = None
+        self.overrides = overrides or {}
 
         if update:
             from genai_prices import UpdatePrices
@@ -356,6 +388,12 @@ class Prices:
             self.updater.__exit__(None, None, None)
 
     def quote(self, model, input_tokens, output_tokens, cached=0, cache_creation=0):
+        if model in self.overrides:
+            rate = self.overrides[model]
+            total = (input_tokens * rate["input"] + output_tokens * rate["output"]) / 1_000_000
+
+            return float(total), "config/prices.yaml"
+
         from genai_prices import Usage, calc_price
 
         provider, name = model.split(":", 1)
@@ -377,6 +415,11 @@ class Prices:
         )
 
         return float(price.total_price), "genai-prices@" + version("genai-prices")
+
+
+# A stalled provider call fails as a timeout (and is retried) instead of freezing the run.
+# Free endpoints can queue a call for a minute or two, so this sits well above that.
+REQUEST_TIMEOUT_SECONDS = 240
 
 
 class LangChainTransport:
@@ -415,7 +458,12 @@ class LangChainTransport:
         if not key or not key.strip():
             raise ValueError("missing credential for selected provider")
 
-        options = {"max_tokens": max_tokens, "max_retries": 0, "api_key": key}
+        options = {
+            "max_tokens": max_tokens,
+            "max_retries": 0,
+            "api_key": key,
+            "timeout": REQUEST_TIMEOUT_SECONDS,
+        }
 
         if self.reasoning_effort != "none":
             options["reasoning_effort"] = self.reasoning_effort
@@ -459,10 +507,11 @@ class LangChainTransport:
 
         # Tool structured output retains raw usage before LangChain parses it;
         # native SDK parsing can raise on length or bad JSON before returning usage.
+        # Claude Opus 5.5 rejects forced tool calls, so Anthropic uses its native JSON schema.
         method = {
             "openai": "function_calling",
             "google_genai": "json_schema",
-            "anthropic": "function_calling",
+            "anthropic": "json_schema",
         }.get(provider, "function_calling")
 
         return chat.with_structured_output(schema, method=method, include_raw=True)
@@ -903,7 +952,9 @@ class ModelClient:
         await self.record(row)
 
         if outcome.action == "fail":
-            raise ModelFailure(outcome.failure) from None
+            detail = row.failure_kind.value if row.failure_kind else None
+
+            raise ModelFailure(outcome.failure, detail) from None
 
         return outcome, result
 

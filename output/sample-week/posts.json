@@ -7,33 +7,35 @@
     "topic_id": "KB-01",
     "topic_name": "Reentrancy",
     "tweets": [
-      "1/8 Your withdraw function sends Ether, then clears the caller's balance. What can the recipient do in the gap between those two steps? That gap is where reentrancy lives.",
-      "2/8 The mechanism: calling another contract hands it control. It can call back into your contract before the first call returns, while your state is still half-updated.",
-      "3/8 A concrete case: a withdrawal sends Ether before clearing the stored balance. A callback can withdraw again against the still-unchanged balance.",
-      "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
-      "5/8 Root cause: state updates that happen after untrusted calls allow repeated execution. The problem is ordering, not any single line.",
-      "6/8 The mitigation is checks-effects-interactions. First validate inputs and permissions. Then update the relevant storage state. Only then make external calls.",
-      "7/8 In the withdrawal example: save the withdrawal amount and clear the stored balance before calling the recipient. Require the call to succeed so a failure reverts the operation.",
-      "8/8 A check you can apply today: at each external call, is the affected state already final? Also review other callable paths and contracts sharing that state, since a callback may enter through another function or dependency."
+      "1/8 A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
+      "2/8 Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
+      "3/8 Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
+      "4/8 Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
+      "5/8 Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
+      "6/8 Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+      "7/8 In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
+      "8/8 Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too."
     ],
     "image": "images/slot-thread_1.png"
   },
   {
-    "record_id": "thread_2/export/1/1",
+    "record_id": "thread_2/export/2/1",
     "slot_id": "thread_2",
-    "attempt": 1,
+    "attempt": 2,
     "type": "tech-thread",
-    "topic_id": "KB-02",
-    "topic_name": "Integer overflow and underflow",
+    "topic_id": "WEB-a0fdaa7b887ec446",
+    "topic_name": "ERC-4626 vault inflation attack",
     "tweets": [
-      "1/8 What happens when a uint256 holds 2 and the code subtracts 3? The answer depends on the Solidity version and on whether the line sits inside an unchecked block. A short thread on integer overflow and underflow.",
-      "2/8 Integer types have bounded ranges. Overflow or underflow occurs when an arithmetic result falls outside the range of its type. The root cause is that those bounds are not enforced in legacy wrapping arithmetic or in unchecked operations.",
-      "3/8 Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. So check the compiler version first.",
-      "4/8 A concrete case: uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting. An unchecked block restores this wrapping for arithmetic inside it.",
-      "5/8 Two details about unchecked blocks. Functions called from an unchecked block do not inherit its unchecked mode. And division or modulo by zero still fails inside unchecked blocks.",
-      "6/8 Mitigation: use checked arithmetic or explicit range checks where wrapping is unintended. Unchecked blocks require reasoning that their inputs stay within the intended bounds.",
-      "7/8 Reverting is not automatically harmless. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
-      "8/8 A closing check for your own code: Which compiler version applies? Where is each unchecked block? What keeps its inputs within the intended bounds? Is any wrapping unintended?"
+      "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+      "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+      "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
+      "4/10 Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
+      "5/10 Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
+      "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
+      "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
+      "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
+      "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+      "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch."
     ],
     "image": "images/slot-thread_2.png"
   },
@@ -42,16 +44,18 @@
     "slot_id": "thread_3",
     "attempt": 1,
     "type": "tech-thread",
-    "topic_id": "KB-03",
-    "topic_name": "Unchecked call return value",
+    "topic_id": "KB-20",
+    "topic_name": "Business logic errors",
     "tweets": [
-      "1/7 A low-level call in Solidity fails, yet your contract carries on as if it worked. How does that happen without any revert?",
-      "2/7 Low-level call, delegatecall and staticcall return a success boolean plus returned bytes. If the callee throws an exception, the boolean is false. The exception is not automatically propagated to the caller.",
-      "3/7 The root cause: the caller does not inspect the returned success flag or validate the result the application needs. If failure is ignored, the caller can continue as though the intended operation happened.",
-      "4/7 A true flag has its own limit. A low-level call to an address with no code can return true. So true alone does not show that the destination exists or that your intended action took place.",
-      "5/7 Mitigation, step one: capture the success boolean and handle failure explicitly. Use require(success) when a failed call must revert the whole operation.",
-      "6/7 Step two: if your logic depends on a returned value or on contract code being present, check those conditions too. A successful low-level call is not proof of an application-specific result.",
-      "7/7 A check you can run on your own code. For each low-level call, ask: Is the boolean captured? What happens when it is false? Do I also need to validate returned data or that the target has code?"
+      "1/9 A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
+      "2/9 OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
+      "3/9 The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
+      "4/9 Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
+      "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+      "6/9 Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
+      "7/9 OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
+      "8/9 For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
+      "9/9 Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/"
     ],
     "image": "images/slot-thread_3.png"
   },
@@ -63,7 +67,7 @@
     "topic_id": "ANGLE-service",
     "topic_name": "service",
     "tweets": [
-      "Shipping smart contract code and wondering who else should read it? Sentinel Grove, a fictional demo audit service, lets teams request a review of their contract code. Want to request one?"
+      "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us."
     ],
     "image": "images/slot-marketing_1.png"
   },
@@ -75,7 +79,7 @@
     "topic_id": "ANGLE-credibility",
     "topic_name": "credibility",
     "tweets": [
-      "What can an audit count tell you? Sentinel Grove, a fictional demo firm, completed 12 audits. In this demo offering, teams can request a review of their smart contract code."
+      "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code."
     ],
     "image": "images/slot-marketing_2.png"
   },
@@ -87,7 +91,7 @@
     "topic_id": "ANGLE-education",
     "topic_name": "education-to-cta",
     "tweets": [
-      "Why can one withdrawal pay out twice? State updated after an untrusted call lets a callback reuse the old balance; checks-effects-interactions fixes the order. Which of your functions call out before updating state?"
+      "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?"
     ],
     "image": "images/slot-marketing_3.png"
   }

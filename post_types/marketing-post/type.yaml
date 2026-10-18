@@ -11,9 +11,39 @@ research:
   angles: angles.yaml
 review:
   pass_avg: 3.5
+  min_score: 3
   hard_fail:
   - unsupported_claim
   - off_brand
 visual:
   template: brand
   severity_badge: never
+# Words that praise the firm's quality, which a post may use only when the slot's evidence
+# uses them. Code rejects the draft before review and tells the writer to delete the clause.
+# Action verbs such as "ensure" or "prevent" are left to the reviewer, because security
+# advice uses them legitimately. Text inside backticks is not checked.
+claim_words:
+- thorough
+- thoroughly
+- rigorous
+- rigorously
+- rigor
+- specialized
+- specialist
+- specialists
+- expert
+- experts
+- expertise
+- comprehensive
+- proven
+- precision
+- precise
+- trusted
+- leading
+- world-class
+- battle-tested
+- meticulous
+- experienced
+- seasoned
+- dedicated
+- peace of mind

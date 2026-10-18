@@ -61,7 +61,7 @@
       "type": "boolean"
     },
     "advisor_enabled": {
-      "default": true,
+      "default": false,
       "title": "Advisor Enabled",
       "type": "boolean"
     },

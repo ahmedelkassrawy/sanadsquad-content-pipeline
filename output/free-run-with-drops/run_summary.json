@@ -1,0 +1,79 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "week-44",
+  "slots": {
+    "thread_1": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "KB-01",
+      "reasons": []
+    },
+    "thread_2": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "WEB-312e8a0f354f7b8c",
+      "reasons": [
+        "Tweet 2 includes an incorrect formula for share calculation (`100 * 0 / (100 + 1)`) that does not match the evidence, though the conclusion about zero shares is correct.",
+        "Tweet 2's formula is not supported by the provided sources; the rest of the claims trace to evidence.",
+        "Tweet 2 states an incorrect share calculation formula (`100 * 0 / (100 + 1)`) that is not found in the source evidence, making the claim unsupported."
+      ]
+    },
+    "thread_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "KB-05",
+      "reasons": []
+    },
+    "marketing_1": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "ANGLE-service",
+      "reasons": [
+        "Opening statement 'Smart contracts require precision.' is a generic claim not phrased as a question or contrast, and the post does not answer it.",
+        "Contains unsupported technical claims: that smart contracts require precision and that the review ensures clarity and correctness, neither backed by the supplied evidence.",
+        "Claim 'ensure clarity and correctness' adds a fact not present in STAT-03, which only states the firm offers audits; thus grounding fails.",
+        "The tweet asserts that smart contracts require precision and that the review ensures clarity and correctness, both lacking support from STAT-01 or STAT-03."
+      ]
+    },
+    "marketing_2": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "ANGLE-credibility",
+      "reasons": [
+        "Opening is a generic statement about teams relying on rigorous reviews, not a specific question or contrast tied to the angle.",
+        "Claim that rigorous reviews catch critical flaws lacks evidence in the supplied sources; only audit count and review capability are supported.",
+        "Factual clause about rigorous reviews catching critical flaws is not traced to any cited evidence_text, making it unsupported.",
+        "The statement 'Teams building on smart contracts rely on rigorous reviews to catch critical flaws' is not supported by any source; the evidence only mentions audit count and ability to request a review."
+      ]
+    },
+    "marketing_3": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-education",
+      "reasons": []
+    }
+  },
+  "shipped": 3,
+  "confirmed_tokens": 129723,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.015404000000000001,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": false,
+  "external_usage": {
+    "search_calls": 1,
+    "tavily_calls": 1,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 1.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 3,
+    "cloudflare_images": 3,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 3
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "not_enabled",
+  "advisor_reason": null
+}

@@ -289,7 +289,18 @@ async def test_public_six_slot_run_produces_schema_valid_trails_png_and_order(tm
             )
         ).draft.model_dump()
     )
-    assert (folder / "run.log").read_text() == "export: complete\nsummary: complete\n"
+
+    log = (folder / "run.log").read_text()
+
+    assert "== thread_1" in log
+    assert "review 1   accepted" in log
+    assert "outcome    shipped after 1 attempt(s)" in log
+    assert "shipped 6, dropped or failed 0" in log
+
+    index = (folder / "README.md").read_text()
+
+    assert "`posts.csv`" in index
+    assert "`run.log`" in index
 
 
 async def test_focused_research_and_write_overlap_barriers(tmp_path):

@@ -1,12 +1,12 @@
 {
-  "concept": "Unchecked call return value",
-  "scene": "Unchecked call return value",
+  "concept": "Business logic flaw: code runs correctly but the rules it encodes permit exploitable outcomes",
+  "scene": "Technical diagram on a deep navy background: a lending contract flow where a borrow request is checked against the requested amount instead of collateral balance, with the mismatched invariant check highlighted in amber and a broken link between collateral and borrow capacity",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Unchecked call return value",
-  "alt_text": "Unchecked call return value",
-  "severity": "medium"
+  "overlay_text": "the code does what it says, but what it says permits exploitable outcomes",
+  "alt_text": "Diagram of a lending contract where the borrow check uses the requested amount rather than collateral balance, with the missing invariant highlighted in amber on a navy background.",
+  "severity": "high"
 }

@@ -44,6 +44,13 @@
           "title": "Pass Avg",
           "type": "number"
         },
+        "min_score": {
+          "default": 1,
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Min Score",
+          "type": "number"
+        },
         "hard_fail": {
           "items": {
             "type": "string"

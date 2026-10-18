@@ -1,0 +1,47 @@
+[
+  {
+    "record_id": "thread_1/export/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "type": "tech-thread",
+    "topic_id": "KB-01",
+    "topic_name": "Reentrancy",
+    "tweets": [
+      "1/6 External calls in Solidity can allow reentrancy attacks by handing control to another contract, which may call back before the original call completes. This happens when state updates occur after untrusted calls.",
+      "2/6 For example, a withdrawal function that sends Ether before clearing the caller's balance leaves the balance unchanged for a callback. The attacker's contract can call back and withdraw again using the same unmodified balance.",
+      "3/6 The root cause is that state updates are deferred until after external calls complete. This creates a window where an attacker can repeatedly execute logic against an unchanged state.",
+      "4/6 Mitigate reentrancy by following the checks-effects-interactions pattern: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0;` Ensure the call succeeds or the operation reverts.",
+      "5/6 Review all callable paths and contracts sharing the affected state. A callback might enter through another function or dependency, not just the obvious withdrawal path.",
+      "6/6 Check your contracts: Are external calls made after state updates? Could an attacker manipulate state by calling back before finalization?"
+    ],
+    "image": "images/slot-thread_1.png"
+  },
+  {
+    "record_id": "thread_3/export/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "type": "tech-thread",
+    "topic_id": "KB-05",
+    "topic_name": "Unprotected selfdestruct",
+    "tweets": [
+      "1/5 In Solidity, a selfdestruct call without proper access controls can let attackers permanently disable a contract. The impact depends on the EVM version.",
+      "2/5 Before EVM Cancun, selfdestruct deletes the contract's code and storage, sending remaining Ether to a target. Since Cancun, it only sends Ether and leaves the contract intact, unless it's the creation transaction.",
+      "3/5 The risk: malicious actors trigger selfdestruct without authorization. Solidity deprecated this function in 0.8.18 (EIP-6049) and discourages its use in new contracts.",
+      "4/5 Even without direct selfdestruct calls, a contract can still execute it via delegatecall or callcode. The safer alternative? Change internal state to revert all functions instead.",
+      "5/5 If selfdestruct is needed, restrict access with a multisig scheme. Otherwise, remove it entirely, unless you're okay with losing control of the contract."
+    ],
+    "image": "images/slot-thread_3.png"
+  },
+  {
+    "record_id": "marketing_3/export/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-education",
+    "topic_name": "education-to-cta",
+    "tweets": [
+      "External calls in smart contracts can enable reentrancy if state updates happen after untrusted interactions. A callback might exploit this to withdraw funds repeatedly. Validate inputs, update state first, then make external calls. Want a review of your contract's security?"
+    ],
+    "image": "images/slot-marketing_3.png"
+  }
+]

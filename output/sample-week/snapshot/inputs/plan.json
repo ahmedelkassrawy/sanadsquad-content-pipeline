@@ -9,7 +9,7 @@
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
-      "focus": null,
+      "focus": "ERC-4626 vault inflation attack",
       "topic_id": null
     },
     {

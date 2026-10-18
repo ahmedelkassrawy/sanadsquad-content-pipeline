@@ -3,7 +3,7 @@ import unicodedata
 from functools import partial
 from twitter_text import parse_tweet
 from skills import brand_rules
-from .models import BrandRules, Draft, PostType, ResearchPack, ValidationResult
+from .models import BrandRules, Draft, PostType, ResearchPack, Tweet, ValidationResult
 
 
 # The brand check lives in the brand_rules skill; this alias keeps existing imports working.
@@ -15,7 +15,20 @@ _OPENING_BRACKETS = "([{"
 _CLOSING_PUNCTUATION = ",.;:!?)]}"
 _PUNCTUATION = _CLOSING_PUNCTUATION + _OPENING_BRACKETS + _QUOTES
 _DASH_RUN = re.compile(r"\s*\u2014(?:\s*\u2014)*\s*")
+# Hyphen and en-dash look-alikes become a plain hyphen; only the em dash needs run handling.
+_HYPHEN_LIKE = "\u2010\u2011\u2012\u2013\u2015"
+# A number token not glued to a word or a decimal point (uint256, KB-01 and SWC-107 are not
+# numbers here, but the second half of "0.8.0-0.9.5" is). A "v" before a dotted version is a
+# prefix, so "v0.8.0" and "0.8.0" are the same number.
+_NUMBER = re.compile(r"(?<![\w.])(?<![A-Za-z]-)(?:[vV](?=\d+\.\d))?(\d+(?:\.\d+)*)")
+_THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
+_TOKEN = re.compile(r"\S+")
 _BARE_DOMAIN_URL = re.compile(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/\S*")
+# A sentence ends at ., ? or ! and the next sentence starts with a capital, backtick or digit.
+_SENTENCE_BREAK = re.compile(r"(?<=[.?!])\s+(?=[A-Z`0-9])")
+_NUMBERING_PREFIX = re.compile(r"^\d+/\d+\s+")
+CLAIM_NOTE_MARKER = ":delete the clause containing"
+LINK_NOTE_MARKER = ":X turns"
 
 
 def _is_url_token(token: str) -> bool:
@@ -47,7 +60,7 @@ def _fix_plain_text(plain: str, banned: list[str], before: str, after: str) -> s
     """Replace configured banned characters in prose between protected URL tokens."""
     for char in banned:
         if char != "\u2014":
-            plain = plain.replace(char, "-" if char == "\u2011" else "")
+            plain = plain.replace(char, "-" if char in _HYPHEN_LIKE else "")
 
             continue
 
@@ -105,6 +118,41 @@ def check_leaked_source_ids(text: str, pack: ResearchPack) -> list[str]:
     ]
 
 
+def numbers_in(text: str) -> set[str]:
+    """Number tokens in folded prose, ignoring URLs and thousands separators."""
+    folded = unicodedata.normalize("NFKC", text)
+    folded = _TOKEN.sub(lambda m: " " if _is_url_token(m.group()) else m.group(), folded)
+
+    return set(_NUMBER.findall(_THOUSANDS.sub("", folded)))
+
+
+def check_numbers(text: str, pack: ResearchPack, focus: str | None = None) -> list[str]:
+    """Report numbers that appear in no usable source of the pack, its topic or the slot focus."""
+    allowed = numbers_in(pack.topic_name) | numbers_in(focus or "")
+
+    for source in pack.sources:
+        if source.status == "ok":
+            allowed |= numbers_in(source.evidence_text)
+
+    violations = []
+
+    for number in sorted(numbers_in(text)):
+        # Bare single digits ("step 1", "2 calls") are too common to gate; the reviewer judges them.
+        if len(number) == 1:
+            continue
+
+        if number in allowed:
+            continue
+
+        # "0.8" is supported by evidence that says "0.8.0".
+        supported = any(source.startswith(number + ".") for source in allowed)
+
+        if not supported:
+            violations.append(f"unsourced_number:{number}")
+
+    return violations
+
+
 def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     if draft.slot_id != pack.slot_id:
         return ["slot_mismatch"]
@@ -119,8 +167,173 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     ]
 
 
+def check_claim_words(text: str, pack: ResearchPack, claim_words: list[str]) -> list[str]:
+    """Report configured claim words that the text uses and no usable source of the pack does."""
+    if not claim_words:
+        return []
+
+    # Code spans are code, not claims: `try/catch` is not a promise to catch anything.
+    # Only paired spans count, so a stray backtick cannot hide the claims after it.
+    prose = _CODE_SPAN.sub(" ", text)
+    folded = unicodedata.normalize("NFKC", prose)
+
+    evidence = unicodedata.normalize(
+        "NFKC", " ".join(source.evidence_text for source in pack.sources if source.status == "ok")
+    )
+
+    violations = []
+
+    for word in dict.fromkeys(claim_words):
+        pattern = r"(?<!\w)" + re.escape(word) + r"(?!\w)"
+
+        if re.search(pattern, folded, re.I) and not re.search(pattern, evidence, re.I):
+            violations.append(f"unsupported_claim_word:{word}")
+
+    return violations
+
+
+def _numbering(spec: PostType, position: int, count: int) -> str:
+    """The prefix added to a tweet of a numbered type, such as "3/7 "."""
+    return f"{position}/{count} " if spec.numbering else ""
+
+
+def _inside_code_span(text: str, position: int) -> bool:
+    return text[:position].count("`") % 2 == 1
+
+
+def _ends_with_url(text: str, position: int) -> bool:
+    """Whether the whitespace-delimited token that ends at position is a URL."""
+    return _is_url_token(text[:position].split()[-1])
+
+
+def split_at_sentence(text: str, limit: int, prefix: str = "") -> tuple[str, str] | None:
+    """Split at the sentence boundary that best balances the halves, if both fit the limit."""
+    best = None
+    best_gap = None
+
+    for match in _SENTENCE_BREAK.finditer(text):
+        if _inside_code_span(text, match.start()) or _ends_with_url(text, match.start()):
+            continue
+
+        first = text[: match.start()]
+        second = text[match.end() :]
+
+        first_length = parse_tweet(prefix + first).weightedLength
+        second_length = parse_tweet(prefix + second).weightedLength
+
+        if max(first_length, second_length) > limit:
+            continue
+
+        gap = abs(first_length - second_length)
+
+        if best_gap is None or gap < best_gap:
+            best = (first, second)
+            best_gap = gap
+
+    return best
+
+
+def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[str]) -> None:
+    """Split tweets over the limit in place while the thread is below the type's unit maximum."""
+    if spec.units.max < 2:
+        return
+
+    index = 0
+
+    while index < len(draft.tweets) and len(draft.tweets) < spec.units.max:
+        count = len(draft.tweets)
+        tweet = draft.tweets[index]
+
+        numbered = _numbering(spec, index + 1, count) + tweet.text
+
+        if parse_tweet(numbered).weightedLength <= limit:
+            index += 1
+
+            continue
+
+        # Every later tweet is renumbered, so the halves must fit with the widest prefix.
+        widest = _numbering(spec, count + 1, count + 1)
+
+        # Going from 9 to 10 tweets widens every prefix ("1/9 " to "1/10 "); refuse a split
+        # that would push a tweet that already fits over the limit.
+        if len(widest) > len(_numbering(spec, count, count)) and any(
+            parse_tweet(widest + other.text).weightedLength > limit
+            for position, other in enumerate(draft.tweets)
+            if position != index
+        ):
+            index += 1
+
+            continue
+
+        text = _NUMBERING_PREFIX.sub("", tweet.text) if spec.numbering else tweet.text
+        halves = split_at_sentence(text, limit, widest)
+
+        if halves is None:
+            index += 1
+
+            continue
+
+        draft.tweets[index : index + 1] = [
+            Tweet(text=half, source_ids=list(tweet.source_ids)) for half in halves
+        ]
+
+        fixes.append(f"tweet_{index + 1}:split_for_length")
+
+
+# A paired backtick code span. An unpaired backtick is not a span.
+_CODE_SPAN = re.compile(r"`[^`]*`")
+# Paired * or ** around a word or phrase. X shows the asterisks literally, so the words stay and
+# the markers go. Code spans are skipped, so `a * b` keeps its operator.
+_EMPHASIS = re.compile(r"(?<![\w*])(\*{1,2})(?=\S)([^*`]+?)(?<=\S)\1(?![\w*])")
+# A fenced block becomes one inline code span. Only a known language tag followed by space and
+# then code (not an operator) is dropped, so "```require(x);```" and "```text = f()```" keep
+# their first word. Newlines are already flattened by the whitespace fix, so none is required.
+_FENCE = re.compile(
+    r"```(?:(?:solidity|sol|javascript|js|typescript|ts|python|py|bash|sh|json|yaml|text)"
+    r"(?=\s)(?!\s*[=(.\[:]))?\s*(.+?)\s*```",
+    re.S | re.I,
+)
+
+
+def strip_markdown(text: str) -> str:
+    """Turn code fences into inline code and remove emphasis markers outside code spans."""
+    parts = _FENCE.sub(r"`\1`", text).split("`")
+
+    return "`".join(
+        part if index % 2 else _EMPHASIS.sub(r"\2", part) for index, part in enumerate(parts)
+    )
+
+
+def _apply_safe_fixes(text: str, index: int, rules: BrandRules, fixes: list[str]) -> str:
+    """Apply the brand's safe fixes to one tweet and record each one that changed it."""
+    operations = {
+        "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
+        "whitespace": lambda t: " ".join(t.split()),
+        "curly_quotes": lambda t: t.translate(
+            str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
+        ),
+        "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
+        "markdown": strip_markdown,
+    }
+
+    for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
+        changed = operations[fix](text)
+
+        if changed != text:
+            fixes.append(f"tweet_{index}:{fix}")
+
+        text = changed
+
+    return text
+
+
 def validate(
-    draft: Draft, pack: ResearchPack, spec: PostType, rules: BrandRules, limit: int = 280
+    draft: Draft,
+    pack: ResearchPack,
+    spec: PostType,
+    rules: BrandRules,
+    limit: int = 280,
+    focus: str | None = None,
 ) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
@@ -128,35 +341,34 @@ def validate(
     fixed = draft.model_copy(deep=True)
     fixes = []
     empty_content = []
+    unsourced = []
+    dangling = []
+    claims = []
+
+    for i, tweet in enumerate(fixed.tweets, 1):
+        tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
+
+    split_overlong_tweets(fixed, spec, limit, fixes)
 
     for i, tweet in enumerate(fixed.tweets, 1):
         text = tweet.text
-
-        operations = {
-            "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
-            "whitespace": lambda t: " ".join(t.split()),
-            "curly_quotes": lambda t: t.translate(
-                str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
-            ),
-            "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
-        }
-
-        for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
-            changed = operations[fix](text)
-
-            if changed != text:
-                fixes.append(f"tweet_{i}:{fix}")
-
-            text = changed
 
         if not any(
             not ch.isspace() and not unicodedata.category(ch).startswith("P") for ch in text
         ):
             empty_content.append(f"tweet_{i}:invalid_text")
 
-        tweet.text = f"{i}/{len(fixed.tweets)} {text}" if spec.numbering else text
+        # A lead-in with nothing after it ("then transfer:") means the content was left out.
+        if text.endswith(":"):
+            dangling.append(f"tweet_{i}:dangling_colon")
 
-    errors = check_citations(fixed, pack) + empty_content
+        # Checked before numbering, so the "3/8" prefix is not mistaken for a claim.
+        unsourced.extend(f"tweet_{i}:{e}" for e in check_numbers(text, pack, focus))
+        claims.extend(f"tweet_{i}:{e}" for e in check_claim_words(text, pack, spec.claim_words))
+
+        tweet.text = _numbering(spec, i, len(fixed.tweets)) + text
+
+    errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
 
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
         errors.append("tweet_count")
@@ -175,6 +387,57 @@ def validate(
 
     return ValidationResult(
         original=draft, normalized=fixed, fixes=fixes, violations=errors, accepted=not errors
+    )
+
+
+def colon_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for dangling colons, so a retry knows what to change."""
+    return [
+        f"{violation}:finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
+        for violation in result.violations
+        if violation.endswith(":dangling_colon")
+    ]
+
+
+def claim_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for unsupported claim words: delete the clause, do not reword the claim."""
+    notes = []
+
+    for violation in result.violations:
+        _, separator, word = violation.partition(":unsupported_claim_word:")
+
+        if separator:
+            notes.append(
+                f'{violation}{CLAIM_NOTE_MARKER} "{word}"; do not replace it with another '
+                "general claim; a shorter post is fine"
+            )
+
+    return notes
+
+
+def link_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for text that X would turn into a link, such as `target.call`."""
+    notes = []
+
+    for violation in result.violations:
+        _, separator, domain = violation.partition(":link_domain:")
+
+        if separator:
+            notes.append(
+                f'{violation}{LINK_NOTE_MARKER} "{domain}" into a link, even inside backticks; '
+                "rewrite it with no dot between two words, for example "
+                '"target.call" as "a low-level call to target"'
+            )
+
+    return notes
+
+
+def is_writer_note(reason: str) -> bool:
+    """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
+    return (
+        (reason.startswith("tweet_") and ":weighted_length:" in reason)
+        or CLAIM_NOTE_MARKER in reason
+        or LINK_NOTE_MARKER in reason
     )
 
 

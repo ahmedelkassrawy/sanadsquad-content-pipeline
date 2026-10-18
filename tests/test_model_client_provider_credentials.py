@@ -2,7 +2,7 @@
 
 import pytest
 
-from content_pipeline.model_client import LangChainTransport
+from content_pipeline.model_client import REQUEST_TIMEOUT_SECONDS, LangChainTransport
 from content_pipeline.models import Draft
 
 
@@ -43,6 +43,7 @@ def test_groq_uses_conventional_credential_and_function_calling(
     expected = {
         "model_provider": "groq",
         "api_key": "synthetic-groq-key",
+        "timeout": REQUEST_TIMEOUT_SECONDS,
         "max_tokens": 1000,
         "max_retries": 0,
     }
@@ -89,6 +90,7 @@ def test_google_genai_keeps_gemini_credential_and_json_schema(tmp_path, monkeypa
     assert captured["options"] == {
         "model_provider": "google_genai",
         "api_key": "synthetic-gemini-key",
+        "timeout": REQUEST_TIMEOUT_SECONDS,
         "max_output_tokens": 1000,
         "max_retries": 0,
         "thinking_budget": 0,

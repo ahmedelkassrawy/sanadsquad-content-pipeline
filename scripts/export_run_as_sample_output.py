@@ -112,6 +112,9 @@ def expected_snapshot(contents):
         "config/visual.yaml",
     }
 
+    if "config/prices.yaml" in contents:
+        expected.add("config/prices.yaml")
+
     slots = [
         ResolvedSlot.model_validate(slot)
         for slot in json.loads(contents["inputs/plan.json"])["slots"]
@@ -187,6 +190,7 @@ def validated_files(source):
         "advice.md",
         "advice.patch",
         "run.log",
+        "README.md",
     }
 
     private_names = {
@@ -375,7 +379,7 @@ def package(source, target):
         export(target / "schemas")
 
         (target / "PACKAGE.md").write_text(
-            "Inspectable sample package. SQLite checkpoint, ownership lock and internal run identity/state are excluded; this copy cannot resume. Brand statistics are fictional. Copy the live sample-provenance.json beside this package before claiming live provenance.\n",
+            "Inspectable sample package. SQLite checkpoint, ownership lock and internal run identity/state are excluded; this copy cannot resume. Copy the live sample-provenance.json beside this package before claiming live provenance.\n",
             encoding="utf-8",
         )
 
