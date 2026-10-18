@@ -77,7 +77,7 @@ export. It is a guard, not a hard cap: estimates can be wrong and providers can 
 `--estimate` prints a worst-case ceiling as JSON and exits. It starts no model or search
 client, makes no network call and writes no run folder. The ceiling assumes every retry
 happens, so it is far above a real run (about 11 million tokens for the committed config,
-against 181,069 used by the sample). A model with no known price is refused unless you pass
+against 199,461 used by the sample). A model with no known price is refused unless you pass
 `--allow-unpriced`; then only the token limit applies. Prices come from `genai-prices`
 and the overrides in `config/prices.yaml`. USD covers model calls only. Search
 and image calls are counted in `external-usage.json` but not priced.
@@ -92,11 +92,13 @@ config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, all at reasoning ef
 python run_week.py --plan plan.json --output <run> --set thread_2="ERC-4626 vault inflation attack" --max-concurrency 3
 ```
 
-Result: 6 of 6 pieces shipped in 75 seconds, 181,069 tokens, 0.5597 USD confirmed, every call
-priced. `thread_2` used Tavily web search (1 call) because its topic is not in the KB; its
-first draft was rejected by the code number check (`unsourced_number:10000`) and the retry
-shipped. The other five shipped on the first attempt. All six images are Cloudflare FLUX
-backgrounds composed into a Pillow card. The full per-slot story is in
+Result: 6 of 6 pieces shipped, 199,461 tokens, 0.6771 USD confirmed, every call priced.
+`thread_2` used Tavily web search (1 call) because its topic is not in the KB. The reviewer
+rejected its first draft for "the post names a tradeoff" (text pointing at the research
+material) and the retry shipped. The education post took KB-04, because thread_1 already
+covers reentrancy (KB-01). The other five shipped on the first attempt. Cloudflare returned
+HTTP 429 for every image, so all six are Pillow cards (brand header, title, the thread's own
+code line). The full per-slot story is in
 `output/sample-week/run.log`.
 
 The free run copied to `output/free-run-with-drops` (Ministral writers, Nemotron reviewer, about 3 minutes)

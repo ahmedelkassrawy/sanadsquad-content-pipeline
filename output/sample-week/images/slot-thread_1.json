@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: state updated after an external call lets a callback repeat execution",
-  "scene": "Technical card on a deep navy background. A simple flow diagram shows a withdraw function sending Ether to a recipient contract, with an amber arrow looping back into the function before the balance box is cleared. A white label marks the unchanged balance. A small badge in the corner reads high severity.",
+  "concept": "Reentrancy: update state before making external calls",
+  "scene": "A calm technical card on a deep navy background. A simple diagram shows a contract box sending an arrow out to another contract and a looping arrow returning, with an amber highlight on the state update step placed before the outgoing call.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "clear the stored balance before calling the recipient",
-  "alt_text": "Diagram of a withdraw function sending Ether to a contract whose callback loops back into the function while the balance is still unchanged, with the text: clear the stored balance before calling the recipient.",
+  "overlay_text": "State updates after untrusted calls allow repeated execution",
+  "alt_text": "Diagram of a contract calling another contract, with a looping arrow showing a callback returning before the state update.",
   "severity": "high"
 }

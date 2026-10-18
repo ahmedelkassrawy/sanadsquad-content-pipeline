@@ -2,49 +2,55 @@
   "record_id": "_run/summary/1/1",
   "slot_id": "_run",
   "attempt": 1,
-  "run_id": "week-45",
+  "run_id": "week-52",
   "slots": {
     "thread_1": {
       "outcome": "shipped",
       "attempts": 1,
       "topic_id": "KB-01",
-      "reasons": []
+      "reasons": [],
+      "error": null
     },
     "thread_2": {
       "outcome": "shipped",
       "attempts": 2,
-      "topic_id": "WEB-a0fdaa7b887ec446",
-      "reasons": []
+      "topic_id": "WEB-f352e6124ca0c40d",
+      "reasons": [],
+      "error": null
     },
     "thread_3": {
       "outcome": "shipped",
       "attempts": 1,
-      "topic_id": "KB-20",
-      "reasons": []
+      "topic_id": "KB-19",
+      "reasons": [],
+      "error": null
     },
     "marketing_1": {
       "outcome": "shipped",
       "attempts": 1,
       "topic_id": "ANGLE-service",
-      "reasons": []
+      "reasons": [],
+      "error": null
     },
     "marketing_2": {
       "outcome": "shipped",
       "attempts": 1,
       "topic_id": "ANGLE-credibility",
-      "reasons": []
+      "reasons": [],
+      "error": null
     },
     "marketing_3": {
       "outcome": "shipped",
       "attempts": 1,
       "topic_id": "ANGLE-education",
-      "reasons": []
+      "reasons": [],
+      "error": null
     }
   },
   "shipped": 6,
-  "confirmed_tokens": 181069,
+  "confirmed_tokens": 199461,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.55973,
+  "confirmed_cost_usd": 0.677138,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {

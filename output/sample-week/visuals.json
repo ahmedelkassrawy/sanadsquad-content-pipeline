@@ -3,17 +3,17 @@
     "record_id": "marketing_1/visual/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "3f50ff69be88cce86ce8512d1c25dc630a9d7e91c3ae3678ee34629c50e1d2f1",
+    "input_sha256": "846e8723738f20f68e3fbcd5c52554faad0d4becb9c5b04ec1eac79702b70996",
     "spec": {
-      "concept": "Brand card asking who reviews smart contract code before it ships, anchored by the firm's audit focus",
-      "scene": "Deep navy background with a minimal amber grove-of-trees motif made of simple geometric lines, a thin amber rule beneath a large centered white headline, calm and precise engineering feel, no characters or extra text",
+      "concept": "A clear offer to request a smart contract code review, with each finding reported alongside its root cause and a recommended fix.",
+      "scene": "A clean navy card with a bold white headline centered on the card and a thin amber accent line beneath it. A simple abstract outline of a contract document sits at the lower right, with a small amber marker at one line to suggest a single finding. No people, no extra text.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "smart contract audit firm",
-      "alt_text": "Navy brand card with a minimal amber grove motif and the words smart contract audit firm in white",
+      "overlay_text": "request a review of their smart contract code",
+      "alt_text": "Navy brand card with white text reading request a review of their smart contract code and an amber accent line above an outlined contract document.",
       "severity": null
     },
     "result": {
@@ -28,20 +28,48 @@
     }
   },
   {
-    "record_id": "thread_1/visual/1/1",
-    "slot_id": "thread_1",
+    "record_id": "thread_3/visual/1/1",
+    "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "065841e4015610131b8cd707e81eb151fa9a900ee85206e282bde455f655508b",
+    "input_sha256": "6a1a6dbff76062e6ad007155583a3a6627c8fed9c1a797d401bc63fee9f007f2",
     "spec": {
-      "concept": "Reentrancy: state updated after an external call lets a callback repeat execution",
-      "scene": "Technical card on a deep navy background. A simple flow diagram shows a withdraw function sending Ether to a recipient contract, with an amber arrow looping back into the function before the balance box is cleared. A white label marks the unchanged balance. A small badge in the corner reads high severity.",
+      "concept": "Flash loans amplify existing weaknesses, so fix the root cause rather than the loan",
+      "scene": "Minimal technical card on a deep navy background. A single transaction block drawn as a horizontal bar in white, with a borrow arrow entering on the left and a repay arrow leaving on the right. An amber highlighted bar inside the block marks the temporary large balance. Clean geometric lines, plenty of empty space, no figures or logos.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "clear the stored balance before calling the recipient",
-      "alt_text": "Diagram of a withdraw function sending Ether to a contract whose callback loops back into the function while the balance is still unchanged, with the text: clear the stored balance before calling the recipient.",
+      "overlay_text": "arbitrarily large, transient capital",
+      "alt_text": "Diagram of a single transaction bar with a borrow arrow entering, a highlighted temporary balance inside, and a repay arrow leaving, on a navy background.",
+      "severity": "high"
+    },
+    "result": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_1/visual/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "301b84aa7cefc5bbe01d04a6c1b8dbc7de93a46fa17e0b0b1a535119f240cfe0",
+    "spec": {
+      "concept": "Reentrancy: update state before making external calls",
+      "scene": "A calm technical card on a deep navy background. A simple diagram shows a contract box sending an arrow out to another contract and a looping arrow returning, with an amber highlight on the state update step placed before the outgoing call.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "State updates after untrusted calls allow repeated execution",
+      "alt_text": "Diagram of a contract calling another contract, with a looping arrow showing a callback returning before the state update.",
       "severity": "high"
     },
     "result": {
@@ -59,17 +87,17 @@
     "record_id": "marketing_2/visual/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "354053dff80ffb81b02dd3ceac8761c14d59a0b4c502759c72c7cdb0bf4f0264",
+    "input_sha256": "ae5eeb3f8db9bf1ac5f7e3145dacf163ad83d8b59df149a0e81ddd0c0e88a22a",
     "spec": {
-      "concept": "Credibility through completed audit work, presented as a calm, precise brand card for a smart contract audit firm.",
-      "scene": "Minimal brand card on a deep navy background with a thin amber accent line beneath a large white headline. A simple abstract grove of vertical lines suggests sentinel trees alongside a small shield outline made of clean geometric strokes. No people, no code snippets, no badges.",
+      "concept": "Credibility through a simple, verifiable track record: completed smart contract audits from a small auditor team.",
+      "scene": "Clean brand card on a deep navy background with a thin amber accent line beneath the overlay text, and minimal geometric grove-like shapes in the corner. Calm, precise, uncluttered layout.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "completed 12 audits",
-      "alt_text": "Brand card with navy background and amber accent line reading 'completed 12 audits', with abstract grove lines and a shield outline.",
+      "overlay_text": "12 smart contract audits completed",
+      "alt_text": "Brand image card with navy background and amber accent line, with the text 12 smart contract audits completed.",
       "severity": null
     },
     "result": {
@@ -84,48 +112,20 @@
     }
   },
   {
-    "record_id": "thread_3/visual/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "fd14ebc1d885a2103a9f05ed8b2641a843b4b6de8786d3f6de37ab6fb6690894",
-    "spec": {
-      "concept": "Business logic flaw: code runs correctly but the rules it encodes permit exploitable outcomes",
-      "scene": "Technical diagram on a deep navy background: a lending contract flow where a borrow request is checked against the requested amount instead of collateral balance, with the mismatched invariant check highlighted in amber and a broken link between collateral and borrow capacity",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "the code does what it says, but what it says permits exploitable outcomes",
-      "alt_text": "Diagram of a lending contract where the borrow check uses the requested amount rather than collateral balance, with the missing invariant highlighted in amber on a navy background.",
-      "severity": "high"
-    },
-    "result": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "marketing_3/visual/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "fbd85cac0913075e5575ae9fb3ad1ed94499ddc2950d0c58f86c6a9c853f7e80",
+    "input_sha256": "a5c18e0a1eb7e148d32f71c4c3f022ae258880837a1be06d518b7c20417e3484",
     "spec": {
-      "concept": "Education card on reentrancy: state must be updated before external calls to prevent callback-driven repeat withdrawals.",
-      "scene": "Minimal dark navy background with a simple diagram of two boxes labeled contract and callback connected by a looping amber arrow, with a clean white headline area and generous spacing in the brand style.",
+      "concept": "Unprotected Ether withdrawal caused by missing caller authorization, with a prompt to request a review of smart contract code",
+      "scene": "A calm, minimal vault door on a deep navy background, with a single amber keyhole glowing and a clear border of white space for the overlay text",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "Update state first, then call out.",
-      "alt_text": "Brand card with a navy background and an amber looping arrow between two boxes, illustrating a callback re-entering a contract, with the text: Update state first, then call out.",
+      "overlay_text": "Limit withdrawals to authorized parties",
+      "alt_text": "Navy brand card with an amber keyhole on a vault door and the text Limit withdrawals to authorized parties",
       "severity": null
     },
     "result": {
@@ -143,17 +143,17 @@
     "record_id": "thread_2/visual/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "98a1d4dcaf3161b3a4d2be52c1c181716f4acfb0888a6582281d40081ffbaaca",
+    "input_sha256": "6388a9903f9e25c16bd47744a39a33c1a960c7db899aeaa29e5e5dd657dc4b0c",
     "spec": {
-      "concept": "Technical card on ERC-4626 vault inflation attack: a donation to the vault skews the share price so a depositor's shares round down to zero.",
-      "scene": "Dark navy background with a simple diagram of a vault box. A small token labeled 1 share sits inside, a large arrow labeled donation points into the vault, and a victim deposit arrow leads out to a zero. Amber accent lines highlight the rounding step, with clean white monospace text and ample spacing.",
+      "concept": "First depositor inflation attack on an ERC-4626 vault, where a direct token transfer skews the share rate",
+      "scene": "A calm technical diagram on a dark navy background: a vault outline holding one small share token, with a stream of tokens flowing straight into it from the side, bypassing the deposit door. Amber lines mark the inflated balance. Minimal flat style with clean geometry.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "rounds down to zero shares",
-      "alt_text": "Diagram of an ERC-4626 vault where a direct token donation inflates the share price, so a victim's deposit is rounded down to zero shares.",
+      "overlay_text": "virtual assets and shares",
+      "alt_text": "Diagram of a vault holding a single share while tokens flow into it directly, bypassing the deposit function, with the caption virtual assets and shares.",
       "severity": null
     },
     "result": {

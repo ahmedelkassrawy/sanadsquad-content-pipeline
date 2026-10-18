@@ -3,56 +3,56 @@
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "ac6c050cdbffcd6957376b3b17f0a6fdf1b852fe2d3d713d88580de8b437bdcc",
+    "input_sha256": "30f7296a57daaae65982008c488cdbb146a8346077a57d24242de9b1d5417d04",
     "audit": {
       "original": {
         "slot_id": "thread_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
+            "text": "A withdrawal that sends Ether before clearing the caller balance can be drained by a callback. The callback withdraws against a balance that has not changed yet.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
+            "text": "Root cause: calling another contract hands it control. It can call back before the first call returns, so state updates placed after an untrusted call allow repeated execution.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
+            "text": "Reentrancy is not limited to Ether transfers. Calls to other contracts can trigger it too, and dependencies across multiple contracts also matter.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
+            "text": "Concrete case: a contract sends Ether to the recipient first and zeroes the stored balance afterward. The recipient's callback runs in between and sees the old balance.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
+            "text": "The fix is checks-effects-interactions. Validate inputs and permissions, update storage state, then make external calls.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+            "text": "For the withdrawal, save the amount and clear the balance before calling the recipient: `balances[msg.sender] = 0;` Then require the call to succeed so a failure reverts the operation.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
+            "text": "A callback may also enter through another function or dependency. Review other callable paths and contracts that share the affected state.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too.",
+            "text": "Closing check: in each function, does any storage update happen after an external call? If so, move it before the call, then check which other paths touch the same state.",
             "source_ids": [
               "KB-01"
             ]
@@ -61,49 +61,49 @@
       },
       "normalized": [
         {
-          "text": "1/8 A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
+          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be drained by a callback. The callback withdraws against a balance that has not changed yet.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/8 Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
+          "text": "2/8 Root cause: calling another contract hands it control. It can call back before the first call returns, so state updates placed after an untrusted call allow repeated execution.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/8 Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
+          "text": "3/8 Reentrancy is not limited to Ether transfers. Calls to other contracts can trigger it too, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
+          "text": "4/8 Concrete case: a contract sends Ether to the recipient first and zeroes the stored balance afterward. The recipient's callback runs in between and sees the old balance.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
+          "text": "5/8 The fix is checks-effects-interactions. Validate inputs and permissions, update storage state, then make external calls.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "text": "6/8 For the withdrawal, save the amount and clear the balance before calling the recipient: `balances[msg.sender] = 0;` Then require the call to succeed so a failure reverts the operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
+          "text": "7/8 A callback may also enter through another function or dependency. Review other callable paths and contracts that share the affected state.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/8 Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too.",
+          "text": "8/8 Closing check: in each function, does any storage update happen after an external call? If so, move it before the call, then check which other paths touch the same state.",
           "source_ids": [
             "KB-01"
           ]
@@ -120,121 +120,121 @@
     "record_id": "thread_3/validator/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "b51764fb2882b959b3842c336f98dcb6ccc35c235d0b54aeb2c093a66fa4f101",
+    "input_sha256": "3d3a00a2a2c3292bd6fe603542cd9ae93a5d650253d255025131985541937e45",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
+            "text": "A flash loan is uncollateralized borrowing that starts and ends in one transaction. OWASP says flash loans are not inherently vulnerable. The risk is what an attacker can do with arbitrarily large, transient capital.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
+            "text": "The root cause is a broken assumption. Protocol logic that trusts capital at risk or historical position size fails when an attacker temporarily holds large balances without risking their own funds.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
+            "text": "The attack is one batched transaction: borrow with a flash loan, manipulate protocol state, prices or accounting with the borrowed funds, extract profit, then repay the loan in the same transaction.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
+            "text": "OWASP names four areas to review: governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks. Each one can be skewed if temporary balances are treated as real commitment.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+            "text": "Flash loans act as a force multiplier. Per OWASP, they amplify existing business logic, oracle, arithmetic or access control weaknesses. Those weaknesses must be fixed at the root.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
+            "text": "Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Then ask what each sensitive operation does when the caller briefly holds huge balances.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
+            "text": "Limit the blast radius. Rate limit sensitive operations per block or epoch, and cap exposure per interaction with limits on slippage, position sizes and borrowing.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
+            "text": "Test for it too. Include flash-loan scenarios in tests and fuzzing so the large-transient-capital case is exercised before an attacker finds it.",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           },
           {
-            "text": "Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
+            "text": "Closing check: does any governance vote, price, share calculation or collateral check in your protocol rely on a balance an attacker could hold for just one transaction?",
             "source_ids": [
-              "KB-20"
+              "KB-19"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/9 A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
+          "text": "1/9 A flash loan is uncollateralized borrowing that starts and ends in one transaction. OWASP says flash loans are not inherently vulnerable. The risk is what an attacker can do with arbitrarily large, transient capital.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "2/9 OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
+          "text": "2/9 The root cause is a broken assumption. Protocol logic that trusts capital at risk or historical position size fails when an attacker temporarily holds large balances without risking their own funds.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "3/9 The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
+          "text": "3/9 The attack is one batched transaction: borrow with a flash loan, manipulate protocol state, prices or accounting with the borrowed funds, extract profit, then repay the loan in the same transaction.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "4/9 Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
+          "text": "4/9 OWASP names four areas to review: governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks. Each one can be skewed if temporary balances are treated as real commitment.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+          "text": "5/9 Flash loans act as a force multiplier. Per OWASP, they amplify existing business logic, oracle, arithmetic or access control weaknesses. Those weaknesses must be fixed at the root.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "6/9 Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
+          "text": "6/9 Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Then ask what each sensitive operation does when the caller briefly holds huge balances.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "7/9 OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
+          "text": "7/9 Limit the blast radius. Rate limit sensitive operations per block or epoch, and cap exposure per interaction with limits on slippage, position sizes and borrowing.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "8/9 For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
+          "text": "8/9 Test for it too. Include flash-loan scenarios in tests and fuzzing so the large-transient-capital case is exercised before an attacker finds it.",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         },
         {
-          "text": "9/9 Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
+          "text": "9/9 Closing check: does any governance vote, price, share calculation or collateral check in your protocol rely on a balance an attacker could hold for just one transaction?",
           "source_ids": [
-            "KB-20"
+            "KB-19"
           ]
         }
       ],
@@ -249,14 +249,49 @@
     "record_id": "marketing_1/validator/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "4881ddd8253c728925fe7e614f37a79abaccfdf5e6047cbbfc5c73fe8e604c0b",
+    "input_sha256": "2ec0c32e6ba9cbfcc2f4fc01268d72731f1a2e93b0073547cab02869648a7ca5",
     "audit": {
       "original": {
         "slot_id": "marketing_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us.",
+            "text": "Teams can request a review of their smart contract code from Sentinel Grove. Each finding comes with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
+            "source_ids": [
+              "STAT-03",
+              "STAT-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Teams can request a review of their smart contract code from Sentinel Grove. Each finding comes with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
+          "source_ids": [
+            "STAT-03",
+            "STAT-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "c85fb24b4ba1bea4065bbbb574cdad15e2d63fafdde27b45edd5efcf3cb14912",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "12 smart contract audits completed. Sentinel Grove is a smart contract audit firm with 3 auditors. Teams can request a review of their smart contract code.",
             "source_ids": [
               "STAT-01",
               "STAT-02",
@@ -267,7 +302,7 @@
       },
       "normalized": [
         {
-          "text": "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us.",
+          "text": "12 smart contract audits completed. Sentinel Grove is a smart contract audit firm with 3 auditors. Teams can request a review of their smart contract code.",
           "source_ids": [
             "STAT-01",
             "STAT-02",
@@ -283,19 +318,19 @@
     "failure_detail": null
   },
   {
-    "record_id": "marketing_2/validator/1/1",
-    "slot_id": "marketing_2",
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "994ed0ea141d21a9bc495e39859f0433632955a89ed1e0b7186ed028d15ad46e",
+    "input_sha256": "353a2083f1679f27169307a7aecee4228eab008f8c4ef9730693f16878596f2c",
     "audit": {
       "original": {
-        "slot_id": "marketing_2",
+        "slot_id": "marketing_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code.",
+            "text": "How can anyone drain Ether from a contract? Withdrawal functions lack effective caller authorization, so nothing checks who triggers the transfer. Limit withdrawals to authorized parties. Want a second look at yours? Teams can request a review of their smart contract code.",
             "source_ids": [
-              "STAT-01",
+              "KB-04",
               "STAT-03"
             ]
           }
@@ -303,43 +338,10 @@
       },
       "normalized": [
         {
-          "text": "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code.",
+          "text": "How can anyone drain Ether from a contract? Withdrawal functions lack effective caller authorization, so nothing checks who triggers the transfer. Limit withdrawals to authorized parties. Want a second look at yours? Teams can request a review of their smart contract code.",
           "source_ids": [
-            "STAT-01",
+            "KB-04",
             "STAT-03"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_3/validator/1/1",
-    "slot_id": "marketing_3",
-    "attempt": 1,
-    "input_sha256": "932021aa8f9210b10e8580c33f301f61802b86642844336f577e2f2f47e377b6",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_3",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?",
-            "source_ids": [
-              "KB-01"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?",
-          "source_ids": [
-            "KB-01"
           ]
         }
       ],
@@ -354,151 +356,137 @@
     "record_id": "thread_2/validator/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "cec7755fbd8c28bd3738a5818cd62e1086c8b5663f2d623043f67a4a482ed011",
+    "input_sha256": "02ab0f18da140a84ece57807c176720bbe256301299038a7070421e1c6333518",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446",
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-f50d1927023d53fb"
-            ]
-          },
-          {
-            "text": "Concrete numbers: the attacker holds 1 share, then donates 20,000 USDT. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Reverting on zero shares is not enough. If the attacker donates 10,000 USDT instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. The attacker burns theirs for roughly half the pool, about a 25% profit on the victim's deposit.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
-            "source_ids": [
-              "WEB-f352e6124ca0c40d"
-            ]
-          },
-          {
-            "text": "Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
-            "source_ids": [
-              "WEB-f352e6124ca0c40d"
-            ]
-          },
-          {
-            "text": "This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+            "text": "An ERC-4626 vault that computes shares from the token balance it holds can lose a first depositor's whole deposit to one plain token transfer made before that deposit lands.",
             "source_ids": [
               "WEB-2daca0aeb740f7f4"
             ]
           },
           {
-            "text": "Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+            "text": "Root cause: the exchange rate comes from totalAssets and totalSupply. When a vault has low liquidity, an attacker can manipulate that rate and front run a deposit. The deposit function has no slippage protection.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Example with rounding down. The attacker front-runs with a deposit of 1 wei and gets one share. Then they transfer 100 tokens straight to the vault, never touching deposit. The vault now holds 101 tokens behind a single share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The victim deposits 100 tokens. The share math gives 100 divided by 101, which Solidity integer division rounds down to zero shares. The attacker redeems the only share and takes the full 101 token balance.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Reverting on zero shares is not enough. If the attacker donates 10_000e6 instead of 20_000e6 against a 20,000 USDT deposit, the victim receives one share and the attacker redeems half the pool.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Dead shares are one mitigation, as in UniswapV2: mint shares to address(0) on the first deposit. In the tested example the attacker can no longer steal funds, but can still grief the victim into zero shares.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "OpenZeppelin's proposed fix is a decimal offset with virtual assets and shares. The rate becomes the ratio of `totalAssets() + 1` to `totalSupply()+10**offset`, so an empty vault still has a defined rate.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Effect of the offset: the donation needed to inflate the rate grows by `offset` orders of magnitude, and virtual shares capture part of the donation. This sets a high price for the attacker, and the post names a tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Closing check for any vault you review: does the rate come from a live token balance that a direct transfer can change? Is the first deposit protected by virtual shares, dead shares, or something else? Does a test replay the attack?",
             "source_ids": [
               "WEB-2daca0aeb740f7f4",
-              "WEB-f352e6124ca0c40d",
-              "WEB-a0fdaa7b887ec446"
+              "WEB-f352e6124ca0c40d"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446",
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-f50d1927023d53fb"
-          ]
-        },
-        {
-          "text": "4/10 Concrete numbers: the attacker holds 1 share, then donates 20,000 USDT. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "5/10 Reverting on zero shares is not enough. If the attacker donates 10,000 USDT instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. The attacker burns theirs for roughly half the pool, about a 25% profit on the victim's deposit.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+          "text": "1/10 An ERC-4626 vault that computes shares from the token balance it holds can lose a first depositor's whole deposit to one plain token transfer made before that deposit lands.",
           "source_ids": [
             "WEB-2daca0aeb740f7f4"
           ]
         },
         {
-          "text": "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+          "text": "2/10 Root cause: the exchange rate comes from totalAssets and totalSupply. When a vault has low liquidity, an attacker can manipulate that rate and front run a deposit. The deposit function has no slippage protection.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "3/10 Example with rounding down. The attacker front-runs with a deposit of 1 wei and gets one share. Then they transfer 100 tokens straight to the vault, never touching deposit. The vault now holds 101 tokens behind a single share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "4/10 The victim deposits 100 tokens. The share math gives 100 divided by 101, which Solidity integer division rounds down to zero shares. The attacker redeems the only share and takes the full 101 token balance.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "5/10 Reverting on zero shares is not enough. If the attacker donates 10_000e6 instead of 20_000e6 against a 20,000 USDT deposit, the victim receives one share and the attacker redeems half the pool.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "6/10 Dead shares are one mitigation, as in UniswapV2: mint shares to address(0) on the first deposit. In the tested example the attacker can no longer steal funds, but can still grief the victim into zero shares.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "7/10 OpenZeppelin's proposed fix is a decimal offset with virtual assets and shares. The rate becomes the ratio of `totalAssets() + 1` to `totalSupply()+10**offset`, so an empty vault still has a defined rate.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "8/10 Effect of the offset: the donation needed to inflate the rate grows by `offset` orders of magnitude, and virtual shares capture part of the donation.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "9/10 This sets a high price for the attacker, and the post names a tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "10/10 Closing check for any vault you review: does the rate come from a live token balance that a direct transfer can change? Is the first deposit protected by virtual shares, dead shares, or something else? Does a test replay the attack?",
           "source_ids": [
             "WEB-2daca0aeb740f7f4",
-            "WEB-f352e6124ca0c40d",
-            "WEB-a0fdaa7b887ec446"
+            "WEB-f352e6124ca0c40d"
           ]
         }
       ],
-      "fixes": [],
-      "violations": [
-        "tweet_5:unsourced_number:10000"
+      "fixes": [
+        "tweet_8:split_for_length"
       ],
-      "accepted": false
+      "violations": [],
+      "accepted": true
     },
     "failure": null,
     "failure_detail": null
@@ -507,143 +495,135 @@
     "record_id": "thread_2/validator/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "9df2faa3d62d7c10e7bde95bd870b8e3b8b187bde9f50c1a6e0aebc5a52f9953",
+    "input_sha256": "2a54838c63e232992c210fc23273801b55893c5d7a6774190977577592a6a7e1",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 2,
         "tweets": [
           {
-            "text": "A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446",
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-f50d1927023d53fb"
-            ]
-          },
-          {
-            "text": "Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
-            "source_ids": [
-              "WEB-a0fdaa7b887ec446"
-            ]
-          },
-          {
-            "text": "Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
-            "source_ids": [
-              "WEB-f352e6124ca0c40d"
-            ]
-          },
-          {
-            "text": "Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
-            "source_ids": [
-              "WEB-f352e6124ca0c40d"
-            ]
-          },
-          {
-            "text": "This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+            "text": "An ERC-4626 vault that computes shares from the token balance it holds can lose a first depositor's whole deposit to one plain token transfer made before that deposit lands.",
             "source_ids": [
               "WEB-2daca0aeb740f7f4"
             ]
           },
           {
-            "text": "Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+            "text": "Root cause: the exchange rate comes from totalAssets and totalSupply. When a vault has low liquidity, an attacker can manipulate that rate and front run a deposit. The deposit function has no slippage protection.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Example with rounding down. The attacker front-runs with a deposit of 1 wei and gets one share. Then they transfer 100 tokens straight to the vault, never touching deposit. The vault now holds 101 tokens behind a single share.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The victim deposits 100 tokens. The share math gives 100 divided by 101, which Solidity integer division rounds down to zero shares. The attacker redeems the only share and takes the full 101 token balance.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Reverting on zero shares is not enough. If the attacker donates 10_000e6 instead of 20_000e6 against a 20,000 USDT deposit, the victim receives one share and the attacker redeems half the pool.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Dead shares are one mitigation, as in UniswapV2: mint shares to address(0) on the first deposit. In the tested example the attacker can no longer steal funds, but can still grief the victim into zero shares.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "OpenZeppelin's proposed fix is a decimal offset with virtual assets and shares. The rate becomes the ratio of `totalAssets() + 1` to `totalSupply()+10**offset`, so an empty vault still has a defined rate.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Effect of the offset: the donation needed to inflate the rate grows by `offset` orders of magnitude, and virtual shares capture part of the donation. This sets a high price for the attacker.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior, even when the offset is set to 0.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Closing check for any vault you review: does the rate come from a live token balance that a direct transfer can change? Is the first deposit protected by virtual shares, dead shares, or something else? Does a test replay the attack?",
             "source_ids": [
               "WEB-2daca0aeb740f7f4",
-              "WEB-f352e6124ca0c40d",
-              "WEB-a0fdaa7b887ec446"
+              "WEB-f352e6124ca0c40d"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446",
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-f50d1927023d53fb"
-          ]
-        },
-        {
-          "text": "4/10 Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "5/10 Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
-          "source_ids": [
-            "WEB-a0fdaa7b887ec446"
-          ]
-        },
-        {
-          "text": "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
-          "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+          "text": "1/10 An ERC-4626 vault that computes shares from the token balance it holds can lose a first depositor's whole deposit to one plain token transfer made before that deposit lands.",
           "source_ids": [
             "WEB-2daca0aeb740f7f4"
           ]
         },
         {
-          "text": "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+          "text": "2/10 Root cause: the exchange rate comes from totalAssets and totalSupply. When a vault has low liquidity, an attacker can manipulate that rate and front run a deposit. The deposit function has no slippage protection.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "3/10 Example with rounding down. The attacker front-runs with a deposit of 1 wei and gets one share. Then they transfer 100 tokens straight to the vault, never touching deposit. The vault now holds 101 tokens behind a single share.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "4/10 The victim deposits 100 tokens. The share math gives 100 divided by 101, which Solidity integer division rounds down to zero shares. The attacker redeems the only share and takes the full 101 token balance.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "5/10 Reverting on zero shares is not enough. If the attacker donates 10_000e6 instead of 20_000e6 against a 20,000 USDT deposit, the victim receives one share and the attacker redeems half the pool.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "6/10 Dead shares are one mitigation, as in UniswapV2: mint shares to address(0) on the first deposit. In the tested example the attacker can no longer steal funds, but can still grief the victim into zero shares.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "7/10 OpenZeppelin's proposed fix is a decimal offset with virtual assets and shares. The rate becomes the ratio of `totalAssets() + 1` to `totalSupply()+10**offset`, so an empty vault still has a defined rate.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "8/10 Effect of the offset: the donation needed to inflate the rate grows by `offset` orders of magnitude, and virtual shares capture part of the donation. This sets a high price for the attacker.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "9/10 Tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior, even when the offset is set to 0.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "10/10 Closing check for any vault you review: does the rate come from a live token balance that a direct transfer can change? Is the first deposit protected by virtual shares, dead shares, or something else? Does a test replay the attack?",
           "source_ids": [
             "WEB-2daca0aeb740f7f4",
-            "WEB-f352e6124ca0c40d",
-            "WEB-a0fdaa7b887ec446"
+            "WEB-f352e6124ca0c40d"
           ]
         }
       ],

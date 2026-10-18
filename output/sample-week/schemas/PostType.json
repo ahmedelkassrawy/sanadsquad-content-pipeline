@@ -140,6 +140,13 @@
     },
     "visual": {
       "$ref": "#/$defs/VisualConfig"
+    },
+    "claim_words": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Claim Words",
+      "type": "array"
     }
   },
   "required": [

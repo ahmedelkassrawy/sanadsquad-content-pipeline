@@ -1,27 +1,27 @@
 {
   "provenance": "live run of run_week.py against real providers; no injected or synthetic models",
   "date": "2026-10-18",
-  "commit": "a826af5 plus the uncommitted fix/eval-content-and-gates working tree",
+  "commit": "37ed50b (fix/eval-round-2)",
   "command": "python run_week.py --plan plan.json --output <run> --set thread_2=\"ERC-4626 vault inflation attack\" --max-concurrency 3",
   "models_by_agent_node": {
     "anthropic:claude-sonnet-5-5": {
       "research_step_1": 2,
       "research_step_2": 1,
       "research_topics": 1,
-      "writer": 7,
-      "visual": 6
+      "visual": 6,
+      "writer": 7
     },
     "anthropic:claude-opus-5-5": {
-      "reviewer": 6
+      "reviewer": 7
     }
   },
   "reasoning_effort": "low for every agent (agent.yaml); no override",
   "complete_six": true,
   "summary": {
     "shipped": 6,
-    "confirmed_tokens": 181069,
+    "confirmed_tokens": 199461,
     "uncertain_tokens": 0,
-    "confirmed_cost_usd": 0.55973,
+    "confirmed_cost_usd": 0.677138,
     "unpriced": false,
     "advisor": "not_enabled",
     "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."

@@ -42,14 +42,15 @@ model will make sound editorial or grounding judgments.
 ## Live sample evidence
 
 `output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5
-reviewer, Sonnet 5.5 for every other agent), one Tavily search and six Cloudflare images.
+reviewer, Sonnet 5.5 for every other agent) and one Tavily search. Cloudflare returned HTTP 429,
+so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; `thread_2` shows a code-rule rejection and a retry. It excludes the
+cost. It shipped 6 of 6; `thread_2` shows a reviewer rejection and a retry. It excludes the
 SQLite checkpoint, lock and identity files and therefore cannot be resumed.
 
-`output/sample-week/` predates the claim-word check, length split, link note, markdown fix and
-STAT-04, so it should be rerun on the current commit before it is cited as current behaviour.
+`output/failed-source-example/` is a live single-piece run on a made-up topic: research finds
+nothing that supports it and the slot ends `failed_research`, with the error in `run.log`.
 
 `output/free-run-with-drops/` holds the readable files of a free run (Ministral writers,
 Nemotron reviewer) on the older code that shows reviewer rejections and drops: 3 of 6 shipped.

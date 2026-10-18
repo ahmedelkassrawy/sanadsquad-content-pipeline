@@ -1,12 +1,12 @@
 {
-  "concept": "Education card on reentrancy: state must be updated before external calls to prevent callback-driven repeat withdrawals.",
-  "scene": "Minimal dark navy background with a simple diagram of two boxes labeled contract and callback connected by a looping amber arrow, with a clean white headline area and generous spacing in the brand style.",
+  "concept": "Unprotected Ether withdrawal caused by missing caller authorization, with a prompt to request a review of smart contract code",
+  "scene": "A calm, minimal vault door on a deep navy background, with a single amber keyhole glowing and a clear border of white space for the overlay text",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Update state first, then call out.",
-  "alt_text": "Brand card with a navy background and an amber looping arrow between two boxes, illustrating a callback re-entering a contract, with the text: Update state first, then call out.",
+  "overlay_text": "Limit withdrawals to authorized parties",
+  "alt_text": "Navy brand card with an amber keyhole on a vault door and the text Limit withdrawals to authorized parties",
   "severity": null
 }

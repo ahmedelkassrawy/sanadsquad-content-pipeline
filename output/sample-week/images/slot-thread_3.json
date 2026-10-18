@@ -1,12 +1,12 @@
 {
-  "concept": "Business logic flaw: code runs correctly but the rules it encodes permit exploitable outcomes",
-  "scene": "Technical diagram on a deep navy background: a lending contract flow where a borrow request is checked against the requested amount instead of collateral balance, with the mismatched invariant check highlighted in amber and a broken link between collateral and borrow capacity",
+  "concept": "Flash loans amplify existing weaknesses, so fix the root cause rather than the loan",
+  "scene": "Minimal technical card on a deep navy background. A single transaction block drawn as a horizontal bar in white, with a borrow arrow entering on the left and a repay arrow leaving on the right. An amber highlighted bar inside the block marks the temporary large balance. Clean geometric lines, plenty of empty space, no figures or logos.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "the code does what it says, but what it says permits exploitable outcomes",
-  "alt_text": "Diagram of a lending contract where the borrow check uses the requested amount rather than collateral balance, with the missing invariant highlighted in amber on a navy background.",
+  "overlay_text": "arbitrarily large, transient capital",
+  "alt_text": "Diagram of a single transaction bar with a borrow arrow entering, a highlighted temporary balance inside, and a repay arrow leaving, on a navy background.",
   "severity": "high"
 }
