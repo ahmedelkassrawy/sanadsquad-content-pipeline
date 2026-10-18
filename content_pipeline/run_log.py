@@ -68,7 +68,7 @@ def _review_lines(record: dict) -> list[str]:
 RUN_FILES = [
     ("posts.csv", "The deliverable: accepted posts (Post Text, Image) for a scheduler."),
     ("run.log", "What happened to each slot, step by step, and the totals."),
-    ("run_summary.json", "Shipped, dropped and why, tokens and cost."),
+    ("run_summary.json", "Shipped, dropped and why, tokens and cost in total and per agent."),
     ("plan.resolved.json", "The plan after --set overrides."),
     ("research_log.json", "Every search and the evidence each slot was given."),
     ("drafts.json", "Every draft, the code fixes applied and any rule violations."),
@@ -77,8 +77,8 @@ RUN_FILES = [
     ("posts.json", "posts.csv as JSON."),
     ("visuals.json", "Image specs and how each image was made."),
     ("images/", "One image (and its spec) per accepted piece."),
-    ("ledger.json", "Token and cost totals per slot and agent."),
-    ("usage.jsonl", "One line per model call: model, tokens, cost."),
+    ("ledger.json", "The budget guard's charge for each model call, with its status."),
+    ("usage.jsonl", "One line per model call: agent step, model, tokens, cost."),
     ("external-usage.json", "Search, fetch and image calls."),
     ("advisor.json", "Optional advisor output: suggested instruction edits."),
     ("advice.md", "The advisor's suggestions in prose. Never applied for you."),
@@ -171,7 +171,19 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
         "",
         f"shipped {summary['shipped']}, dropped or failed {dropped}",
         f"tokens {tokens}, LLM cost ${cost:.4f}{priced}",
-        f"advisor {summary['advisor']}",
     ]
+
+    agents = summary.get("agents") or {}
+    order = ["research", "writer", "reviewer", "visual", "advisor"]
+
+    for name in sorted(agents, key=lambda name: (order.index(name) if name in order else 99, name)):
+        agent = agents[name]
+
+        lines.append(
+            f"  {name:<9} {agent['calls']} call(s), {agent['tokens']} tokens, "
+            f"${agent['cost_usd']:.4f}"
+        )
+
+    lines.append(f"advisor {summary['advisor']}")
 
     return "\n".join(lines) + "\n"

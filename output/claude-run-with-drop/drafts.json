@@ -1,64 +1,284 @@
 [
   {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "c1a8cac6286d0c55cefebada7bb75d42ea773540dd1ea4a2e53137fd7e052dbb",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
+            "source_ids": [
+              "STAT-04",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
+          "source_ids": [
+            "STAT-04",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "56a71d47ffb7ff376ede3392e3b8ff90b079069476d985c7f5b9a3aba2b40a57",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing a contract for release, you can request a review of your smart contract code.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing a contract for release, you can request a review of your smart contract code.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "06a7846adb91ed5eadbbb875b2806d48a296bfcfa26b225ef4b400dacd7c2227",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Why can anyone drain some contracts? A withdrawal function without a caller check lets any account trigger a transfer of Ether out. Limit withdrawals to authorized parties. Which of your functions move Ether, and who can call them?",
+            "source_ids": [
+              "KB-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Why can anyone drain some contracts? A withdrawal function without a caller check lets any account trigger a transfer of Ether out. Limit withdrawals to authorized parties. Which of your functions move Ether, and who can call them?",
+          "source_ids": [
+            "KB-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "94e94585fa285aeb414d9136c29f3c4ca919a8a47ad512894641dd5678906edc",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "One recipient whose code always reverts can freeze a function that pays out to many addresses in a loop, because the whole batch needs every payment to succeed.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "External calls can fail by accident or on purpose. When a contract needs every call in a batch to go through, a single failing recipient can block the entire operation.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "Sending Ether can fail for separate reasons. The recipient may run out of gas, or its code may revert through require, assert or revert.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "The two send styles fail differently. transfer reverts the sending call when the send fails, while send only returns false, so you must check its return value yourself.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "Either way, a recipient that always fails can stall progress in the sending contract. The underlying problem is that progress depends on every external transfer or call succeeding.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "Prefer pull payments, where users withdraw their funds instead of having them pushed automatically. This also lowers the chance of running into gas limit problems.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "Isolate each external call in its own transaction that the recipient can initiate. Avoid combining several calls in one transaction, especially inside a loop, and write logic that handles failed calls.",
+            "source_ids": [
+              "KB-11"
+            ]
+          },
+          {
+            "text": "Search your contracts for every loop that sends Ether or makes an external call, and test it with a recipient that always reverts to see whether the whole batch stalls.",
+            "source_ids": [
+              "KB-11"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 One recipient whose code always reverts can freeze a function that pays out to many addresses in a loop, because the whole batch needs every payment to succeed.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "2/8 External calls can fail by accident or on purpose. When a contract needs every call in a batch to go through, a single failing recipient can block the entire operation.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "3/8 Sending Ether can fail for separate reasons. The recipient may run out of gas, or its code may revert through require, assert or revert.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "4/8 The two send styles fail differently. transfer reverts the sending call when the send fails, while send only returns false, so you must check its return value yourself.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "5/8 Either way, a recipient that always fails can stall progress in the sending contract. The underlying problem is that progress depends on every external transfer or call succeeding.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "6/8 Prefer pull payments, where users withdraw their funds instead of having them pushed automatically. This also lowers the chance of running into gas limit problems.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "7/8 Isolate each external call in its own transaction that the recipient can initiate. Avoid combining several calls in one transaction, especially inside a loop, and write logic that handles failed calls.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "8/8 Search your contracts for every loop that sends Ether or makes an external call, and test it with a recipient that always reverts to see whether the whole batch stalls.",
+          "source_ids": [
+            "KB-11"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "5f7f4e16c7669544a912965cf033ca183a45b2ce3e60b468470671d0b6fb37d0",
+    "input_sha256": "df8c876b5dd0bc69c848c7c5ee025c527af3764617c6a0b397cca5dd9308eee8",
     "audit": {
       "original": {
         "slot_id": "thread_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.",
+            "text": "A withdrawal function that sends Ether before it clears the caller's balance can be called back into while the balance is still unchanged, so the same funds can be withdrawn again.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
+            "text": "Calling another contract hands it control. That contract can call back into yours before your first call has returned, and your function is then running again with half-finished state.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
+            "text": "In the withdrawal case, the callback reads a balance that has not been reduced yet. The check passes a second time, and another payout goes out against the same stored amount.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.",
+            "text": "Ether transfers are not the only way in. Reentrancy can arise from calls to any other contract, and dependencies spanning several contracts matter too.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.",
+            "text": "The underlying flaw is a state update placed after an untrusted call, which lets the same logic execute repeatedly. The fix is to reorder the steps.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.",
+            "text": "Checks-effects-interactions gives the order: validate inputs and permissions, update the relevant storage, and only then make external calls.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.",
+            "text": "For a withdrawal, save the amount to pay, then clear the stored balance with `balances[msg.sender] = 0;` before calling the recipient. Require that call to succeed so a failure reverts the whole operation.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.",
+            "text": "A callback may also enter through a different function or a dependency that shares the same state. Review every other callable path touching that state, not just the one you fixed.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?",
+            "text": "Does every function that makes an external call finish updating its storage, and every path sharing that storage, before the call goes out?",
             "source_ids": [
               "KB-01"
             ]
@@ -67,55 +287,55 @@
       },
       "normalized": [
         {
-          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.",
+          "text": "1/9 A withdrawal function that sends Ether before it clears the caller's balance can be called back into while the balance is still unchanged, so the same funds can be withdrawn again.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
+          "text": "2/9 Calling another contract hands it control. That contract can call back into yours before your first call has returned, and your function is then running again with half-finished state.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/9 The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
+          "text": "3/9 In the withdrawal case, the callback reads a balance that has not been reduced yet. The check passes a second time, and another payout goes out against the same stored amount.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/9 Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.",
+          "text": "4/9 Ether transfers are not the only way in. Reentrancy can arise from calls to any other contract, and dependencies spanning several contracts matter too.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.",
+          "text": "5/9 The underlying flaw is a state update placed after an untrusted call, which lets the same logic execute repeatedly. The fix is to reorder the steps.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/9 The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.",
+          "text": "6/9 Checks-effects-interactions gives the order: validate inputs and permissions, update the relevant storage, and only then make external calls.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/9 In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.",
+          "text": "7/9 For a withdrawal, save the amount to pay, then clear the stored balance with `balances[msg.sender] = 0;` before calling the recipient. Require that call to succeed so a failure reverts the whole operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/9 A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.",
+          "text": "8/9 A callback may also enter through a different function or a dependency that shares the same state. Review every other callable path touching that state, not just the one you fixed.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "9/9 For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?",
+          "text": "9/9 Does every function that makes an external call finish updating its storage, and every path sharing that storage, before the call goes out?",
           "source_ids": [
             "KB-01"
           ]
@@ -132,374 +352,121 @@
     "record_id": "thread_3/validator/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "7df9d26f5ba51a8b13bc0cff1789d2a15eaab3afc54ef88d0673b478199e4183",
+    "input_sha256": "6c59c711d7b8640eb4f4436daf87b3178fb5fb3fcb71ff543192060f627e7bf5",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does exactly what it says, and what it says permits a bad outcome.",
+            "text": "A function that trusts the order in which transactions arrive can be made to run in a different order by anyone who pays a higher gas price. That race condition is called transaction order dependence.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "OWASP calls these business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic behavior can be subverted even with correct low-level checks.",
+            "text": "The cause is that block producers pick which transactions go into a block based on gas price, and anyone running a node can see transactions before they are finalized. So shared state changes depend on an ordering others can influence.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "The root cause is an implementation that omits or misapplies a required business invariant. Nothing looks broken line by line, because the missing rule is not in the code at all.",
+            "text": "Picture a contract that gives 1 token to the first person who solves a math problem. Alice submits the answer at a standard gas price, Eve sees it and sends the same answer with a much higher gas price, and Eve's transaction is processed first.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "OWASP's vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+            "text": "The ERC20 approve function has a similar problem. Alice changes Eve's allowance from n to m, and Eve sends a transferFrom of n with a higher gas price, so it lands before Alice's change.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+            "text": "Once Alice's transaction sets the allowance to m, Eve can spend m as well. She ends up with n + m, when the most she should get is max(n,m).",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants should be expressed in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+            "text": "For reward-for-information cases, SWC suggests a commit-reveal scheme. The sender first submits hash(salt, address, answer), and the contract stores that hash along with the sender's address.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "For key accounting paths, OWASP also recommends formal verification and property-based fuzzing. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+            "text": "Later the sender submits the salt and answer. The contract recomputes hash(salt, msg.sender, answer) and releases the reward on a match, so watching the mempool does not let Eve copy the answer.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "Governance and operations teams should understand the invariants too, not just auditors. A rule only the auditors know is easy to break later.",
+            "text": "For approve, the best fix is to pass in the expected current allowance and revert on a mismatch, though that breaks ERC20 conformance. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+            "text": "Before shipping, check whether any reward or payout goes to whoever's transaction lands first, and whether any allowance change can be front-run by a spender who sees it pending.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does exactly what it says, and what it says permits a bad outcome.",
+          "text": "1/9 A function that trusts the order in which transactions arrive can be made to run in a different order by anyone who pays a higher gas price. That race condition is called transaction order dependence.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "2/9 OWASP calls these business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic behavior can be subverted even with correct low-level checks.",
+          "text": "2/9 The cause is that block producers pick which transactions go into a block based on gas price, and anyone running a node can see transactions before they are finalized. So shared state changes depend on an ordering others can influence.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "3/9 The root cause is an implementation that omits or misapplies a required business invariant. Nothing looks broken line by line, because the missing rule is not in the code at all.",
+          "text": "3/9 Picture a contract that gives 1 token to the first person who solves a math problem. Alice submits the answer at a standard gas price, Eve sees it and sends the same answer with a much higher gas price, and Eve's transaction is processed first.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "4/9 OWASP's vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+          "text": "4/9 The ERC20 approve function has a similar problem. Alice changes Eve's allowance from n to m, and Eve sends a transferFrom of n with a higher gas price, so it lands before Alice's change.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+          "text": "5/9 Once Alice's transaction sets the allowance to m, Eve can spend m as well. She ends up with n + m, when the most she should get is max(n,m).",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants should be expressed in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+          "text": "6/9 For reward-for-information cases, SWC suggests a commit-reveal scheme. The sender first submits hash(salt, address, answer), and the contract stores that hash along with the sender's address.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "7/9 For key accounting paths, OWASP also recommends formal verification and property-based fuzzing. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+          "text": "7/9 Later the sender submits the salt and answer. The contract recomputes hash(salt, msg.sender, answer) and releases the reward on a match, so watching the mempool does not let Eve copy the answer.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "8/9 Governance and operations teams should understand the invariants too, not just auditors. A rule only the auditors know is easy to break later.",
+          "text": "8/9 For approve, the best fix is to pass in the expected current allowance and revert on a mismatch, though that breaks ERC20 conformance. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+          "text": "9/9 Before shipping, check whether any reward or payout goes to whoever's transaction lands first, and whether any allowance change can be front-run by a spender who sees it pending.",
           "source_ids": [
-            "KB-20"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_1/validator/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "b6900bd86eb903cd3c1112e894c54acb195dd1db08d091bb793ae8675bd588a3",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_1",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review.",
-            "source_ids": [
-              "STAT-03",
-              "STAT-04"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review.",
-          "source_ids": [
-            "STAT-03",
-            "STAT-04"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_2/validator/1/1",
-    "slot_id": "marketing_2",
-    "attempt": 1,
-    "input_sha256": "dd7a5d0af33b5d655679a2dc0d4477774f1daccdca8c2f783e5229bf81b175eb",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "12 smart contract audits completed by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you are ready.",
-            "source_ids": [
-              "STAT-01",
-              "STAT-02",
-              "STAT-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "12 smart contract audits completed by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you are ready.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-02",
-            "STAT-03"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "thread_2/validator/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "ec9be1d5d0ef46c012af1bd39aac53383a3bd5a7da73f7e379faf65e3572c9ca",
-    "audit": {
-      "original": {
-        "slot_id": "thread_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "A vault that reads its share price from its own token balance can be pushed into handing a depositor zero shares. An attacker only needs 1 wei and a direct token transfer.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-7c6bb2f81270ec91"
-            ]
-          },
-          {
-            "text": "The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that result down. If totalAssets() reads the raw token balance, a plain transfer to the vault changes the divisor.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-7c6bb2f81270ec91",
-              "WEB-1f50d1927023d53fb"
-            ]
-          },
-          {
-            "text": "Here is one example with one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "Next the attacker sends 100 tokens or more straight to the vault, never calling deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-0500eb916f66cd39"
-            ]
-          },
-          {
-            "text": "One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
-            "source_ids": [
-              "WEB-1f50d1927023d53fb",
-              "WEB-7c6bb2f81270ec91"
-            ]
-          },
-          {
-            "text": "OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
-            "source_ids": [
-              "WEB-7c6bb2f81270ec91",
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does the first deposit work with a 1 wei share and a later donation?",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-7c6bb2f81270ec91"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/9 A vault that reads its share price from its own token balance can be pushed into handing a depositor zero shares. An attacker only needs 1 wei and a direct token transfer.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-7c6bb2f81270ec91"
-          ]
-        },
-        {
-          "text": "2/9 The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that result down. If totalAssets() reads the raw token balance, a plain transfer to the vault changes the divisor.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-7c6bb2f81270ec91",
-            "WEB-1f50d1927023d53fb"
-          ]
-        },
-        {
-          "text": "3/9 Here is one example with one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "4/9 Next the attacker sends 100 tokens or more straight to the vault, never calling deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "5/9 The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "6/9 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-0500eb916f66cd39"
-          ]
-        },
-        {
-          "text": "7/9 One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
-          "source_ids": [
-            "WEB-1f50d1927023d53fb",
-            "WEB-7c6bb2f81270ec91"
-          ]
-        },
-        {
-          "text": "8/9 OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
-          "source_ids": [
-            "WEB-7c6bb2f81270ec91",
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "9/9 A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does the first deposit work with a 1 wei share and a later donation?",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-7c6bb2f81270ec91"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [
-        "tweet_2:citation:WEB-1f50d1927023d53fb",
-        "tweet_7:citation:WEB-1f50d1927023d53fb"
-      ],
-      "accepted": false
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_3/validator/1/1",
-    "slot_id": "marketing_3",
-    "attempt": 1,
-    "input_sha256": "2b82949d63ee7c9a15f4db41410bb40bd62c208b60ede3ac3fa3fd60d8a81f7e",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_3",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
-            "source_ids": [
-              "KB-04",
-              "STAT-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
-          "source_ids": [
-            "KB-04",
-            "STAT-03"
+            "KB-08"
           ]
         }
       ],
@@ -514,172 +481,97 @@
     "record_id": "thread_2/validator/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "4ea5265c86acfcc7518f888d728ddf709a96bdf3a2037ac72369af0efb1d733c",
+    "input_sha256": "1e7bc68bcad8d94f5f9ce51480220ff22438c0b6d7485ac93c383651b78123d6",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 2,
         "tweets": [
           {
-            "text": "A vault that reads its share price from its own token balance can hand a depositor zero shares. The attacker needs 1 wei and a direct token transfer to the vault.",
+            "text": "An attacker who registers a contract that always reverts as a payee can freeze a function that pays many addresses in one loop, and nobody else in that batch gets paid.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-f50d1927023d53fb"
+              "KB-11"
             ]
           },
           {
-            "text": "The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that down. If totalAssets() reads the raw token balance, a plain transfer to the vault inflates the divisor.",
+            "text": "Ether sends can break for two separate reasons: the recipient runs out of gas, or the recipient's own code reverts through require, assert or revert.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-7c6bb2f81270ec91",
-              "WEB-f50d1927023d53fb"
+              "KB-11"
             ]
           },
           {
-            "text": "One example, one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+            "text": "Solidity's two send styles react differently to that failure. transfer reverts the calling transaction, while send just returns false, so skipping a check on its return value hides the problem.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-11"
             ]
           },
           {
-            "text": "Next the attacker sends 100 tokens or more straight to the vault, never touching deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+            "text": "A loop that pays everyone ties the contract's forward movement to each recipient behaving. Any payee that can fail on demand gets a lever over the sender's progress, and that is where the denial of service comes from.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-11"
             ]
           },
           {
-            "text": "The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+            "text": "Pull payments remove that lever. Users withdraw their own funds, so a broken recipient only affects itself, and this also lowers the chance of hitting gas limit trouble.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-11"
             ]
           },
           {
-            "text": "No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+            "text": "Give each external call its own transaction that the recipient starts. Keep several calls out of a single transaction, most of all inside loops, and treat every external call as something that may fail.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-0500eb916f66cd39"
+              "KB-11"
             ]
           },
           {
-            "text": "One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+            "text": "Grep your contracts for every loop that sends Ether or makes an external call, then run it in a test against a recipient whose code always reverts and confirm the other payments still work.",
             "source_ids": [
-              "WEB-f50d1927023d53fb",
-              "WEB-7c6bb2f81270ec91"
-            ]
-          },
-          {
-            "text": "OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
-            "source_ids": [
-              "WEB-7c6bb2f81270ec91",
-              "WEB-2daca0aeb740f7f4"
-            ]
-          },
-          {
-            "text": "A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does a 1 wei first deposit followed by a donation leave the next depositor with shares?",
-            "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-7c6bb2f81270ec91"
+              "KB-11"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/9 A vault that reads its share price from its own token balance can hand a depositor zero shares. The attacker needs 1 wei and a direct token transfer to the vault.",
+          "text": "1/7 An attacker who registers a contract that always reverts as a payee can freeze a function that pays many addresses in one loop, and nobody else in that batch gets paid.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-f50d1927023d53fb"
+            "KB-11"
           ]
         },
         {
-          "text": "2/9 The root cause is integer division. Shares owed equal deposit times total shares, divided by total assets. Solidity rounds that down. If totalAssets() reads the raw token balance, a plain transfer to the vault inflates the divisor.",
+          "text": "2/7 Ether sends can break for two separate reasons: the recipient runs out of gas, or the recipient's own code reverts through require, assert or revert.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-7c6bb2f81270ec91",
-            "WEB-f50d1927023d53fb"
+            "KB-11"
           ]
         },
         {
-          "text": "3/9 One example, one set of numbers. A victim is about to make the first deposit of 100 tokens into a new vault. The attacker front-runs with a deposit of 1 wei and receives exactly one share.",
+          "text": "3/7 Solidity's two send styles react differently to that failure. transfer reverts the calling transaction, while send just returns false, so skipping a check on its return value hides the problem.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-11"
           ]
         },
         {
-          "text": "4/9 Next the attacker sends 100 tokens or more straight to the vault, never touching deposit() or mint(). The vault now sees about 101 tokens backing a single share.",
+          "text": "4/7 A loop that pays everyone ties the contract's forward movement to each recipient behaving. Any payee that can fail on demand gets a lever over the sender's progress, and that is where the denial of service comes from.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-11"
           ]
         },
         {
-          "text": "5/9 The victim's 100-token deposit then computes 100 divided by 101, which rounds down to zero shares. The attacker still holds the only share, redeems it, and takes the full 101-token balance, including the victim's deposit.",
+          "text": "5/7 Pull payments remove that lever. Users withdraw their own funds, so a broken recipient only affects itself, and this also lowers the chance of hitting gas limit trouble.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-11"
           ]
         },
         {
-          "text": "6/9 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a deposit this way. The EIP-4626 spec leaves the defense to implementers.",
+          "text": "6/7 Give each external call its own transaction that the recipient starts. Keep several calls out of a single transaction, most of all inside loops, and treat every external call as something that may fail.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-0500eb916f66cd39"
+            "KB-11"
           ]
         },
         {
-          "text": "7/9 One fix is a seed deposit at deployment, with the shares burned to a dead address. Another is a minimum deposit or minimum shares requirement. Both are described as mitigations for this attack.",
+          "text": "7/7 Grep your contracts for every loop that sends Ether or makes an external call, then run it in a test against a recipient whose code always reverts and confirm the other payments still work.",
           "source_ids": [
-            "WEB-f50d1927023d53fb",
-            "WEB-7c6bb2f81270ec91"
-          ]
-        },
-        {
-          "text": "8/9 OpenZeppelin's ERC4626 update in version 4.9 added a decimalsOffset, with virtual shares and assets. It is described as making inflation attacks too costly for the attacker. Not every vault uses the updated version.",
-          "source_ids": [
-            "WEB-7c6bb2f81270ec91",
-            "WEB-2daca0aeb740f7f4"
-          ]
-        },
-        {
-          "text": "9/9 A check to run on any vault: does totalAssets() read the live token balance, and does the vault seed supply, use virtual offsets, or reject zero shares? Does a 1 wei first deposit followed by a donation leave the next depositor with shares?",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-7c6bb2f81270ec91"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_2/validator/2/1",
-    "slot_id": "marketing_2",
-    "attempt": 2,
-    "input_sha256": "cc2a0c6fc7681dd58e61af4691fa211e7bf2ccc749977c109273713c57a776db",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_2",
-        "attempt": 2,
-        "tweets": [
-          {
-            "text": "12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready.",
-            "source_ids": [
-              "STAT-01",
-              "STAT-02",
-              "STAT-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-02",
-            "STAT-03"
+            "KB-11"
           ]
         }
       ],
@@ -694,121 +586,240 @@
     "record_id": "thread_3/validator/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "52e6464a63161746ad5cb758b5a455d9a30786ccb00676812f2c2831cfe8f5b6",
+    "input_sha256": "7403d6452c417c53bd0a7ce09724b38d65d72f9a214455e70171e68ec19e3c82",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 2,
         "tweets": [
           {
-            "text": "A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.",
+            "text": "A function that relies on transactions arriving in a certain order can be forced to run in another order by anyone willing to pay a higher gas price. This race condition is known as transaction order dependence.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.",
+            "text": "Miners pick transactions for a block based on gas price, and anyone running a node can watch transactions before they are finalized. Shared state changes therefore rest on an ordering that other parties can influence.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.",
+            "text": "Imagine a contract that pays 1 token to whoever first solves a math problem. Alice sends her answer with a standard gas price. Eve spots it, resubmits the same answer with a far higher gas price, and her transaction is processed first.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+            "text": "ERC20 approve has a related race. Alice moves Eve's allowance from n to m. Eve sees that, submits a transferFrom for n with a higher gas price, and it gets processed before Alice's change.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+            "text": "After Alice's change sets the allowance to m, Eve can spend m too. Her total is n + m, where the intended ceiling was max(n,m).",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+            "text": "For reward-for-information cases, SWC suggests a commit-reveal hash scheme. The sender first submits hash(salt, address, answer), and the contract keeps that hash together with the sender's address.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+            "text": "In the reveal step the sender sends the salt and the answer. The contract recomputes hash(salt, msg.sender, answer) and releases the reward only if it matches the stored hash.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.",
+            "text": "For approve, SWC calls the best fix passing the expected current allowance and reverting on a mismatch, but that makes the token non-conformant with ERC20. A safe approve function is an alternative, and users can zero an approval before changing it.",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           },
           {
-            "text": "A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+            "text": "Before shipping, check two things: does any reward go to whoever lands first, and can a pending allowance change be raced by a spender who sees it?",
             "source_ids": [
-              "KB-20"
+              "KB-08"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.",
+          "text": "1/9 A function that relies on transactions arriving in a certain order can be forced to run in another order by anyone willing to pay a higher gas price. This race condition is known as transaction order dependence.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "2/9 These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.",
+          "text": "2/9 Miners pick transactions for a block based on gas price, and anyone running a node can watch transactions before they are finalized. Shared state changes therefore rest on an ordering that other parties can influence.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "3/9 The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.",
+          "text": "3/9 Imagine a contract that pays 1 token to whoever first solves a math problem. Alice sends her answer with a standard gas price. Eve spots it, resubmits the same answer with a far higher gas price, and her transaction is processed first.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "4/9 A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
+          "text": "4/9 ERC20 approve has a related race. Alice moves Eve's allowance from n to m. Eve sees that, submits a transferFrom for n with a higher gas price, and it gets processed before Alice's change.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "5/9 Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
+          "text": "5/9 After Alice's change sets the allowance to m, Eve can spend m too. Her total is n + m, where the intended ceiling was max(n,m).",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
+          "text": "6/9 For reward-for-information cases, SWC suggests a commit-reveal hash scheme. The sender first submits hash(salt, address, answer), and the contract keeps that hash together with the sender's address.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "7/9 For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
+          "text": "7/9 In the reveal step the sender sends the salt and the answer. The contract recomputes hash(salt, msg.sender, answer) and releases the reward only if it matches the stored hash.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "8/9 Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.",
+          "text": "8/9 For approve, SWC calls the best fix passing the expected current allowance and reverting on a mismatch, but that makes the token non-conformant with ERC20. A safe approve function is an alternative, and users can zero an approval before changing it.",
           "source_ids": [
-            "KB-20"
+            "KB-08"
           ]
         },
         {
-          "text": "9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?",
+          "text": "9/9 Before shipping, check two things: does any reward go to whoever lands first, and can a pending allowance change be raced by a spender who sees it?",
           "source_ids": [
-            "KB-20"
+            "KB-08"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "repeated_credit:swc"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "eb1b557d2a36bddf3062973f971eafe6d10763e3f59029867b17441edad09bf7",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A withdrawal function that pays out Ether before zeroing the caller's balance can be re-entered by the recipient, and the second entry still sees the old balance.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Any external call gives the callee control of execution. It can invoke your contract again before the original call has returned, so your code runs a second time mid-operation.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Sending Ether is only one trigger. Calling any other contract can open the same door, and state shared across several contracts widens the surface further.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The flaw underneath is ordering: storage is changed only after control has been handed to code you do not trust, so the same logic can run again and again.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Checks-effects-interactions fixes the ordering. Verify inputs and permissions first, then write the new storage values, and make external calls last.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Applied to a withdrawal, copy the amount into a local variable and run `balances[msg.sender] = 0;` before paying the recipient. Also require the payment to succeed, so a failed send reverts everything.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "A callback does not have to come back through the function you patched. It may enter via a different function or a dependency that touches the same state, so audit each of those paths too.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Does every function that makes an external call finish its storage updates before the call goes out?",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 A withdrawal function that pays out Ether before zeroing the caller's balance can be re-entered by the recipient, and the second entry still sees the old balance.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/8 Any external call gives the callee control of execution. It can invoke your contract again before the original call has returned, so your code runs a second time mid-operation.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/8 Sending Ether is only one trigger. Calling any other contract can open the same door, and state shared across several contracts widens the surface further.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/8 The flaw underneath is ordering: storage is changed only after control has been handed to code you do not trust, so the same logic can run again and again.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/8 Checks-effects-interactions fixes the ordering. Verify inputs and permissions first, then write the new storage values, and make external calls last.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/8 Applied to a withdrawal, copy the amount into a local variable and run `balances[msg.sender] = 0;` before paying the recipient. Also require the payment to succeed, so a failed send reverts everything.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "7/8 A callback does not have to come back through the function you patched. It may enter via a different function or a dependency that touches the same state, so audit each of those paths too.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "8/8 Does every function that makes an external call finish its storage updates before the call goes out?",
+          "source_ids": [
+            "KB-01"
           ]
         }
       ],

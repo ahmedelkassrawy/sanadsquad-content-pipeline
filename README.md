@@ -69,7 +69,7 @@ evidence. `--estimate` prints a worst-case cost ceiling without any call. Defaul
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
 and every retry, repair and search turn happens (about $52 on the committed Claude models, while
-the sample run cost about $0.39). It is a warning, not a plan. What keeps a run inside the $1
+the sample run cost about $0.41). It is a warning, not a plan. What keeps a run inside the $1
 budget is the guard in `model_client.py`, which reserves each call's worst case before sending
 it and refuses the call (`failed_budget`) when it no longer fits.
 
@@ -81,7 +81,7 @@ brief and off by default. Set `ADVISOR_ENABLED=true` in `.env` to turn it on.
 Each run folder (`output/week-42`, or `output/<UTC time>-<random>` without `--output`) holds
 `posts.csv`, the deliverable. A generated `README.md` in the folder lists the result and
 trace files it contains (internal resume files are not listed), and `run.log` shows what happened to each slot: research, each draft, reviewer
-scores and reasons, and the outcome. `run_summary.json` has tokens and cost. A finished
+scores and reasons, and the outcome. `run_summary.json` has tokens and cost, in total and per agent. A finished
 example is in [output/sample-week](output/sample-week).
 
 Importing `posts.csv` into a scheduler: each row is one post. A thread is one cell, with its

@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: external calls can reenter before state is finalized, so update state before calling out",
-  "scene": "Dark navy background with a simple diagram of two contract boxes connected by a looping arrow in amber, showing a call going out and a callback returning before the balance is cleared",
+  "concept": "Reentrancy risk: external calls made before state is finalized, fixed by ordering updates ahead of interactions",
+  "scene": "Technical card on a deep navy background. A simple diagram shows a contract box with an arrow going out to a second box and a return arrow looping back into the first box, with a small amber marker on the loop. Plenty of empty space for the overlay text, in a calm and precise style.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "State updates after untrusted calls allow repeated execution",
-  "alt_text": "Diagram of two contract boxes joined by a looping amber arrow on a navy background, showing a callback returning before the stored balance is cleared",
+  "overlay_text": "State updates after untrusted calls",
+  "alt_text": "Diagram of one contract calling another, with an arrow looping back into the first contract to show a reentrant callback, on a navy background with amber accents.",
   "severity": "high"
 }

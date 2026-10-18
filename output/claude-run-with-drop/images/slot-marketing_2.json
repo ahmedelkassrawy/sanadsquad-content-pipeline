@@ -1,12 +1,12 @@
 {
-  "concept": "Credibility through plain facts: the number of smart contract audits completed by Sentinel Grove",
-  "scene": "A clean brand card with a deep navy background, a bold amber accent bar along the left edge, and the short overlay text centered in white with generous spacing. No icons or charts, only calm geometric shapes.",
+  "concept": "Credibility through a track record of completed smart contract audits, with an invitation to request a review",
+  "scene": "A clean brand card on a deep navy background with a simple amber shield outline at the center, surrounded by a subtle grove of minimal line-drawn trees. The short overlay text sits in white beneath the shield with generous spacing.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "12 smart contract audits completed",
-  "alt_text": "Brand card with navy background and amber accent bar reading 12 smart contract audits completed.",
+  "overlay_text": "12 smart contract audits",
+  "alt_text": "Navy brand card with an amber shield outline and the text 12 smart contract audits in white.",
   "severity": null
 }

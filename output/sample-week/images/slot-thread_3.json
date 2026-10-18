@@ -1,12 +1,12 @@
 {
-  "concept": "A single failed external call blocks an entire batch of payments, so each payout should be isolated and pulled by the recipient.",
-  "scene": "Technical diagram on a deep navy background: a row of recipient nodes connected by a line from a central contract node, with one node marked in amber to show the failed call blocking the rest. A separate simple pull-style path is sketched beside it with clean lines and generous spacing.",
+  "concept": "Authorization through tx.origin: the original sender is not the immediate caller, so checks should use msg.sender",
+  "scene": "Dark navy background with a simple call chain diagram: an owner node connects to an attack wallet node, which connects to a victim wallet node. An amber highlight marks the owner label that still persists at the end of the chain, with a white check line contrasted by a blocked amber line labeled msg.sender. Clean, minimal, technical layout with generous space for overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "one failing recipient can block the whole operation",
-  "alt_text": "Diagram of a contract sending payments to a row of recipients, with one highlighted failing recipient blocking the others, beside a simpler withdraw-style path.",
-  "severity": "medium"
+  "overlay_text": "use msg.sender instead",
+  "alt_text": "Diagram of a call chain from an owner to an attack wallet to a victim wallet, showing that tx.origin still points at the owner while msg.sender shows the immediate caller.",
+  "severity": "high"
 }

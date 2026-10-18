@@ -3,71 +3,22 @@
     "record_id": "marketing_1/reviewer/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "521081e33a77a057f7afcf347978b0bf6b1d8e7f7d050624b895ee0bb74d5eef",
+    "input_sha256": "84da91d0fde2771bbb2e8eca3443fb613216802e4f612f3ec601854b3317a338",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
-        "hook": 4.0,
+        "hook": 3.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 5.0
       },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "6e4cd8fe6fcd7dd0ad506aaa319f4e561dc41ca7fe55ef67892c872785d51fd5",
-    "review": {
-      "slot_id": "thread_1",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 5.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 4.0
-      },
       "reasons": [
-        "The order is hook, mechanism, root cause, example, scope, fix, example fix, other paths, check. It is repetitive, though: tweets 1, 4 and 7 restate the same withdrawal scenario, and tweet 8 says the same thing twice ('check more than one path' and 'Review other callable paths')."
+        "The opening is a clear, specific statement of what a review reports. It restates the stat verbatim, though, without a contrast or angle, so it reads as plain rather than compelling."
       ],
       "hard_fail": [],
       "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/reviewer/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "a0ef353e1b933b97fee926f26635565e5e6685d218a7146925b13aa77362cda1",
-    "review": {
-      "slot_id": "thread_3",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 3.0,
-        "grounding": 2.0,
-        "voice": 3.0,
-        "clarity": 4.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "Tweets 2, 4, 5, 6 and 7 match KB-20. Tweet 3's 'the missing rule is not in the code at all' narrows the root cause. The evidence says the implementation 'omits or misapplies' an invariant, and a misapplied rule is in the code.",
-        "Two clauses do not trace to KB-20. Tweet 3's 'Nothing looks broken line by line, because the missing rule is not in the code at all' is extrapolation. Tweet 8's 'A rule only the auditors know is easy to break later' is an uncited causal claim. KB-20 only recommends that governance and operations teams understand the invariants.",
-        "The tone is calm and precise, with no hype or banned words. OWASP is credited in several tweets, though ('OWASP calls', 'OWASP's vulnerable lending example', 'OWASP lists', 'OWASP also recommends'), which the rubric caps at 3.",
-        "Tweet 3 claims 'the missing rule is not in the code at all' and 'nothing looks broken line by line', which ignores the 'misapplies' case in the evidence. Tweet 8 claims 'A rule only the auditors know is easy to break later', an effectiveness claim that KB-20 does not support."
-      ],
-      "hard_fail": [
-        "unsupported_claim"
-      ],
-      "accepted": false
     },
     "failure": null
   },
@@ -75,27 +26,22 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "f455c6aebc2629cfd0cf29a633d2873541099da6f59c7c3a08adae1b4da7d7e1",
+    "input_sha256": "806ab474b63c18a21b3ea37997309b736519aa66b849cfaf150d0139b2fe8d6d",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
         "hook": 3.0,
         "technical_accuracy": 5.0,
-        "grounding": 1.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 5.0
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 4.0
       },
       "reasons": [
-        "The opening '12 smart contract audits completed by a team of 3 auditors' is concrete, but it is a plain stat statement with no angle or contrast. It reads as generic credibility copy.",
-        "STAT-01 says the firm completed 12 audits, and STAT-02 says the firm has 3 auditors. The clause '12 smart contract audits completed by a team of 3 auditors' joins these into a new fact the evidence does not state: that this 3-person team performed all 12 audits. 'Sentinel Grove is a smart contract audit firm' and the review CTA are supported by STAT-03.",
-        "The text is understandable but reads as three stacked facts. Its order is also awkward: the firm is identified only after the stats.",
-        "'12 smart contract audits completed by a team of 3 auditors' attributes all 12 audits to the current 3 auditors. STAT-01 and STAT-02 state these facts separately and do not say the 3 auditors completed the 12 audits. Rewrite as two separate facts, for example: 'Sentinel Grove has completed 12 smart contract audits and has 3 auditors.'"
+        "The post opens with a specific, supported statement ('has completed 12 smart contract audits'), but it is a plain credential with no contrast or angle. It is clear but generic."
       ],
-      "hard_fail": [
-        "unsupported_claim"
-      ],
-      "accepted": false
+      "hard_fail": [],
+      "accepted": true
     },
     "failure": null
   },
@@ -103,16 +49,16 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "6c8d868e76990c567791b6e1f4ea00aeb67b7b214ae8c23e0e32d7a10ac36cb8",
+    "input_sha256": "b328fb5b3150409d110ced5dba793a54714853cb8b7c93d1eb18b3ca4678c1e4",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
         "hook": 5.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "grounding": 4.0,
         "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 4.0
+        "clarity": 5.0,
+        "cta": 5.0
       },
       "reasons": [],
       "hard_fail": [],
@@ -121,47 +67,78 @@
     "failure": null
   },
   {
-    "record_id": "marketing_2/reviewer/2/1",
-    "slot_id": "marketing_2",
-    "attempt": 2,
-    "input_sha256": "2cf2d55bbcea77562fdbc8554a6be49923d7c76724743a8a129d6ca54b7d8071",
+    "record_id": "thread_2/reviewer/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "63fa51a0cfa492aba8f8f869d3afb2cfb7fa10a2ae035bb4f62406addb1d503f",
     "review": {
-      "slot_id": "marketing_2",
-      "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "Opens with a specific figure, '12 smart contract audits completed.', which is concrete. It reads as a stat fragment, not a contrast or a point tied to an angle, so it is clear but plain.",
-        "Understandable, but it reads as a list of three facts stitched together. The repeated 'smart contract' (three times) clutters it rather than delivering one finished thought."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/reviewer/2/1",
-    "slot_id": "thread_3",
-    "attempt": 2,
-    "input_sha256": "59b8a9645d0af5cede9f5dea4a4b545d347df9d4083dbe1f3c41b99f5f191866",
-    "review": {
-      "slot_id": "thread_3",
+      "slot_id": "thread_2",
       "scores": {
         "hook": 4.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
-        "voice": 4.0,
+        "voice": 2.0,
+        "clarity": 2.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The tone is calm, but several tweets reuse evidence sentences nearly verbatim instead of explaining in the thread's own words. Tweet 2 repeats 'External calls can fail... When a contract needs every call in a batch to... a single failing recipient can block the entire operation'. Tweet 5 repeats 'a recipient that always fails... progress depends on every external transfer or call succeeding'. Tweet 7 repeats 'Isolate each external call in its own transaction that the recipient can initiate. Avoid combining several calls in one transaction, especially inside a loop'. This is reordered source text rather than explanation.",
+        "Tweet 2 restates tweet 1's point that one failing recipient blocks the whole batch. Tweet 5 restates it again ('a recipient that always fails can stall progress'). The repeated core point weakens the build from hook to mechanism to mitigation."
+      ],
+      "hard_fail": [],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "b9622d3eca3c2c34c55f3e037a9297c28605467d0fad4bd94f11919d57befd87",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 3.0,
+        "grounding": 2.0,
+        "voice": 2.0,
         "clarity": 4.0,
         "cta": 4.0
       },
-      "reasons": [],
+      "reasons": [
+        "The mechanism, both examples, the n + m versus max(n,m) arithmetic, the commit-reveal hash steps and the ERC20 fixes, including the conformance tradeoff, match KB-08. Tweet 7 adds an effectiveness conclusion the evidence does not state.",
+        "Most clauses trace to KB-08. Tweet 7's 'so watching the mempool does not let Eve copy the answer' is a causal or effectiveness claim with no support in the evidence_text, which only describes the scheme's steps.",
+        "The tone is calm and non-promotional. However, tweets 3, 4, 5, 6 and 8 reuse evidence sentences nearly verbatim (the math problem example, the allowance example and the 'best fix ... no longer conforms ... safe approve function is an alternative' wording) instead of explaining them in the thread's own words.",
+        "Tweet 7 claims commit-reveal means 'watching the mempool does not let Eve copy the answer'. KB-08 describes the commit-reveal steps but never states this effectiveness result or mentions the mempool."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "066d1215cef8b644d7740f9de235668f2b834bee4cf45aa504e75003231d93c1",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 2.0,
+        "clarity": 3.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The tone is calm and precise, but several tweets reorder evidence sentences nearly verbatim instead of explaining them in the thread's own words. Examples: tweet 2 'Calling another contract hands it control...', tweet 4 'Reentrancy can arise from calls to any other contract, and dependencies spanning several contracts matter too', tweet 5 'state update placed after an untrusted call, which lets the same logic execute repeatedly', and tweet 6's checks-effects-interactions list. Rewrite these in original explanatory wording.",
+        "The thread builds well from hook to mechanism, mitigation and check. However, tweet 3 largely restates tweet 1: an unchanged balance lets the same funds be withdrawn again. Tweet 9 also re-asks the point tweet 8 already made about every path sharing the state. Cut the overlap."
+      ],
       "hard_fail": [],
-      "accepted": true
+      "accepted": false
     },
     "failure": null
   },
@@ -169,26 +146,41 @@
     "record_id": "thread_2/reviewer/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "4fd0f6323ca099ea5abff491b608b6a94c4435f25ed55fe1e312d7213c69ace3",
+    "input_sha256": "344d542e0ec0b1a489b50ddb502793b5adb8f408e127d1a05dad7e958d220a2f",
     "review": {
       "slot_id": "thread_2",
       "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 1.0,
-        "grounding": 2.0,
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 4.0,
         "voice": 4.0,
-        "clarity": 4.0,
-        "cta": 4.0
+        "clarity": 5.0,
+        "cta": 5.0
       },
-      "reasons": [
-        "The worked example does not add up. Tweet 4 says the vault holds about 101 tokens backing one share. Tweet 5 then adds the victim's 100-token deposit, but says the attacker takes the full 101-token balance, including the victim's deposit. After that deposit the vault holds about 201 tokens (1 wei, plus the 100-token donation, plus the 100-token deposit), not 101. The rubric scores a miscomputed worked example 1 even when the source repeats the figure.",
-        "Most clauses trace to the sources. The formula, rounding and attack flow come from WEB-2daca0aeb740f7f4. The seed deposit, burned shares and minimum deposit fixes come from WEB-f50d1927023d53fb and WEB-7c6bb2f81270ec91. The 4.9 decimalsOffset comes from WEB-7c6bb2f81270ec91, and the spec leaving the defense to implementers comes from WEB-2daca0aeb740f7f4. The exception is the 101-token payout in tweet 5, which is arithmetically false in the thread's own sequence and so is not a supportable fact.",
-        "Tweet 5 claims the attacker redeems and takes 'the full 101-token balance, including the victim's deposit'. After the victim's 100-token deposit lands on the roughly 101-token balance, the vault holds about 201 tokens. A 101-token figure cannot include the victim's deposit, so the clause is false in the thread's own numbers."
-      ],
-      "hard_fail": [
-        "unsupported_claim"
-      ],
-      "accepted": false
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "0a2fb6806a86b3bbb8816de317b7f064ca8526e52f994d4c4859bed16dc6c281",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 4.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
     },
     "failure": null
   }

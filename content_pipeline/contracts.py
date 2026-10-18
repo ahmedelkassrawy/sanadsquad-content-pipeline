@@ -267,6 +267,16 @@ class TerminalSlot(Contract):
     error: str | None = None
 
 
+class AgentUsage(Contract):
+    """Model calls of one agent, summed from usage.jsonl. The uncertain part is included."""
+
+    calls: int = Field(ge=0)
+    tokens: int = Field(ge=0)
+    cost_usd: float
+    uncertain_tokens: int = Field(ge=0)
+    uncertain_cost_usd: float
+
+
 class RunSummary(Trace):
     run_id: str
     slots: dict[str, TerminalSlot]
@@ -280,6 +290,10 @@ class RunSummary(Trace):
     cost_scope: str = "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."
     advisor: Literal["not_enabled", "completed", "failed"] = "not_enabled"
     advisor_reason: str | None = None
+    # Per-agent totals (research, writer, reviewer, visual, advisor), summed from usage.jsonl. They
+    # can differ from the run totals (ledger) after a crash/resume or an unpriced response.
+    # Empty in run folders written before this field existed.
+    agents: dict[str, AgentUsage] = Field(default_factory=dict)
 
 
 class Estimate(Contract):

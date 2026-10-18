@@ -1,12 +1,12 @@
 {
-  "concept": "Missing caller checks let anyone withdraw a contract's Ether; restrict withdrawals to authorized parties.",
-  "scene": "A minimal vault icon on a deep navy background with a single amber key resting beside an open door, suggesting access control. Clean geometric shapes, calm and precise, with generous empty space for the overlay text.",
+  "concept": "Missing caller checks on Ether withdrawals let any account drain a contract",
+  "scene": "A dark navy background with a simple padlock outline left open beside a stylized contract block, with amber lines showing Ether leaving the block, minimal flat brand style",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Limit withdrawals to authorized parties",
-  "alt_text": "Brand image card with a navy background, a simple vault icon with an amber key, and the text Limit withdrawals to authorized parties.",
+  "overlay_text": "A withdrawal function without a caller check",
+  "alt_text": "Open padlock beside a contract block with amber lines showing Ether flowing out, on a navy background",
   "severity": null
 }

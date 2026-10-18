@@ -1,5 +1,43 @@
 {
   "$defs": {
+    "AgentUsage": {
+      "additionalProperties": false,
+      "description": "Model calls of one agent, summed from usage.jsonl. The uncertain part is included.",
+      "properties": {
+        "calls": {
+          "minimum": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "tokens": {
+          "minimum": 0,
+          "title": "Tokens",
+          "type": "integer"
+        },
+        "cost_usd": {
+          "title": "Cost Usd",
+          "type": "number"
+        },
+        "uncertain_tokens": {
+          "minimum": 0,
+          "title": "Uncertain Tokens",
+          "type": "integer"
+        },
+        "uncertain_cost_usd": {
+          "title": "Uncertain Cost Usd",
+          "type": "number"
+        }
+      },
+      "required": [
+        "calls",
+        "tokens",
+        "cost_usd",
+        "uncertain_tokens",
+        "uncertain_cost_usd"
+      ],
+      "title": "AgentUsage",
+      "type": "object"
+    },
     "ExternalUsage": {
       "additionalProperties": false,
       "properties": {
@@ -198,6 +236,13 @@
       ],
       "default": null,
       "title": "Advisor Reason"
+    },
+    "agents": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AgentUsage"
+      },
+      "title": "Agents",
+      "type": "object"
     }
   },
   "required": [

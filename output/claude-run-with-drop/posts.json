@@ -1,43 +1,40 @@
 [
   {
-    "record_id": "thread_1/export/1/1",
+    "record_id": "thread_1/export/2/1",
     "slot_id": "thread_1",
-    "attempt": 1,
+    "attempt": 2,
     "type": "tech-thread",
     "topic_id": "KB-01",
     "topic_name": "Reentrancy",
     "tweets": [
-      "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when the recipient calls back.",
-      "2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
-      "3/9 The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
-      "4/9 Picture a withdrawal that pays the recipient first and zeroes the stored balance afterward. A callback during the payment sees the old balance and withdraws again.",
-      "5/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts matter as well.",
-      "6/9 The fix is checks-effects-interactions: validate inputs and permissions, update storage state, then make external calls.",
-      "7/9 In the withdrawal, save the amount and clear the stored balance first, with `balances[msg.sender] = 0;` before the call to the recipient. Then require the call to succeed so failure reverts the operation.",
-      "8/9 A callback may enter through another function or dependency, so check more than one path. Review other callable paths and contracts that share the affected state.",
-      "9/9 For each external call in your code, does every storage update that the call depends on happen before it? And can any other function reach the same state mid-call?"
+      "1/8 A withdrawal function that pays out Ether before zeroing the caller's balance can be re-entered by the recipient, and the second entry still sees the old balance.",
+      "2/8 Any external call gives the callee control of execution. It can invoke your contract again before the original call has returned, so your code runs a second time mid-operation.",
+      "3/8 Sending Ether is only one trigger. Calling any other contract can open the same door, and state shared across several contracts widens the surface further.",
+      "4/8 The flaw underneath is ordering: storage is changed only after control has been handed to code you do not trust, so the same logic can run again and again.",
+      "5/8 Checks-effects-interactions fixes the ordering. Verify inputs and permissions first, then write the new storage values, and make external calls last.",
+      "6/8 Applied to a withdrawal, copy the amount into a local variable and run `balances[msg.sender] = 0;` before paying the recipient. Also require the payment to succeed, so a failed send reverts everything.",
+      "7/8 A callback does not have to come back through the function you patched. It may enter via a different function or a dependency that touches the same state, so audit each of those paths too.",
+      "8/8 Does every function that makes an external call finish its storage updates before the call goes out?"
     ],
     "image": "images/slot-thread_1.png"
   },
   {
-    "record_id": "thread_3/export/2/1",
-    "slot_id": "thread_3",
+    "record_id": "thread_2/export/2/1",
+    "slot_id": "thread_2",
     "attempt": 2,
     "type": "tech-thread",
-    "topic_id": "KB-20",
-    "topic_name": "Business logic errors",
+    "topic_id": "KB-11",
+    "topic_name": "Denial of service with failed call",
     "tweets": [
-      "1/9 A contract can pass every low-level check and still be exploitable. Type safety, reentrancy guards and access control can all be correct while the code does what it says, and what it says permits an exploitable outcome.",
-      "2/9 These are business logic vulnerabilities: design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. Intended economic or functional behavior can be subverted even when low-level checks are correct.",
-      "3/9 The root cause is an implementation that omits or misapplies a required business invariant. The rule is either absent or applied wrongly, so the code runs as written and the invariant still does not hold.",
-      "4/9 A vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance. The check runs, but it enforces no economic invariant.",
-      "5/9 Areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
-      "6/9 One mitigation is to model protocol economics explicitly, for example with adversarial simulations. Core invariants belong in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield.",
-      "7/9 For key accounting paths, formal verification and property-based fuzzing are recommended. New strategies can roll out behind caps while metrics and on-chain invariants are monitored.",
-      "8/9 Governance and operations teams should understand the invariants too, not just auditors. The rules of the protocol are then known beyond the people who review the code.",
-      "9/9 A check for your own contracts: can you state each core invariant in one sentence, and is there a test that fails if it breaks? Does any limit check use the requested amount where it should use a balance?"
+      "1/7 An attacker who registers a contract that always reverts as a payee can freeze a function that pays many addresses in one loop, and nobody else in that batch gets paid.",
+      "2/7 Ether sends can break for two separate reasons: the recipient runs out of gas, or the recipient's own code reverts through require, assert or revert.",
+      "3/7 Solidity's two send styles react differently to that failure. transfer reverts the calling transaction, while send just returns false, so skipping a check on its return value hides the problem.",
+      "4/7 A loop that pays everyone ties the contract's forward movement to each recipient behaving. Any payee that can fail on demand gets a lever over the sender's progress, and that is where the denial of service comes from.",
+      "5/7 Pull payments remove that lever. Users withdraw their own funds, so a broken recipient only affects itself, and this also lowers the chance of hitting gas limit trouble.",
+      "6/7 Give each external call its own transaction that the recipient starts. Keep several calls out of a single transaction, most of all inside loops, and treat every external call as something that may fail.",
+      "7/7 Grep your contracts for every loop that sends Ether or makes an external call, then run it in a test against a recipient whose code always reverts and confirm the other payments still work."
     ],
-    "image": "images/slot-thread_3.png"
+    "image": "images/slot-thread_2.png"
   },
   {
     "record_id": "marketing_1/export/1/1",
@@ -47,19 +44,19 @@
     "topic_id": "ANGLE-service",
     "topic_name": "service",
     "tweets": [
-      "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports reviews this way. Want one for your code? Request a review."
+      "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code."
     ],
     "image": "images/slot-marketing_1.png"
   },
   {
-    "record_id": "marketing_2/export/2/1",
+    "record_id": "marketing_2/export/1/1",
     "slot_id": "marketing_2",
-    "attempt": 2,
+    "attempt": 1,
     "type": "marketing-post",
     "topic_id": "ANGLE-credibility",
     "topic_name": "credibility",
     "tweets": [
-      "12 smart contract audits completed. 3 auditors on the team. Sentinel Grove is a smart contract audit firm, and you can request a review of your smart contract code whenever you are ready."
+      "Sentinel Grove has completed 12 smart contract audits. If your team is preparing a contract for release, you can request a review of your smart contract code."
     ],
     "image": "images/slot-marketing_2.png"
   },
@@ -71,7 +68,7 @@
     "topic_id": "ANGLE-education",
     "topic_name": "education-to-cta",
     "tweets": [
-      "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer out. Limit withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code."
+      "Why can anyone drain some contracts? A withdrawal function without a caller check lets any account trigger a transfer of Ether out. Limit withdrawals to authorized parties. Which of your functions move Ether, and who can call them?"
     ],
     "image": "images/slot-marketing_3.png"
   }

@@ -1,20 +1,22 @@
 [
   {
-    "record_id": "thread_1/reviewer/1/1",
-    "slot_id": "thread_1",
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "e5a5e6df093f768ca54dbb3eee28613d04a388af641f8075c107e0e840d40a6e",
+    "input_sha256": "d4bbaf3849c64e026a73e4253283e233cd49e2773fffa77a078d2076f52e377f",
     "review": {
-      "slot_id": "thread_1",
+      "slot_id": "marketing_1",
       "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 5.0
       },
-      "reasons": [],
+      "reasons": [
+        "The opening states the review deliverable clearly, but it reads as a plain restatement of the stat rather than a specific contrast or angle that draws the reader in."
+      ],
       "hard_fail": [],
       "accepted": true
     },
@@ -24,7 +26,7 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "fc0fe4075473bf5cad33f58b7b15e8ffa075c7e2f36bced209cf5b845e64ea48",
+    "input_sha256": "d8b31bb19d93122ecb3a6b8a45831d4c50ce5a0bb9cf7472da6977f8c133f1d2",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
@@ -32,11 +34,35 @@
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 5.0,
+        "clarity": 4.0,
         "cta": 4.0
       },
       "reasons": [
-        "The opening 'Sentinel Grove has completed 12 smart contract audits.' is a clear, specific statement, but it reads as a plain credential with no contrast or angle that pulls the reader in."
+        "The opening restates the audit count from STAT-01. It is clear and specific, but it reads as a plain statement of fact rather than a contrast or angle that draws the reader in."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "a7e1053d1937d7e99bde81f36d34a01370b49d1c06129d1ccf65625bdc106b34",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 3.0,
+        "clarity": 3.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The tone is calm and free of hype or banned wording. However, much of the thread rewords evidence_text sentence by sentence instead of explaining it in the thread's own words, for example tweet 2 'Calling another contract hands it control...', tweet 3 'state updates that happen after an untrusted call let the same logic run repeatedly', and tweet 5's CEI list.",
+        "The thread builds from hook to mechanism, mitigation and a closing check. It repeats itself, though: tweet 2 restates the callback-before-update point from tweet 1, and tweets 3 and 4 both make the 'not only Ether transfers' point."
       ],
       "hard_fail": [],
       "accepted": true
@@ -47,7 +73,7 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "ccb09ad647a927be4adab2f8ac8b42725f45b4487d4246210720fce1ad886849",
+    "input_sha256": "9c7fc4a38c15c5f4d0d18420a9475e202d6476f8a01215b24a684e1a62f2a275",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
@@ -65,22 +91,22 @@
     "failure": null
   },
   {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "b4305388a83341cec91e6b84ecac8f34280f8154cea2416eebb0c72ff1228933",
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "56c47d8b72be4a3a893f191d5fa1ff03e6c70290875fab3dbc3a07449ba3094a",
     "review": {
-      "slot_id": "marketing_1",
+      "slot_id": "thread_2",
       "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
+        "hook": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 3.0,
         "clarity": 4.0,
-        "cta": 4.0
+        "cta": 5.0
       },
       "reasons": [
-        "The opening is a clear, specific statement of what a review delivers, matching STAT-04. However, it restates the stat verbatim and gives no contrast or angle that draws the reader in, so it is clear but plain."
+        "Calm and non-promotional, and OWASP is credited only once (tweet 4). However, tweets 2, 4, 5, 6 and 7 largely reorder evidence_text sentences ('trust boundary', 'sufficient windows', 'maximum staleness threshold', 'halt sensitive operations such as borrowing and liquidations') instead of explaining them in the thread's own words."
       ],
       "hard_fail": [],
       "accepted": true
@@ -91,39 +117,21 @@
     "record_id": "thread_3/reviewer/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "21df7fafbf27b3a1cd951ff9ea78bb5c1511a9e72907262de28b9bd8341eb0e8",
+    "input_sha256": "ee5939e0d3da8a1ccdefdde9ae20ccb604a87a65aa2e6dab2043cd697c01e0e2",
     "review": {
       "slot_id": "thread_3",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 5.0,
-        "voice": 4.0,
-        "clarity": 4.0,
-        "cta": 4.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_2/reviewer/2/1",
-    "slot_id": "thread_2",
-    "attempt": 2,
-    "input_sha256": "b1872e3ff81a6727a5375e6f24c69faefa742fe9af804a1f2e78de3605e5da75",
-    "review": {
-      "slot_id": "thread_2",
       "scores": {
         "hook": 5.0,
         "technical_accuracy": 5.0,
         "grounding": 4.0,
-        "voice": 5.0,
-        "clarity": 4.0,
+        "voice": 3.0,
+        "clarity": 3.0,
         "cta": 5.0
       },
-      "reasons": [],
+      "reasons": [
+        "The tone is calm and has no banned wording. However, tweets 2, 3, 4, 5 and 7 largely reorder sentences from the evidence_text nearly verbatim instead of explaining them in the thread's own words. Examples are 'tx.origin returns the sender of the transaction across the full call chain' and 'The check passes because tx.origin is still the owner.'",
+        "The structure runs from hook to mechanism, example, fix and check, but it repeats itself. Tweet 1's point that a contract the owner calls can act because tx.origin is still the owner returns in tweet 3 ('the contract can act under that account's authority') and again at the end of tweet 5 ('The check passes because tx.origin is still the owner'). That is a restatement of the opening point in more than one later tweet."
+      ],
       "hard_fail": [],
       "accepted": true
     },

@@ -157,7 +157,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
         "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties",
-        "https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/"
+        "https://github.com/ethereum/consensus-specs/blob/dev/specs/bellatrix/beacon-chain.md"
       ],
       "review_status": "pending_owner_review"
     },
@@ -183,7 +183,7 @@
       "name": "Denial of service with failed call",
       "severity": "medium",
       "category": "availability",
-      "description": "External calls can fail accidentally or deliberately, which can cause a denial of service in the contract. When a contract needs every call in a batch to succeed, for example payments pushed to many recipients in a loop, one failing recipient can block the whole operation. The Solidity documentation adds that sending Ether can fail because the recipient runs out of gas, including through require, assert or revert, and that with transfer or send plus a return value check this can give the recipient a way to block progress in the sending contract.",
+      "description": "External calls can fail accidentally or deliberately, which can cause a denial of service in the contract. When a contract needs every call in a batch to succeed, for example payments pushed to many recipients in a loop, one failing recipient can block the whole operation. The Solidity documentation adds that sending Ether can fail for separate reasons: the recipient can run out of gas, or the recipient's code can revert (through require, assert or revert). transfer reverts the sending call when the send fails, while send returns false instead, so its return value must be checked. Either way, a recipient that always fails has a way to block progress in the sending contract.",
       "root_cause": "Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
       "aliases": [
         "revert griefing",

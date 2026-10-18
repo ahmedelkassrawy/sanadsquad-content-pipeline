@@ -22,8 +22,8 @@ visual:
 # style, and so on, wrapping around), so the threads do not all open and end the same way.
 hook_styles:
 - state the vulnerable pattern as a plain fact about what goes wrong
-- "open with a concrete scenario: what an attacker does, step by step in one sentence"
-- open with a contrast between what the code assumes and what actually happens
+- "open with a concrete scenario: what one attacker achieves against one function, in one sentence; the step-by-step comes later in the thread"
+- open with a contrast between what one vulnerable function relies on and what an attacker can make it do
 closing_styles:
 - a yes/no question naming the exact condition to look for
 - one concrete thing to test or grep for, stated as an instruction
