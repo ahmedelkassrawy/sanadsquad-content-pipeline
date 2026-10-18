@@ -52,7 +52,7 @@ X turns any word.word pair whose ending looks like a web domain into a link, eve
 
 Rephrase or explain supplied facts without padding the thread with new facts; use questions and concise recommendations grounded in the pack.
 
-Explain the evidence in your own words for a developer reader. Do not copy or reorder evidence sentences; a thread that mostly rearranges them is scored down for voice. Each tweet adds a new point, and no tweet restates the hook or an earlier tweet's point.
+Explain the evidence in your own words for a developer reader. Do not copy or reorder evidence sentences; a thread whose tweets reuse evidence sentences nearly verbatim is rejected for voice. Each tweet adds a new point, and no tweet restates the hook or an earlier tweet's point: a restated point gets the thread rejected for clarity.
 
 ## Revisions
 

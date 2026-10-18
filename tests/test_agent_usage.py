@@ -56,15 +56,6 @@ def summary_for(tmp_path, rows):
         "".join(json.dumps(usage) + "\n" for usage in rows), encoding="utf-8"
     )
 
-    # The uncertain call keeps its reservation size in the ledger, so mirror its real charge.
-    for index, usage in enumerate(rows):
-        if usage["status"] == "uncertain":
-            ledger.entries[str(index)] = {
-                "tokens": usage["input_tokens"] + usage["output_tokens"],
-                "cost_usd": usage["cost_usd"],
-                "status": "uncertain",
-            }
-
     fake = SimpleNamespace(
         context=SimpleNamespace(ledger=ledger, run_dir=tmp_path, identity=None),
         external=ExternalUsage(),
@@ -99,18 +90,42 @@ def test_unpriced_rows_count_zero_cost():
     }
 
 
-def test_agent_totals_add_up_to_the_run_totals(tmp_path):
-    summary = summary_for(tmp_path, ROWS)
+def test_agent_totals_match_the_run_totals_when_every_call_settled(tmp_path):
+    rows = [usage for usage in ROWS if usage["status"] == "confirmed"]
+    summary = summary_for(tmp_path, rows)
     agents = summary.agents
 
     run_tokens = summary.confirmed_tokens + summary.uncertain_tokens
     run_cost = summary.confirmed_cost_usd + summary.uncertain_cost_usd
 
-    assert sum(agent.calls for agent in agents.values()) == len(ROWS)
+    assert sum(agent.calls for agent in agents.values()) == len(rows)
     assert sum(agent.tokens for agent in agents.values()) == run_tokens
     assert round(sum(agent.cost_usd for agent in agents.values()), 6) == round(run_cost, 6)
     assert sum(agent.uncertain_tokens for agent in agents.values()) == summary.uncertain_tokens
-    assert agents["writer"].tokens == 3600 + 3750
+    assert agents["writer"].tokens == 3600
+
+
+def test_resumed_uncertain_charge_makes_the_run_total_exceed_the_agent_sum(tmp_path):
+    # A crash after dispatch leaves a ledger entry (reservation size) but no usage row.
+    crashed = Ledger(tmp_path / "ledger.json", 10**9, 100.0)
+
+    async def crash():
+        await crashed.reserve("lost", 5000, 0.5)
+        await crashed.dispatch("lost")
+
+    asyncio.run(crash())
+
+    rows = [usage for usage in ROWS if usage["status"] == "confirmed"]
+    summary = summary_for(tmp_path, rows)
+
+    run_tokens = summary.confirmed_tokens + summary.uncertain_tokens
+    run_cost = summary.confirmed_cost_usd + summary.uncertain_cost_usd
+    agent_tokens = sum(agent.tokens for agent in summary.agents.values())
+    agent_cost = sum(agent.cost_usd for agent in summary.agents.values())
+
+    assert summary.uncertain_tokens == 5000
+    assert run_tokens == agent_tokens + 5000
+    assert round(run_cost, 6) == round(agent_cost + 0.5, 6)
 
 
 def test_summary_without_agents_still_loads():

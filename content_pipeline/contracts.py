@@ -290,7 +290,8 @@ class RunSummary(Trace):
     cost_scope: str = "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."
     advisor: Literal["not_enabled", "completed", "failed"] = "not_enabled"
     advisor_reason: str | None = None
-    # Per-agent totals (research, writer, reviewer, visual, advisor) that add up to the run totals.
+    # Per-agent totals (research, writer, reviewer, visual, advisor), summed from usage.jsonl. They
+    # can differ from the run totals (ledger) after a crash/resume or an unpriced response.
     # Empty in run folders written before this field existed.
     agents: dict[str, AgentUsage] = Field(default_factory=dict)
 
