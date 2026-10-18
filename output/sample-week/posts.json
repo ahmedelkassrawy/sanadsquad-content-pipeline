@@ -8,14 +8,14 @@
     "topic_name": "Reentrancy",
     "tweets": [
       "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The balance is still unchanged when control comes back.",
-      "2/9 Calling another contract hands it control. It can call back before the first call returns, so external calls can reenter before state is finalized.",
-      "3/9 The root cause is a state update that happens after an untrusted call. That ordering allows repeated execution of the same logic.",
-      "4/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
-      "5/9 The fix follows checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-      "6/9 In the withdrawal case, save the withdrawal amount and clear the stored balance before calling the recipient, as in `balances[msg.sender] = 0;` placed ahead of the call.",
-      "7/9 Require the call to succeed, so a failure reverts the whole operation.",
+      "2/9 Calling another contract hands it control. It can call back into the caller before the first call returns, while state is not yet finalized.",
+      "3/9 State updates placed after untrusted calls allow repeated execution. That ordering is what makes the callback dangerous.",
+      "4/9 Reentrancy is not limited to Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
+      "5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+      "6/9 In the withdrawal case, save the amount and clear the stored balance with `balances[msg.sender] = 0;` before calling the recipient.",
+      "7/9 Then require the call to succeed, so a failure reverts the whole operation.",
       "8/9 A callback may enter through another function or dependency, so review other callable paths and contracts that share the affected state.",
-      "9/9 Check each external call in your withdrawal path: does any storage write that touches shared state come after it?"
+      "9/9 Does any storage write in a function come after a call to another contract, or can a callback reach shared state through a different function?"
     ],
     "image": "images/slot-thread_1.png"
   },
@@ -27,15 +27,14 @@
     "topic_id": "KB-18",
     "topic_name": "Price oracle manipulation",
     "tweets": [
-      "1/9 A lending protocol that values collateral with a price an attacker can move will make decisions on incorrect values. That is price oracle manipulation: reliance on price data someone can influence directly or indirectly.",
-      "2/9 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions. Manipulation, staleness or misconfiguration can break that trust.",
-      "3/9 The root cause is simple: the protocol trusts price inputs that attackers can move. Contracts that consume price data, such as lending protocols deciding liquidations, are the ones exposed.",
-      "4/9 OWASP lists several ways the input gets moved: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
-      "5/9 Two quieter failures also appear: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
-      "6/9 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
-      "7/9 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed so one moved input cannot decide the outcome alone.",
-      "8/9 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Monitor deviations between the oracle and reference markets with automated alerts.",
-      "9/9 Check one condition: can a single pool or feed, moved within one block, set the price your liquidation logic uses, with no staleness limit or outlier rejection in between?"
+      "1/8 A lending protocol that values collateral with a price an attacker can move will make liquidation and borrowing decisions on wrong values. That is price oracle manipulation.",
+      "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and manipulation, staleness or misconfiguration can break that trust.",
+      "3/8 The protocol trusts price inputs attackers can move. When a price can be influenced directly or indirectly, every decision built on it inherits that weakness.",
+      "4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+      "5/8 Two more forms: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
+      "6/8 On the input side, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.",
+      "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Also halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data.",
+      "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Does any borrow or liquidation path read a price with no staleness check and no cap on a single pool or feed?"
     ],
     "image": "images/slot-thread_2.png"
   },
@@ -44,18 +43,18 @@
     "slot_id": "thread_3",
     "attempt": 1,
     "type": "tech-thread",
-    "topic_id": "KB-19",
-    "topic_name": "Flash loan facilitated attacks",
+    "topic_id": "KB-11",
+    "topic_name": "Denial of service with failed call",
     "tweets": [
-      "1/9 A flash loan is uncollateralized, same-transaction borrowing. It hands an attacker arbitrarily large, transient capital for the length of one transaction.",
-      "2/9 Flash loans are not inherently vulnerable, per OWASP. They act as a force multiplier for weaknesses already present in business logic, oracle, arithmetic or access control code.",
-      "3/9 The root cause is an assumption. Any protocol whose trust rests on capital at risk or historical position size is exposed when an attacker can hold large balances temporarily without risking their own funds.",
-      "4/9 The attack fits in one batched transaction: borrow via a flash loan, manipulate protocol state, prices or accounting with the borrowed funds, extract profit, then repay the loan in the same transaction.",
-      "5/9 Areas to review include governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks. Each one can behave differently when a balance is huge for a single transaction.",
-      "6/9 Fix the underlying weakness at its root. Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available.",
-      "7/9 Limit the blast radius too. Rate limit sensitive operations per block or epoch, and cap exposure per interaction with limits on slippage, position sizes and borrowing.",
-      "8/9 Test for it directly by including flash-loan scenarios in tests and fuzzing, rather than assuming normal-sized balances.",
-      "9/9 Closing check: if one account held an arbitrarily large balance for a single transaction, would any vote, price, share calculation or collateral check change its result?"
+      "1/9 A loop that pushes Ether to many recipients needs every payment to succeed. One recipient that fails can block the whole operation for everyone.",
+      "2/9 External calls can fail accidentally or deliberately. When progress depends on every call in a batch succeeding, a single failing call stops all the rest.",
+      "3/9 The Solidity documentation adds that sending Ether can fail because the recipient runs out of gas, including through require, assert or revert.",
+      "4/9 With transfer or send plus a return value check, this can give the recipient a way to block progress in the sending contract.",
+      "5/9 Think of payments pushed to many recipients in a loop: the loop only finishes if each recipient accepts its payment. One refusing recipient blocks the rest.",
+      "6/9 Isolate each external call into its own transaction that the recipient of the call can initiate. Avoid combining multiple calls in one transaction, especially inside a loop.",
+      "7/9 For payments, let users withdraw funds instead of pushing funds to them automatically. This also reduces the chance of problems with the gas limit.",
+      "8/9 Always assume external calls can fail, and write the contract logic to handle a failed call. Pull-style withdrawals keep one recipient's failure from blocking others.",
+      "9/9 Check your payout code for one condition: does any loop send Ether to a recipient and require that every send succeeds before it can finish?"
     ],
     "image": "images/slot-thread_3.png"
   },
@@ -79,7 +78,7 @@
     "topic_id": "ANGLE-credibility",
     "topic_name": "credibility",
     "tweets": [
-      "Sentinel Grove has completed 12 smart contract audits. The team has 3 auditors. Teams can request a review from Sentinel Grove."
+      "Sentinel Grove has completed 12 smart contract audits. The team is 3 auditors. Teams can request a review of their smart contract code from Sentinel Grove."
     ],
     "image": "images/slot-marketing_2.png"
   },
@@ -91,7 +90,7 @@
     "topic_id": "ANGLE-education",
     "topic_name": "education-to-cta",
     "tweets": [
-      "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger a transfer out. Which of your contract's functions move Ether, and who is allowed to call each one?"
+      "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer. Limit withdrawals to authorized parties. Which of your functions can move Ether out?"
     ],
     "image": "images/slot-marketing_3.png"
   }

@@ -1,12 +1,12 @@
 {
   "thread_1/research_step_1/1/1": {
-    "tokens": 4242,
-    "cost_usd": 0.00894,
+    "tokens": 4238,
+    "cost_usd": 0.0089,
     "status": "confirmed"
   },
   "thread_2/research_step_1/1/1": {
-    "tokens": 4300,
-    "cost_usd": 0.009024,
+    "tokens": 4304,
+    "cost_usd": 0.009064,
     "status": "confirmed"
   },
   "_batch/research_topics/1/1": {
@@ -15,18 +15,18 @@
     "status": "confirmed"
   },
   "thread_1/writer/1/1": {
-    "tokens": 4769,
-    "cost_usd": 0.013946,
+    "tokens": 4843,
+    "cost_usd": 0.013982,
     "status": "confirmed"
   },
   "thread_2/writer/1/1": {
-    "tokens": 5072,
-    "cost_usd": 0.015808,
+    "tokens": 5070,
+    "cost_usd": 0.015084,
     "status": "confirmed"
   },
   "thread_3/writer/1/1": {
-    "tokens": 5054,
-    "cost_usd": 0.015556,
+    "tokens": 4956,
+    "cost_usd": 0.014704,
     "status": "confirmed"
   },
   "marketing_1/writer/1/1": {
@@ -35,73 +35,73 @@
     "status": "confirmed"
   },
   "marketing_2/writer/1/1": {
-    "tokens": 4147,
-    "cost_usd": 0.009174,
+    "tokens": 4154,
+    "cost_usd": 0.009244,
     "status": "confirmed"
   },
   "marketing_3/writer/1/1": {
-    "tokens": 4223,
-    "cost_usd": 0.009358,
+    "tokens": 4225,
+    "cost_usd": 0.009378,
     "status": "confirmed"
   },
   "thread_1/reviewer/1/1": {
-    "tokens": 6447,
-    "cost_usd": 0.03558,
-    "status": "confirmed"
-  },
-  "thread_2/reviewer/1/1": {
-    "tokens": 7045,
-    "cost_usd": 0.042692,
-    "status": "confirmed"
-  },
-  "thread_3/reviewer/1/1": {
-    "tokens": 7163,
-    "cost_usd": 0.04534,
+    "tokens": 6357,
+    "cost_usd": 0.034004,
     "status": "confirmed"
   },
   "marketing_1/reviewer/1/1": {
-    "tokens": 5485,
-    "cost_usd": 0.027812,
+    "tokens": 5471,
+    "cost_usd": 0.027532,
+    "status": "confirmed"
+  },
+  "thread_3/reviewer/1/1": {
+    "tokens": 6897,
+    "cost_usd": 0.042996,
     "status": "confirmed"
   },
   "marketing_2/reviewer/1/1": {
-    "tokens": 5781,
-    "cost_usd": 0.030596,
+    "tokens": 5751,
+    "cost_usd": 0.029884,
+    "status": "confirmed"
+  },
+  "thread_2/reviewer/1/1": {
+    "tokens": 6676,
+    "cost_usd": 0.036816,
     "status": "confirmed"
   },
   "marketing_3/reviewer/1/1": {
-    "tokens": 5840,
-    "cost_usd": 0.03056,
-    "status": "confirmed"
-  },
-  "thread_1/visual/1/1": {
-    "tokens": 3116,
-    "cost_usd": 0.007992,
-    "status": "confirmed"
-  },
-  "thread_3/visual/1/1": {
-    "tokens": 3415,
-    "cost_usd": 0.008702,
+    "tokens": 6082,
+    "cost_usd": 0.035368,
     "status": "confirmed"
   },
   "marketing_1/visual/1/1": {
-    "tokens": 2579,
-    "cost_usd": 0.007022,
+    "tokens": 2574,
+    "cost_usd": 0.006972,
     "status": "confirmed"
   },
-  "thread_2/visual/1/1": {
-    "tokens": 3440,
-    "cost_usd": 0.008808,
+  "thread_1/visual/1/1": {
+    "tokens": 3137,
+    "cost_usd": 0.008314,
     "status": "confirmed"
   },
   "marketing_2/visual/1/1": {
-    "tokens": 2753,
-    "cost_usd": 0.007194,
+    "tokens": 2747,
+    "cost_usd": 0.007078,
+    "status": "confirmed"
+  },
+  "thread_3/visual/1/1": {
+    "tokens": 3238,
+    "cost_usd": 0.008412,
+    "status": "confirmed"
+  },
+  "thread_2/visual/1/1": {
+    "tokens": 3351,
+    "cost_usd": 0.00867,
     "status": "confirmed"
   },
   "marketing_3/visual/1/1": {
-    "tokens": 2825,
-    "cost_usd": 0.007306,
+    "tokens": 2835,
+    "cost_usd": 0.00739,
     "status": "confirmed"
   }
 }

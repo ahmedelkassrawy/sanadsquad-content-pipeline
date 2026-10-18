@@ -2,7 +2,7 @@
   "record_id": "_run/summary/1/1",
   "slot_id": "_run",
   "attempt": 1,
-  "run_id": "week-62",
+  "run_id": "week-63",
   "slots": {
     "thread_1": {
       "outcome": "shipped",
@@ -21,7 +21,7 @@
     "thread_3": {
       "outcome": "shipped",
       "attempts": 1,
-      "topic_id": "KB-19",
+      "topic_id": "KB-11",
       "reasons": [],
       "error": null
     },
@@ -48,9 +48,9 @@
     }
   },
   "shipped": 6,
-  "confirmed_tokens": 93589,
+  "confirmed_tokens": 92799,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.354204,
+  "confirmed_cost_usd": 0.346586,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {

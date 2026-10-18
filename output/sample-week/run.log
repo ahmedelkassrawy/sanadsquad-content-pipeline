@@ -2,18 +2,18 @@
    research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
    research   topic KB-01 (Reentrancy) from KB-01
    draft 1    9 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
    outcome    shipped after 1 attempt(s)
 == thread_2
    research   search_kb 'oracle manipulation' -> KB-18:ok, KB-19:ok, KB-01:ok, KB-02:ok, KB-03:ok
    research   topic KB-18 (Price oracle manipulation) from KB-18
-   draft 1    9 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=4 voice=4 clarity=5 cta=5
+   draft 1    8 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=4 clarity=3 cta=4
    outcome    shipped after 1 attempt(s)
 == thread_3
-   research   topic KB-19 (Flash loan facilitated attacks) from KB-19
+   research   topic KB-11 (Denial of service with failed call) from KB-11
    draft 1    9 tweets, rules ok
-   review 1   accepted  hook=3 technical_accuracy=5 grounding=4 voice=3 clarity=4 cta=4
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=3 cta=4
    outcome    shipped after 1 attempt(s)
 == marketing_1
    research   topic ANGLE-service (service) from STAT-04, STAT-05
@@ -23,14 +23,14 @@
 == marketing_2
    research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=3 cta=4
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=3 cta=3
    outcome    shipped after 1 attempt(s)
 == marketing_3
    research   topic ANGLE-education (education-to-cta) from KB-04
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=4 voice=5 clarity=5 cta=5
+   review 1   accepted  hook=5 technical_accuracy=4 grounding=5 voice=5 clarity=5 cta=4
    outcome    shipped after 1 attempt(s)
 
 shipped 6, dropped or failed 0
-tokens 93589, LLM cost $0.3542
+tokens 92799, LLM cost $0.3466
 advisor not_enabled

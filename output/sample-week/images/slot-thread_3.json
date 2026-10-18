@@ -1,12 +1,12 @@
 {
-  "concept": "Flash loans amplify existing weaknesses; fix the root cause",
-  "scene": "Technical diagram style card on a dark navy background: a single transaction block containing a borrow arrow, a manipulate step and a repay arrow, with an amber highlight on the middle step to show where a hidden weakness is magnified.",
+  "concept": "A single failing external call blocks a batch of payments, and pull-style withdrawals avoid it",
+  "scene": "Technical diagram on a dark navy background: a row of payment nodes connected in a loop, with one node highlighted in amber as the failing call that halts the chain, next to a simple withdraw arrow pulling funds from a contract",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "arbitrarily large, transient capital",
-  "alt_text": "Diagram of one transaction containing borrow, manipulate and repay steps, with the middle step highlighted in amber on a dark navy background.",
-  "severity": "high"
+  "overlay_text": "let users withdraw funds",
+  "alt_text": "Diagram of a chain of payment nodes where one amber node fails and stops the loop, beside an arrow showing users withdrawing funds from a contract.",
+  "severity": "medium"
 }

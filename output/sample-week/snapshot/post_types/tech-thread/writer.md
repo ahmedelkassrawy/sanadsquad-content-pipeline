@@ -47,7 +47,7 @@ X turns any word.word pair whose ending looks like a web domain into a link, eve
 
 - State facts directly. Never point at the research material: no "the article", "the discussion", "the evidence" or "according to the source". A named authority (OWASP, an SWC entry, a project's docs) may be credited once in the thread; code rejects a thread that credits the same source in two tweets ("OWASP lists", then "OWASP suggests").
 - Start each tweet differently. Code rejects a thread where three tweets open with the same word.
-- Do not label tweets with section names ("Root cause:", "Closing check:", "Mitigation:"); the structure above is for you, not for the reader. Let each tweet's first words carry its point.
+- Do not label tweets with section names ("Root cause:", "Closing check:", "Mitigation:"); the structure above is for you, not for the reader. Let each tweet's first words carry its point. Code now rejects a tweet that opens with an outline label ("Closing check:", "Root cause:", "The root cause:", "Mitigation:", "Example:"), and the third tweet should not open with "The root cause is" in every thread; state the cause in the thread's own words.
 - Turn a knowledge-base root cause into a condition, not a universal claim: write "a withdrawal function without a caller check lets anyone drain it", not "withdrawal functions lack caller authorization".
 
 Rephrase or explain supplied facts without padding the thread with new facts; use questions and concise recommendations grounded in the pack.

@@ -1,12 +1,12 @@
 {
-  "concept": "Unprotected Ether withdrawal caused by a missing caller check",
-  "scene": "A minimal vault icon on a deep navy background with an open door and an amber arrow leaving it, representing Ether leaving a contract without an access check. Clean geometric style with generous space for the overlay text.",
+  "concept": "Missing caller checks on withdrawal functions let any account move Ether out of a contract",
+  "scene": "Minimal brand card on a deep navy background with a simple vault outline and an open door in amber, suggesting a withdrawal path without a gatekeeper. Large clean space for the overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "without a caller check",
-  "alt_text": "Brand image card with a vault icon and an amber arrow leaving an open door, with the text: without a caller check",
+  "overlay_text": "A withdrawal function without a caller check",
+  "alt_text": "Navy card with an amber vault outline and an open door, with the text: A withdrawal function without a caller check",
   "severity": null
 }

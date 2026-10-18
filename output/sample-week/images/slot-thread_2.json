@@ -1,12 +1,12 @@
 {
-  "concept": "Price oracle manipulation: a protocol that trusts price inputs attackers can move",
-  "scene": "Technical diagram style card on a deep navy background: a single price feed line feeding into a lending contract block, with one amber highlighted node showing a moved input. Clean lines, calm precise engineering look, generous space for overlay text.",
+  "concept": "Price oracle manipulation as a trust boundary: a contract trusting price inputs that attackers can move",
+  "scene": "A dark navy card with a simple technical diagram: a price feed line on the left crossing a dashed trust boundary into a contract block on the right, with an amber highlight on the point where the price line is bent by an outside force",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "The protocol trusts price inputs attackers can move",
-  "alt_text": "Technical diagram on a navy background showing a price feed flowing into a lending contract, with one amber node marking an input an attacker can move.",
+  "overlay_text": "An oracle is a trust boundary",
+  "alt_text": "Diagram of a price feed crossing a dashed trust boundary into a smart contract, with the feed line bent by an outside influence, on a navy background with amber accents.",
   "severity": "high"
 }

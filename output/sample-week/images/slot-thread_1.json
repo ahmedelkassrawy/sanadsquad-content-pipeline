@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: update state before making external calls",
-  "scene": "A dark navy card with a bold amber excerpt centered on it, framed by a thin amber border and a simple abstract diagram of two connected contract boxes with a looping arrow showing a callback returning before the first call finishes.",
+  "concept": "Reentrancy risk from external calls made before state is finalized, and the checks-effects-interactions fix",
+  "scene": "A clean technical card on a dark navy background: a simple flow diagram of three stacked steps labeled checks, effects, interactions, with an accent arrow looping back from the last step to the first to suggest a callback, and a small severity badge in the corner.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "State updates after untrusted calls",
-  "alt_text": "Navy brand card with the text State updates after untrusted calls and a diagram of two contract boxes linked by a looping callback arrow.",
+  "overlay_text": "State updates after untrusted calls allow repeated execution",
+  "alt_text": "Technical card with a flow diagram of checks, effects and interactions steps and a looping arrow showing a callback reentering before state is updated.",
   "severity": "high"
 }
