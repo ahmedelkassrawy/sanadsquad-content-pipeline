@@ -1,0 +1,75 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "week-53",
+  "slots": {
+    "thread_1": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "KB-01",
+      "reasons": [],
+      "error": null
+    },
+    "thread_2": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "WEB-f50d1927023d53fb",
+      "reasons": [
+        "The worked example does not add up. Tweet 4 says the vault holds about 101 tokens backing one share. Tweet 5 then adds the victim's 100-token deposit, but says the attacker takes the full 101-token balance, including the victim's deposit. After that deposit the vault holds about 201 tokens (1 wei, plus the 100-token donation, plus the 100-token deposit), not 101. The rubric scores a miscomputed worked example 1 even when the source repeats the figure.",
+        "Most clauses trace to the sources. The formula, rounding and attack flow come from WEB-2daca0aeb740f7f4. The seed deposit, burned shares and minimum deposit fixes come from WEB-f50d1927023d53fb and WEB-7c6bb2f81270ec91. The 4.9 decimalsOffset comes from WEB-7c6bb2f81270ec91, and the spec leaving the defense to implementers comes from WEB-2daca0aeb740f7f4. The exception is the 101-token payout in tweet 5, which is arithmetically false in the thread's own sequence and so is not a supportable fact.",
+        "Tweet 5 claims the attacker redeems and takes 'the full 101-token balance, including the victim's deposit'. After the victim's 100-token deposit lands on the roughly 101-token balance, the vault holds about 201 tokens. A 101-token figure cannot include the victim's deposit, so the clause is false in the thread's own numbers."
+      ],
+      "error": null
+    },
+    "thread_3": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "KB-20",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_1": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "ANGLE-service",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_2": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-credibility",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "ANGLE-education",
+      "reasons": [],
+      "error": null
+    }
+  },
+  "shipped": 5,
+  "confirmed_tokens": 191043,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.6657,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": false,
+  "external_usage": {
+    "search_calls": 1,
+    "tavily_calls": 1,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 1.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 5,
+    "cloudflare_images": 5,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 5
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "not_enabled",
+  "advisor_reason": null
+}

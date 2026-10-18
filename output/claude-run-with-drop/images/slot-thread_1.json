@@ -1,0 +1,12 @@
+{
+  "concept": "Reentrancy: finalize state before making external calls",
+  "scene": "A dark navy card with a simple diagram of a contract sending a call out to another contract and a callback arrow returning, with a highlighted state box marked as updated first. Calm, precise engineering style with clean lines and generous spacing.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "checks-effects-interactions",
+  "alt_text": "Brand image card with a diagram of a contract making an external call and receiving a callback, with the text checks-effects-interactions.",
+  "severity": "high"
+}

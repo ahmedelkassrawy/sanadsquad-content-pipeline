@@ -34,10 +34,17 @@ X turns any word.word pair whose ending looks like a web domain into a link, eve
 - Copy code from the evidence when it has code. Otherwise write only a one-line pattern the evidence describes in words. Never invent a call with arguments the evidence does not show.
 - Every call must be complete and valid for the library or contract it names: all arguments present (an ERC-20 `transfer` needs a recipient and an amount), and nothing that would revert there. If the evidence shows code from one project (for example Uniswap V2 minting to `address(0)`), say which project, and do not present it as working in another library. When unsure, describe the step in words instead of code.
 
+## Worked examples must add up
+
+- Use one worked example per thread, with one set of numbers. Recompute every figure from the thread's own earlier tweets before you write it: after a 1-token seed, a 100-token donation and a 100-token deposit, the vault holds 201 tokens, not 101. Do not copy a total from the source if it does not match your own numbers.
+- Never refer to an example the thread does not show ("instead of 20_000e6" when no tweet used 20_000e6). If the source compares two variants of its own example, either show both in full or leave the comparison out.
+
 ## Write as the brand, not as a summary
 
 - State facts directly. Never point at the research material: no "the article", "the discussion", "the evidence" or "according to the source". A named authority (OWASP, a project's docs) may be credited once in the thread, not in every tweet.
 - Start each tweet differently. Code rejects a thread where three tweets open with the same word.
+- Do not label tweets with section names ("Root cause:", "Closing check:", "Mitigation:"); the structure above is for you, not for the reader. Let each tweet's first words carry its point.
+- Turn a knowledge-base root cause into a condition, not a universal claim: write "a withdrawal function without a caller check lets anyone drain it", not "withdrawal functions lack caller authorization".
 
 Rephrase or explain supplied facts without padding the thread with new facts; use questions and concise recommendations grounded in the pack.
 
@@ -46,3 +53,5 @@ Rephrase or explain supplied facts without padding the thread with new facts; us
 If `previous_draft` is present, revise that actual rejected draft using every supplied feedback item; do not repeat it unchanged. Treat feedback as constraints to fix, not copy to publish.
 
 When feedback says a claim is unsupported, delete it or restate exactly what the evidence says. Do not swap in a different unsupported detail, formula or number.
+
+When feedback says a worked example does not add up, recompute every figure from your own earlier tweets and write the corrected total, or drop the total. Never restate the source's figure: sources make arithmetic slips too.

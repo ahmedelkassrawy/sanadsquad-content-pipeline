@@ -77,7 +77,7 @@ export. It is a guard, not a hard cap: estimates can be wrong and providers can 
 `--estimate` prints a worst-case ceiling as JSON and exits. It starts no model or search
 client, makes no network call and writes no run folder. The ceiling assumes every retry
 happens, so it is far above a real run (about 11 million tokens for the committed config,
-against 199,461 used by the sample). A model with no known price is refused unless you pass
+against 181,099 used by the sample). A model with no known price is refused unless you pass
 `--allow-unpriced`; then only the token limit applies. Prices come from `genai-prices`
 and the overrides in `config/prices.yaml`. USD covers model calls only. Search
 and image calls are counted in `external-usage.json` but not priced.
@@ -92,10 +92,10 @@ config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, all at reasoning ef
 python run_week.py --plan plan.json --output <run> --set thread_2="ERC-4626 vault inflation attack" --max-concurrency 3
 ```
 
-Result: 6 of 6 pieces shipped, 199,461 tokens, 0.6771 USD confirmed, every call priced.
-`thread_2` used Tavily web search (1 call) because its topic is not in the KB. The reviewer
-rejected its first draft for "the post names a tradeoff" (text pointing at the research
-material) and the retry shipped. The education post took KB-04, because thread_1 already
+Result: 6 of 6 pieces shipped, 181,099 tokens, 0.6324 USD confirmed, every call priced.
+`thread_2` used Tavily web search because its topic is not in the KB. The reviewer rejected its
+first draft because the worked example did not add up (the source's own "101 tokens" total, where
+the thread's numbers give about 200), and the retry shipped with the corrected figure. The education post took KB-04, because thread_1 already
 covers reentrancy (KB-01). The other five shipped on the first attempt. Cloudflare returned
 HTTP 429 for every image, so all six are Pillow cards (brand header, title, the thread's own
 code line). The full per-slot story is in

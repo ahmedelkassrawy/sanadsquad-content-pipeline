@@ -1,12 +1,12 @@
 {
-  "concept": "A clear offer to request a smart contract code review, with each finding reported alongside its root cause and a recommended fix.",
-  "scene": "A clean navy card with a bold white headline centered on the card and a thin amber accent line beneath it. A simple abstract outline of a contract document sits at the lower right, with a small amber marker at one line to suggest a single finding. No people, no extra text.",
+  "concept": "A smart contract audit review that reports each finding with its severity, root cause and a recommended fix",
+  "scene": "Clean brand card on a deep navy background with a simple amber shield outline beside a short list of three finding lines, suggesting a structured audit report. Minimal, calm and engineering-focused, with generous spacing.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "request a review of their smart contract code",
-  "alt_text": "Navy brand card with white text reading request a review of their smart contract code and an amber accent line above an outlined contract document.",
+  "overlay_text": "its severity, its root cause and a recommended fix",
+  "alt_text": "Navy brand card with an amber shield outline and a short list of report lines, with the text: its severity, its root cause and a recommended fix.",
   "severity": null
 }

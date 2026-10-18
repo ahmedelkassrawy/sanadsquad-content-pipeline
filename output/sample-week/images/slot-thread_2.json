@@ -1,12 +1,12 @@
 {
-  "concept": "First depositor inflation attack on an ERC-4626 vault, where a direct token transfer skews the share rate",
-  "scene": "A calm technical diagram on a dark navy background: a vault outline holding one small share token, with a stream of tokens flowing straight into it from the side, bypassing the deposit door. Amber lines mark the inflated balance. Minimal flat style with clean geometry.",
+  "concept": "ERC-4626 inflation attack: a direct donation to an empty vault inflates the share price so the next depositor's shares round down to zero.",
+  "scene": "Calm technical diagram on a deep navy background: a single vault box holding one glowing amber share, with a straight arrow labelled as a direct token transfer entering the vault, and a second smaller arrow showing a deposit that results in zero shares. Clean lines, minimal, no people.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "virtual assets and shares",
-  "alt_text": "Diagram of a vault holding a single share while tokens flow into it directly, bypassing the deposit function, with the caption virtual assets and shares.",
+  "overlay_text": "direct token transfer",
+  "alt_text": "Diagram of a vault holding a single share while a direct token transfer inflates its value and a victim's deposit returns zero shares.",
   "severity": null
 }

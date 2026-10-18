@@ -1,12 +1,12 @@
 {
-  "concept": "Unprotected Ether withdrawal caused by missing caller authorization, with a prompt to request a review of smart contract code",
-  "scene": "A calm, minimal vault door on a deep navy background, with a single amber keyhole glowing and a clear border of white space for the overlay text",
+  "concept": "Missing caller authorization lets anyone withdraw a contract's Ether; withdrawals should be restricted to authorized parties.",
+  "scene": "A calm, minimal brand card on a deep navy background with a simple vault outline whose door is held shut by a single amber key-shaped lock, with clean geometric lines and ample empty space for the overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Limit withdrawals to authorized parties",
-  "alt_text": "Navy brand card with an amber keyhole on a vault door and the text Limit withdrawals to authorized parties",
+  "overlay_text": "Restrict withdrawals to authorized parties",
+  "alt_text": "Brand image card with a navy background, an amber lock on a vault outline, and the text Restrict withdrawals to authorized parties.",
   "severity": null
 }

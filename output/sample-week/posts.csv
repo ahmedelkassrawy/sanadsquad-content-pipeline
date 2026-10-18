@@ -1,31 +1,32 @@
 Post Text,Image
-"1/8 A withdrawal that sends Ether before clearing the caller balance can be drained by a callback. The callback withdraws against a balance that has not changed yet.
-2/8 Root cause: calling another contract hands it control. It can call back before the first call returns, so state updates placed after an untrusted call allow repeated execution.
-3/8 Reentrancy is not limited to Ether transfers. Calls to other contracts can trigger it too, and dependencies across multiple contracts also matter.
-4/8 Concrete case: a contract sends Ether to the recipient first and zeroes the stored balance afterward. The recipient's callback runs in between and sees the old balance.
-5/8 The fix is checks-effects-interactions. Validate inputs and permissions, update storage state, then make external calls.
-6/8 For the withdrawal, save the amount and clear the balance before calling the recipient: `balances[msg.sender] = 0;` Then require the call to succeed so a failure reverts the operation.
-7/8 A callback may also enter through another function or dependency. Review other callable paths and contracts that share the affected state.
-8/8 Closing check: in each function, does any storage update happen after an external call? If so, move it before the call, then check which other paths touch the same state.",images/slot-thread_1.png
-"1/10 An ERC-4626 vault that computes shares from the token balance it holds can lose a first depositor's whole deposit to one plain token transfer made before that deposit lands.
-2/10 Root cause: the exchange rate comes from totalAssets and totalSupply. When a vault has low liquidity, an attacker can manipulate that rate and front run a deposit. The deposit function has no slippage protection.
-3/10 Example with rounding down. The attacker front-runs with a deposit of 1 wei and gets one share. Then they transfer 100 tokens straight to the vault, never touching deposit. The vault now holds 101 tokens behind a single share.
-4/10 The victim deposits 100 tokens. The share math gives 100 divided by 101, which Solidity integer division rounds down to zero shares. The attacker redeems the only share and takes the full 101 token balance.
-5/10 Reverting on zero shares is not enough. If the attacker donates 10_000e6 instead of 20_000e6 against a 20,000 USDT deposit, the victim receives one share and the attacker redeems half the pool.
-6/10 Dead shares are one mitigation, as in UniswapV2: mint shares to address(0) on the first deposit. In the tested example the attacker can no longer steal funds, but can still grief the victim into zero shares.
-7/10 OpenZeppelin's proposed fix is a decimal offset with virtual assets and shares. The rate becomes the ratio of `totalAssets() + 1` to `totalSupply()+10**offset`, so an empty vault still has a defined rate.
-8/10 Effect of the offset: the donation needed to inflate the rate grows by `offset` orders of magnitude, and virtual shares capture part of the donation. This sets a high price for the attacker.
-9/10 Tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior, even when the offset is set to 0.
-10/10 Closing check for any vault you review: does the rate come from a live token balance that a direct transfer can change? Is the first deposit protected by virtual shares, dead shares, or something else? Does a test replay the attack?",images/slot-thread_2.png
-"1/9 A flash loan is uncollateralized borrowing that starts and ends in one transaction. OWASP says flash loans are not inherently vulnerable. The risk is what an attacker can do with arbitrarily large, transient capital.
-2/9 The root cause is a broken assumption. Protocol logic that trusts capital at risk or historical position size fails when an attacker temporarily holds large balances without risking their own funds.
-3/9 The attack is one batched transaction: borrow with a flash loan, manipulate protocol state, prices or accounting with the borrowed funds, extract profit, then repay the loan in the same transaction.
-4/9 OWASP names four areas to review: governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks. Each one can be skewed if temporary balances are treated as real commitment.
-5/9 Flash loans act as a force multiplier. Per OWASP, they amplify existing business logic, oracle, arithmetic or access control weaknesses. Those weaknesses must be fixed at the root.
-6/9 Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Then ask what each sensitive operation does when the caller briefly holds huge balances.
-7/9 Limit the blast radius. Rate limit sensitive operations per block or epoch, and cap exposure per interaction with limits on slippage, position sizes and borrowing.
-8/9 Test for it too. Include flash-loan scenarios in tests and fuzzing so the large-transient-capital case is exercised before an attacker finds it.
-9/9 Closing check: does any governance vote, price, share calculation or collateral check in your protocol rely on a balance an attacker could hold for just one transaction?",images/slot-thread_3.png
-"Teams can request a review of their smart contract code from Sentinel Grove. Each finding comes with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",images/slot-marketing_1.png
-12 smart contract audits completed. Sentinel Grove is a smart contract audit firm with 3 auditors. Teams can request a review of their smart contract code.,images/slot-marketing_2.png
-"How can anyone drain Ether from a contract? Withdrawal functions lack effective caller authorization, so nothing checks who triggers the transfer. Limit withdrawals to authorized parties. Want a second look at yours? Teams can request a review of their smart contract code.",images/slot-marketing_3.png
+"1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again and again, because the balance is still unchanged when control comes back.
+2/9 The mechanism: calling another contract hands it control. It can call back before the first call returns. State updates that come after an untrusted call allow repeated execution.
+3/9 In the withdrawal case, the callback runs while the stored balance has not been cleared yet. So the second withdrawal is checked against the same old balance as the first.
+4/9 Ether transfers are not the only way in. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.
+5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.
+6/9 For the withdrawal, save the amount and clear the stored balance before calling the recipient, as in `balances[msg.sender] = 0;` placed ahead of the external call.
+7/9 Then require the call to succeed, so a failure reverts the whole operation instead of leaving state half finished.
+8/9 A callback may enter through another function or dependency, not just the one you are reading. Review other callable paths and contracts that share the affected state.
+9/9 Closing check for your own code: in each function, does any external call happen before the storage it depends on is updated? And which other paths share that state?",images/slot-thread_1.png
+"1/10 An empty ERC-4626 vault, a 1 unit deposit and a direct token transfer to the vault can leave the next depositor with zero shares. The attacker then redeems for the vault's whole balance.
+2/10 The root cause is the share price. A donation sent straight to the vault mints no shares, so the attacker's single share is now worth everything in the vault.
+3/10 Take a victim about to deposit 100 tokens into a brand-new vault. The attacker front-runs with a deposit of 1 wei and gets exactly one share. Then the attacker transfers 100 tokens directly to the vault.
+4/10 The vault now holds 100 tokens plus 1 wei behind one share. The victim's 100-token deposit divides by that balance and rounds down to zero shares, so the victim receives nothing tradeable.
+5/10 The vault then holds about 200 tokens, and the attacker owns its only share. Redeeming that share takes the whole balance, including the victim's deposit.
+6/10 No access control bug is needed. The vault in that example reads its live token balance with `balanceOf(address(this))`, so a plain transfer shifts the exchange rate without calling deposit.
+7/10 OpenZeppelin's fix uses virtual shares and assets with a decimal offset. The rate becomes `totalAssets() + 1` over `totalSupply()+10**offset`, so even an empty vault has a defined rate.
+8/10 The offset raises the donation an attacker needs by that many orders of magnitude. The virtual shares also capture part of the donation, which sets a high price for inflating the rate.
+9/10 Other mitigations: dead shares minted to an unrecoverable address at deployment, an initial deposit made atomically at deploy, and minimum share checks that revert a deposit receiving too few shares.
+10/10 Before trusting a vault, check how it computes `totalAssets()`, whether it uses virtual shares or seeds an initial deposit, and whether deposits revert on too few shares. Does yours do all three?",images/slot-thread_2.png
+"1/9 A lending protocol that values collateral with a price an attacker can move is making decisions on incorrect values. That is price oracle manipulation, listed by OWASP as SC03.
+2/9 The root cause is trust. A contract implicitly assumes the price reflects market conditions, so the oracle becomes a trust boundary. Manipulation, staleness or misconfiguration can violate that trust.
+3/9 Spot price manipulation can come from large trades, flash loans or just-in-time liquidity in the same block. If core prices read a single spot value, the attacker only needs to move that one input.
+4/9 TWAPs are not automatically safe. OWASP lists TWAP manipulation over short windows or low-liquidity periods, plus stale or stuck data when freshness is not enforced.
+5/9 Aggregation can fail too. If it does not reject outliers, one manipulated source can still skew the result.
+6/9 Mitigation starts with inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.
+7/9 Limit exposure to any single source. Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed.
+8/9 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Also monitor deviations between the oracle and reference markets with automated alerts.
+9/9 Check your own contract: which price inputs can an attacker move, directly or indirectly? Is freshness enforced, are outliers rejected, and what pauses when the price feed fails?",images/slot-thread_3.png
+"Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports findings this way. Want a review of your smart contract code? Request one.",images/slot-marketing_1.png
+"12 smart contract audits completed, by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you're ready.",images/slot-marketing_2.png
+How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer. Restrict withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.,images/slot-marketing_3.png

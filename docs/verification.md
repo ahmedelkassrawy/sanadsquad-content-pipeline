@@ -46,7 +46,9 @@ reviewer, Sonnet 5.5 for every other agent) and one Tavily search. Cloudflare re
 so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; `thread_2` shows a reviewer rejection and a retry. It excludes the
+cost. It shipped 6 of 6; `thread_2` shows a reviewer rejection (a worked example that did not add
+up) and a retry. `output/claude-run-with-drop/` is the run before it on the same models: the
+reviewer dropped `thread_2` after both drafts kept the source's wrong total. It excludes the
 SQLite checkpoint, lock and identity files and therefore cannot be resumed.
 
 `output/failed-source-example/` is a live single-piece run on a made-up topic: research finds

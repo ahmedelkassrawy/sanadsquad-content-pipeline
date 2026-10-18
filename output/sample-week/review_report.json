@@ -1,64 +1,16 @@
 [
   {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "7c9c43683ca51840e0da9db70b4067218b5238e3de5b2af1387ea70bd93d9be7",
-    "review": {
-      "slot_id": "marketing_1",
-      "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 3.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "Opening 'Teams can request a review of their smart contract code from Sentinel Grove.' is clear and accurate but generic; it states the offering without a specific angle or contrast.",
-        "Three short sentences form one thought, but the first and last sentences repeat 'request a review of ... smart contract code', which makes it repetitive."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
     "record_id": "thread_3/reviewer/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "c8f266d45f3875763394da5ec9f37f5331b66bbce583b7befd81124946cb727f",
+    "input_sha256": "c4aff13d273c9563c38a62840a2b52dfb50289bc45109f99c592e8dcd5e006dc",
     "review": {
       "slot_id": "thread_3",
       "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 4.0,
-        "voice": 3.0,
-        "clarity": 4.0,
-        "cta": 5.0
-      },
-      "reasons": [
-        "Tweet 1 is clear and accurate, defining flash loans and the transient-capital risk. It opens with a definition, not a specific vulnerable pattern or contrast, so it reads as a generic introduction.",
-        "The tone is calm and engineering-focused with no banned words. OWASP is credited in tweets 1, 4 and 5 ('OWASP says', 'OWASP names', 'Per OWASP'), which is the repeated-authority pattern the rubric scores at 3."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "ef65fd433a24e3ec7c8a60c6e923d089ec02a17602bb93dd76a3739db622c64f",
-    "review": {
-      "slot_id": "thread_1",
-      "scores": {
         "hook": 4.0,
-        "technical_accuracy": 5.0,
+        "technical_accuracy": 4.0,
         "grounding": 4.0,
-        "voice": 5.0,
+        "voice": 4.0,
         "clarity": 4.0,
         "cta": 5.0
       },
@@ -69,23 +21,22 @@
     "failure": null
   },
   {
-    "record_id": "marketing_2/reviewer/1/1",
-    "slot_id": "marketing_2",
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "c5fbcb6ee21c7f4870ca78d7308552c43ec7f1ef4aa2a99816558a52558babbf",
+    "input_sha256": "864a7343f3a2353942664bc0216b8f030838941e4955bfeecba9aadd8dbb067d",
     "review": {
-      "slot_id": "marketing_2",
+      "slot_id": "thread_1",
       "scores": {
-        "hook": 3.0,
+        "hook": 4.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 3.0
+        "grounding": 4.0,
+        "voice": 3.0,
+        "clarity": 5.0,
+        "cta": 4.0
       },
       "reasons": [
-        "The opening '12 smart contract audits completed.' is a specific statement from STAT-01, but it reads as a plain fact fragment rather than a contrast or angle that pulls the reader in. It is clear but generic.",
-        "It ends with 'Teams can request a review of their smart contract code', which STAT-03 supports. It is phrased as a passive statement rather than a direct invitation or next step, so it is weak."
+        "The tone is calm and precise. However, tweets carry section labels (\"The mechanism:\" in tweet 2 and \"Closing check for your own code:\" in tweet 9), which the rubric caps at 3."
       ],
       "hard_fail": [],
       "accepted": true
@@ -93,15 +44,15 @@
     "failure": null
   },
   {
-    "record_id": "marketing_3/reviewer/1/1",
-    "slot_id": "marketing_3",
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "d86e03c14df31a16fc9ea6510d3b0d036afc6c3eb78b18f471458e183967359f",
+    "input_sha256": "f88c50be0809c20cd4c38f26ef716b27b46bb2f29fd13909824cd7cb931f2d83",
     "review": {
-      "slot_id": "marketing_3",
+      "slot_id": "marketing_1",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 4.0,
+        "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
@@ -117,19 +68,19 @@
     "record_id": "thread_2/reviewer/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "f820968b8144548ff2bed092cd72cb64212965a7b4ddaff1aa0208c63f3496e0",
+    "input_sha256": "1c5d6362f8caae4ef8e1c471e6f8ae4b9df2adbfb229d69801470ede7d02055f",
     "review": {
       "slot_id": "thread_2",
       "scores": {
         "hook": 5.0,
-        "technical_accuracy": 4.0,
+        "technical_accuracy": 1.0,
         "grounding": 4.0,
-        "voice": 2.0,
+        "voice": 4.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
       },
       "reasons": [
-        "Tweet 9 says 'the post names a tradeoff', which points at the research material instead of stating the fact. The rubric scores that 1 to 2. Fix it by stating the drawback directly, for example: 'Tradeoff: 1 virtual asset and 1 virtual share slightly change vault behavior.' The rest of the thread is calm and precise."
+        "The worked example in tweets 3 and 4 does not add up. A 1 wei deposit plus a donation of 100 tokens gives a balance of 100 tokens plus 1 wei, not 101 tokens. After the victim's 100-token deposit, the vault holds about 200 tokens, so the attacker cannot redeem a 'full 101 token balance, including the victim's deposit'. The rubric scores an inconsistent total 1 even when the source repeats it. Fix the numbers, for example a 1 wei deposit plus a 100-token donation, then a victim deposit of 100 tokens gets 0 shares and the attacker redeems about 200 tokens."
       ],
       "hard_fail": [],
       "accepted": false
@@ -137,19 +88,63 @@
     "failure": null
   },
   {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "28815bf851f06e6ef3b434131028e26540ac7c172dcf7fccbd2d81d9e8772740",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "The post opens with the concrete count \"12 smart contract audits completed\", which is specific. It reads as a plain credential line, though, not a contrast or angle, so it is clear but generic."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/reviewer/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "51174aa2107de1cd2e65c39cf67c4462bb3127d3866077333bde0618b2ff267e",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
     "record_id": "thread_2/reviewer/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "6dd152dbefc5330cc49493bc0d01223221e2fb674e40c57b795ef883f4616ba7",
+    "input_sha256": "96a068d8f865d88335d37112e7a3a7d481f9e54ddfdfa690c73362cba3829139",
     "review": {
       "slot_id": "thread_2",
       "scores": {
         "hook": 5.0,
         "technical_accuracy": 4.0,
         "grounding": 4.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],

@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: update state before making external calls",
-  "scene": "A calm technical card on a deep navy background. A simple diagram shows a contract box sending an arrow out to another contract and a looping arrow returning, with an amber highlight on the state update step placed before the outgoing call.",
+  "concept": "Reentrancy: external calls can reenter before state is finalized",
+  "scene": "Technical card on a deep navy background. A simple diagram shows a contract box sending a call out to a second box, with an arrow looping back to the first box before the state box updates. Amber accents highlight the looping arrow and the state box. Clean lines, ample whitespace, calm engineering feel.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "State updates after untrusted calls allow repeated execution",
-  "alt_text": "Diagram of a contract calling another contract, with a looping arrow showing a callback returning before the state update.",
+  "alt_text": "Diagram of one contract calling another, with an arrow looping back to the first contract before its state is updated, illustrating reentrancy.",
   "severity": "high"
 }
