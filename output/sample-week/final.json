@@ -10,55 +10,49 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again and again, because the balance is still unchanged when control comes back.",
+          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/9 The mechanism: calling another contract hands it control. It can call back before the first call returns. State updates that come after an untrusted call allow repeated execution.",
+          "text": "2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/9 In the withdrawal case, the callback runs while the stored balance has not been cleared yet. So the second withdrawal is checked against the same old balance as the first.",
+          "text": "3/8 Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/9 Ether transfers are not the only way in. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
+          "text": "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "text": "5/8 A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/9 For the withdrawal, save the amount and clear the stored balance before calling the recipient, as in `balances[msg.sender] = 0;` placed ahead of the external call.",
+          "text": "6/8 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/9 Then require the call to succeed, so a failure reverts the whole operation instead of leaving state half finished.",
+          "text": "7/8 Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/9 A callback may enter through another function or dependency, not just the one you are reading. Review other callable paths and contracts that share the affected state.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "9/9 Closing check for your own code: in each function, does any external call happen before the storage it depends on is updated? And which other paths share that state?",
+          "text": "8/8 Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",
           "source_ids": [
             "KB-01"
           ]
@@ -68,83 +62,6 @@
     "image": {
       "slot_id": "thread_1",
       "path": "images/slot-thread_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
-    "record_id": "thread_3/final/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "topic_id": "KB-18",
-    "topic_name": "Price oracle manipulation",
-    "draft": {
-      "slot_id": "thread_3",
-      "attempt": 1,
-      "tweets": [
-        {
-          "text": "1/9 A lending protocol that values collateral with a price an attacker can move is making decisions on incorrect values. That is price oracle manipulation, listed by OWASP as SC03.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "2/9 The root cause is trust. A contract implicitly assumes the price reflects market conditions, so the oracle becomes a trust boundary. Manipulation, staleness or misconfiguration can violate that trust.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "3/9 Spot price manipulation can come from large trades, flash loans or just-in-time liquidity in the same block. If core prices read a single spot value, the attacker only needs to move that one input.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "4/9 TWAPs are not automatically safe. OWASP lists TWAP manipulation over short windows or low-liquidity periods, plus stale or stuck data when freshness is not enforced.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "5/9 Aggregation can fail too. If it does not reject outliers, one manipulated source can still skew the result.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "6/9 Mitigation starts with inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "7/9 Limit exposure to any single source. Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "8/9 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Also monitor deviations between the oracle and reference markets with automated alerts.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "9/9 Check your own contract: which price inputs can an attacker move, directly or indirectly? Is freshness enforced, are outliers rejected, and what pauses when the price feed fails?",
-          "source_ids": [
-            "KB-18"
-          ]
-        }
-      ]
-    },
-    "image": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [
@@ -164,11 +81,10 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "12 smart contract audits completed, by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you're ready.",
+          "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",
           "source_ids": [
             "STAT-01",
-            "STAT-02",
-            "STAT-03"
+            "STAT-05"
           ]
         }
       ]
@@ -176,36 +92,6 @@
     "image": {
       "slot_id": "marketing_2",
       "path": "images/slot-marketing_2.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
-    "record_id": "marketing_1/final/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "topic_id": "ANGLE-service",
-    "topic_name": "service",
-    "draft": {
-      "slot_id": "marketing_1",
-      "attempt": 1,
-      "tweets": [
-        {
-          "text": "Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports findings this way. Want a review of your smart contract code? Request one.",
-          "source_ids": [
-            "STAT-03",
-            "STAT-04"
-          ]
-        }
-      ]
-    },
-    "image": {
-      "slot_id": "marketing_1",
-      "path": "images/slot-marketing_1.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [
@@ -225,10 +111,9 @@
       "attempt": 1,
       "tweets": [
         {
-          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer. Restrict withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.",
+          "text": "Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
           "source_ids": [
-            "KB-04",
-            "STAT-03"
+            "KB-04"
           ]
         }
       ]
@@ -245,74 +130,156 @@
     }
   },
   {
+    "record_id": "marketing_1/final/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "topic_id": "ANGLE-service",
+    "topic_name": "service",
+    "draft": {
+      "slot_id": "marketing_1",
+      "attempt": 1,
+      "tweets": [
+        {
+          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
+          "source_ids": [
+            "STAT-04",
+            "STAT-05"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "marketing_1",
+      "path": "images/slot-marketing_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_3/final/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "topic_id": "KB-11",
+    "topic_name": "Denial of service with failed call",
+    "draft": {
+      "slot_id": "thread_3",
+      "attempt": 2,
+      "tweets": [
+        {
+          "text": "1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "2/7 Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
+          "source_ids": [
+            "KB-11"
+          ]
+        },
+        {
+          "text": "7/7 Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",
+          "source_ids": [
+            "KB-11"
+          ]
+        }
+      ]
+    },
+    "image": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
     "record_id": "thread_2/final/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "topic_id": "WEB-99daca103b3ce22c",
-    "topic_name": "ERC-4626 vault inflation attack",
+    "topic_id": "KB-18",
+    "topic_name": "Price oracle manipulation",
     "draft": {
       "slot_id": "thread_2",
       "attempt": 2,
       "tweets": [
         {
-          "text": "1/10 An empty ERC-4626 vault, a 1 unit deposit and a direct token transfer to the vault can leave the next depositor with zero shares. The attacker then redeems for the vault's whole balance.",
+          "text": "1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
           "source_ids": [
-            "WEB-99daca103b3ce22c"
+            "KB-18"
           ]
         },
         {
-          "text": "2/10 The root cause is the share price. A donation sent straight to the vault mints no shares, so the attacker's single share is now worth everything in the vault.",
+          "text": "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
           "source_ids": [
-            "WEB-99daca103b3ce22c"
+            "KB-18"
           ]
         },
         {
-          "text": "3/10 Take a victim about to deposit 100 tokens into a brand-new vault. The attacker front-runs with a deposit of 1 wei and gets exactly one share. Then the attacker transfers 100 tokens directly to the vault.",
+          "text": "3/8 A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "4/10 The vault now holds 100 tokens plus 1 wei behind one share. The victim's 100-token deposit divides by that balance and rounds down to zero shares, so the victim receives nothing tradeable.",
+          "text": "4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "5/10 The vault then holds about 200 tokens, and the attacker owns its only share. Redeeming that share takes the whole balance, including the victim's deposit.",
+          "text": "5/8 Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "6/10 No access control bug is needed. The vault in that example reads its live token balance with `balanceOf(address(this))`, so a plain transfer shifts the exchange rate without calling deposit.",
+          "text": "6/8 OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "7/10 OpenZeppelin's fix uses virtual shares and assets with a decimal offset. The rate becomes `totalAssets() + 1` over `totalSupply()+10**offset`, so even an empty vault has a defined rate.",
+          "text": "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
           "source_ids": [
-            "WEB-f352e6124ca0c40d"
+            "KB-18"
           ]
         },
         {
-          "text": "8/10 The offset raises the donation an attacker needs by that many orders of magnitude. The virtual shares also capture part of the donation, which sets a high price for inflating the rate.",
+          "text": "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
           "source_ids": [
-            "WEB-f352e6124ca0c40d"
-          ]
-        },
-        {
-          "text": "9/10 Other mitigations: dead shares minted to an unrecoverable address at deployment, an initial deposit made atomically at deploy, and minimum share checks that revert a deposit receiving too few shares.",
-          "source_ids": [
-            "WEB-99daca103b3ce22c"
-          ]
-        },
-        {
-          "text": "10/10 Before trusting a vault, check how it computes `totalAssets()`, whether it uses virtual shares or seeds an initial deposit, and whether deposits revert on too few shares. Does yours do all three?",
-          "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-99daca103b3ce22c"
+            "KB-18"
           ]
         }
       ]

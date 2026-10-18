@@ -11,6 +11,7 @@
       "root_cause": "State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
       "aliases": [
         "recursive call",
+        "re-entrancy",
         "SWC-107"
       ],
       "references": [
@@ -133,6 +134,8 @@
       "root_cause": "Shared state transitions rely on ordering that block producers can influence; the SWC text describes this in terms of miners and gas price. For reward-for-information cases, SWC suggests a commit-reveal hash scheme: the sender submits hash(salt, address, answer), the contract stores the hash and the sender's address, and later the sender submits the salt and answer so the contract can recompute hash(salt, msg.sender, answer) and release the reward on a match. For the ERC20 case, the best fix is to add the expected current allowance to approve and revert on a mismatch, but then the contract no longer conforms to ERC20. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
       "aliases": [
         "front running",
+        "front-running",
+        "frontrunning",
         "SWC-114"
       ],
       "references": [
@@ -145,15 +148,16 @@
       "name": "Block values as time proxy",
       "severity": "medium",
       "category": "time",
-      "description": "Block values such as block.timestamp and block.number can give a sense of the current time or a time delta, but developers cannot rely on their preciseness. Nodes can synchronize time only to some degree, and the SWC entry says malicious miners can alter the timestamp of their blocks, especially if they gain an advantage. Miners cannot set a timestamp smaller than the previous one, nor too far ahead. The Solidity documentation states that the block timestamp must be strictly larger than the previous block's, but the only guarantee is that it lies between the timestamps of two consecutive blocks in the canonical chain. For block.number, the SWC entry notes that block times are not constant and can change, for example through fork reorganisations and the difficulty bomb.",
-      "root_cause": "Contract logic treats adjustable or approximate block values as precise time. Write contracts with the notion that block values are not precise, because relying on them can lead to unexpected effects. The SWC entry also suggests oracles as an alternative source of time. The SWC registry is no longer actively maintained, so check the target chain's current rules before relying on its description of miners and block times.",
+      "description": "Block values such as block.timestamp and block.number can give a sense of the current time or a time delta, but developers cannot rely on their preciseness. The historical SWC entry describes proof-of-work miners adjusting the timestamp of their blocks within limits. Since the Merge (Paris), Ethereum mainnet produces blocks in fixed 12-second slots, and the consensus rules require a block's timestamp to match its slot, so a proposer cannot pick it freely; slots can still be missed, so time between blocks is not constant. Other chains and layer-2 networks set their own block-time rules. The Solidity documentation states that the only guarantee is that the timestamp lies between the timestamps of two consecutive blocks in the canonical chain.",
+      "root_cause": "Contract logic treats approximate block values as precise time. Write contracts with the notion that block values are coarse and chain-specific, because relying on them for short deadlines or exact ordering can lead to unexpected effects. The SWC entry also suggests oracles as an alternative source of time. The SWC registry is no longer actively maintained, so its miner-based proof-of-work discussion is historical rather than current Ethereum behaviour.",
       "aliases": [
         "timestamp dependence",
         "SWC-116"
       ],
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
-        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
+        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties",
+        "https://github.com/ethereum/consensus-specs/blob/dev/specs/bellatrix/beacon-chain.md"
       ],
       "review_status": "pending_owner_review"
     },
@@ -162,8 +166,8 @@
       "name": "Weak randomness",
       "severity": "high",
       "category": "randomness",
-      "description": "Creating a strong source of randomness on Ethereum is challenging, according to the SWC entry. A gambling application that uses a pseudo-random number generator to pick a winner is the example it gives. Using block.timestamp is insecure because a miner can choose any timestamp within a few seconds and still get the block accepted. SWC also treats blockhash, block.difficulty and other block fields as controlled by the miner. If the stakes are high, the miner can mine many blocks in a short time on rented hardware, pick the block whose hash lets them win, and drop the others. Solidity documentation says not to rely on block.timestamp or blockhash as a source of randomness, since both can be influenced by miners to some degree.",
-      "root_cause": "Public or influenceable values are used as secret unbiased entropy. SWC lists several alternatives. One is an external source of randomness via an oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. SWC also lists Bitcoin block hashes, noting they are more expensive to mine. The SWC registry is no longer actively maintained, and Solidity documentation says block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+      "description": "Creating a strong source of randomness on Ethereum is challenging. The historical SWC entry describes proof-of-work miners influencing block.timestamp, blockhash, block.difficulty and other block fields. Since the Merge (Paris), Ethereum uses validators: the proposer of a block, not a miner, can influence proposer-controlled block values. For post-Paris EVM versions, block.difficulty is replaced by block.prevrandao. That value can still be biased by the proposer and is not safe randomness. Solidity documentation also warns not to rely on block.timestamp or blockhash as a randomness source because block producers can influence them.",
+      "root_cause": "Public or proposer-influenceable block values are used as secret unbiased entropy. Use a randomness design whose trust and bias properties fit the application, such as a cryptographically verified external randomness source or a commitment scheme; an unchecked oracle result adds trust in that oracle. The SWC registry is no longer actively maintained, so its miner-based proof-of-work discussion is historical rather than current Ethereum behaviour.",
       "aliases": [
         "predictable entropy",
         "SWC-120"
@@ -183,6 +187,8 @@
       "root_cause": "Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
       "aliases": [
         "revert griefing",
+        "DoS",
+        "denial of service",
         "SWC-113"
       ],
       "references": [
@@ -200,6 +206,8 @@
       "root_cause": "Required operations iterate over unbounded state, as in the growing-array case. Be cautious when large arrays are expected to grow over time, and avoid actions that require looping across the entire data structure. If a loop over an array of unknown size is absolutely necessary, plan for it to take multiple blocks and therefore multiple transactions.",
       "aliases": [
         "unbounded loop",
+        "DoS",
+        "denial of service",
         "SWC-128"
       ],
       "references": [

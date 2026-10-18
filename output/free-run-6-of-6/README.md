@@ -1,27 +1,32 @@
 # Free run, 6 of 6 shipped (2026-10-18)
 
-A copy of the readable files and images from a live run on the free setup: Ministral 14B
-writers (`mistralai:ministral-14b-latest`) and a Nemotron 3 Super reviewer
+A copy of the readable files and images from a live run on the free setup, on the same code
+as the main sample: Ministral 14B writers, research and visual
+(`mistralai:ministral-14b-latest`) and a Nemotron 3 Super reviewer
 (`nvidia:nvidia/nemotron-3-super-120b-a12b`, reasoning effort low), with
 `--set thread_2="ERC-4626 vault inflation attack"` so research had to search the web.
-It used 145,524 tokens for $0.0199 in LLM cost.
+It used 178,047 tokens (163,464 confirmed plus 14,583 uncertain) for $0.0204 in LLM cost and
+took about 5 minutes.
 
-It is here to show the quality gates working on a weaker model. All six pieces shipped,
-and three of them only after a rejection and their one retry:
+It is here to show the code gates working on a weaker model. All six pieces shipped, and
+three of them only after a rejection and their one retry:
 
-- `thread_1`: code rejected `recipient.call`, which X would turn into a link. The writer
-  was told how to rewrite it and the retry passed review.
-- `marketing_1`: the reviewer rejected "detailed" audits as more specific than the
-  evidence (grounding 1, `unsupported_claim`); the retry passed.
-- `marketing_3`: code rejected the claim words "ensure" and "prevent", which the evidence
-  does not use. The retry deleted them and passed review. (After review, those action verbs
-  were taken off the list and left to the reviewer, since security advice uses them
-  legitimately; the current list only holds words that praise the firm.)
+- `thread_2`: code rejected the outline labels "Example:" and "Mitigation:"; the retry
+  rewrote them as sentences and passed review.
+- `marketing_1`: the reviewer rejected "clear fix" as more specific than the evidence's
+  "recommended fix" (grounding 1, `unsupported_claim`); the retry passed.
+- `marketing_2`: code rejected the claim word "precise", which the evidence does not use.
+  The retry deleted it and passed review.
 
-The same free models shipped 3 of 6 before these code checks and the prompt and input
-changes (pack-grounded marketing openings, STAT-04) went in; runs while they went in
-shipped 4 and 2 of 6, and the run just before this one also shipped 6 of 6. See
-`output/free-run-with-drops`, which also shows what a drop looks like. Start with `run.log`.
+The code checks catch the same faults on any model, but the free reviewer is lenient: it gave
+all 5s on most final reviews, including thread_1, which uses the same withdrawal example in
+tweets 2 and 3. A stronger reviewer model is the next lever.
+
+Each thread got its own hook and closing style from `post_types/tech-thread/type.yaml`, so
+the three threads open and close differently.
+
+Earlier free runs on older code shipped 3 of 6 (see `output/free-run-with-drops`, which also
+shows what a drop looks like). Start with `run.log`.
 
 Only these files were copied (no checkpoint or snapshot), so this folder cannot be resumed
 or re-exported. The main sample is `output/sample-week`.

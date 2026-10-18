@@ -354,10 +354,10 @@ async def test_resume_budget_overrides_are_applied_in_the_one_read(tmp_path, mon
     models, output = await interrupted_run(tmp_path)
     seen = count_preflights(monkeypatch)
 
-    await resume(output, models, budget_overrides={"run_token_budget": 300000})
+    await resume(output, models, budget_overrides={"run_token_budget": 450000})
 
     assert seen == [output.resolve()]
-    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
+    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 450000
 
 
 async def test_an_intervening_resume_cannot_roll_the_budget_back(tmp_path):
@@ -390,7 +390,7 @@ async def test_an_intervening_resume_cannot_roll_the_budget_back(tmp_path):
         if not intervened:
             intervened.append(True)
 
-            intervene(prepared[0], 300000)
+            intervene(prepared[0], 450000)
 
         return prepared
 
@@ -398,7 +398,7 @@ async def test_an_intervening_resume_cannot_roll_the_budget_back(tmp_path):
         assert (await resume(output, models)).shipped == 1
 
     assert intervened
-    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
+    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 450000
 
 
 def test_cli_resume_reads_the_resume_inputs_once_and_applies_the_budget(tmp_path, monkeypatch):
@@ -406,14 +406,14 @@ def test_cli_resume_reads_the_resume_inputs_once_and_applies_the_budget(tmp_path
     seen = count_preflights(monkeypatch)
 
     status = cli.main(
-        ["--root", str(ROOT), "--resume", str(output), "--token-budget", "300000"],
+        ["--root", str(ROOT), "--resume", str(output), "--token-budget", "450000"],
         model_factory=models.factory,
         search_factory=search_factory,
     )
 
     assert status == 0
     assert seen == [output.resolve()]
-    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 300000
+    assert json.loads((output / "runtime-settings.json").read_text())["run_token_budget"] == 450000
 
 
 def test_cli_resume_estimate_reads_the_resume_inputs_once_without_running(tmp_path, monkeypatch):

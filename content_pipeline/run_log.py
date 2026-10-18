@@ -3,6 +3,8 @@
 import json
 from pathlib import Path
 
+from .validation import is_writer_note
+
 
 def _records(run_dir: Path, name: str) -> list[dict]:
     path = run_dir / name
@@ -145,11 +147,13 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
         why = ""
         last = reviewed.get(slot_id)
 
-        if slot["outcome"] != "shipped" and slot["reasons"]:
-            if last and slot["reasons"] == last["review"]["reasons"]:
+        public_reasons = [reason for reason in slot["reasons"] if not is_writer_note(reason)]
+
+        if slot["outcome"] != "shipped" and public_reasons:
+            if last and public_reasons == last["review"]["reasons"]:
                 why = f", see review {last['attempt']} reasons above"
             else:
-                why = f": {'; '.join(slot['reasons'])}"
+                why = f": {'; '.join(public_reasons)}"
 
         outcome = f"{slot['outcome']} after {slot['attempts']} attempt(s){why}"
 

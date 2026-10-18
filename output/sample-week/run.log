@@ -1,40 +1,38 @@
 == thread_1
    research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
    research   topic KB-01 (Reentrancy) from KB-01
-   draft 1    9 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=4 voice=3 clarity=5 cta=4
+   draft 1    8 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=5 clarity=4 cta=5
    outcome    shipped after 1 attempt(s)
 == thread_2
-   research   search_kb 'ERC-4626 vault inflation attack' -> KB-16:ok, KB-07:ok, KB-01:ok, KB-02:ok, KB-03:ok
-   research   web_search 'ERC-4626 vault inflation attack first depositor donation share price manipulation mitigation virtual shares decimals offset' -> WEB-2daca0aeb740f7f4:ok, WEB-99daca103b3ce22c:ok, WEB-f352e6124ca0c40d:ok, WEB-f3a368ef59ce00ce:ok, WEB-6e022746c54737c4:ok
-   research   topic WEB-99daca103b3ce22c (ERC-4626 vault inflation attack) from WEB-99daca103b3ce22c, WEB-f352e6124ca0c40d, WEB-2daca0aeb740f7f4
-   draft 1    10 tweets, rules ok
-   review 1   REJECTED  hook=5 technical_accuracy=1 grounding=4 voice=4 clarity=4 cta=4
-              reason: The worked example in tweets 3 and 4 does not add up. A 1 wei deposit plus a donation of 100 tokens gives a balance of 100 tokens plus 1 wei, not 101 tokens. After the victim's 100-token deposit, the vault holds about 200 tokens, so the attacker cannot redeem a 'full 101 token balance, including the victim's deposit'. The rubric scores an inconsistent total 1 even when the source repeats it. Fix the numbers, for example a 1 wei deposit plus a 100-token donation, then a victim deposit of 100 tokens gets 0 shares and the attacker redeems about 200 tokens.
-   draft 2    10 tweets, rules ok
-   review 2   accepted  hook=5 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   research   search_kb 'oracle manipulation' -> KB-18:ok, KB-19:ok, KB-01:ok, KB-02:ok, KB-03:ok
+   research   topic KB-18 (Price oracle manipulation) from KB-18
+   draft 1    8 tweets, rules FAILED: tweet_5:section_label:other failure shapes, tweet_7:section_label:more mitigations
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=5 technical_accuracy=5 grounding=4 voice=5 clarity=4 cta=5
    outcome    shipped after 2 attempt(s)
 == thread_3
-   research   topic KB-18 (Price oracle manipulation) from KB-18
-   draft 1    9 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=5
-   outcome    shipped after 1 attempt(s)
+   research   topic KB-11 (Denial of service with failed call) from KB-11
+   draft 1    7 tweets, rules FAILED: tweet_7:section_label:two things to check
+   draft 2    7 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=5 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
 == marketing_1
-   research   topic ANGLE-service (service) from STAT-03, STAT-04
+   research   topic ANGLE-service (service) from STAT-04, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
    outcome    shipped after 1 attempt(s)
 == marketing_2
-   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03
+   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=4
    outcome    shipped after 1 attempt(s)
 == marketing_3
-   research   topic ANGLE-education (education-to-cta) from KB-04, STAT-03
+   research   topic ANGLE-education (education-to-cta) from KB-04
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=5 clarity=4 cta=5
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=4
    outcome    shipped after 1 attempt(s)
 
 shipped 6, dropped or failed 0
-tokens 181099, LLM cost $0.6324
+tokens 106341, LLM cost $0.3916
 advisor not_enabled

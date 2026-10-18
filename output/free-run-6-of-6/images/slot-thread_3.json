@@ -1,12 +1,12 @@
 {
-  "concept": "Unprotected selfdestruct",
-  "scene": "Unprotected selfdestruct",
+  "concept": "Business Logic Error in Lending Protocol",
+  "scene": "A visual representation of a lending protocol's vulnerable state, showing a balance scale tilted with a loan amount exceeding collateral value. The background is a clean, professional workspace.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Unprotected selfdestruct",
-  "alt_text": "Unprotected selfdestruct",
+  "overlay_text": "Loans cannot exceed collateral",
+  "alt_text": "Illustration of a business logic error where a lending protocol allows loan amounts to surpass collateral value, violating core economic invariants.",
   "severity": "high"
 }

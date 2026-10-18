@@ -1,12 +1,12 @@
 {
-  "concept": "A Novel Defense Against ERC4626 Inflation Attacks",
-  "scene": "A Novel Defense Against ERC4626 Inflation Attacks",
+  "concept": "Overview of the Inflation Attack",
+  "scene": "Overview of the Inflation Attack",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "A Novel Defense Against ERC4626 Inflation Attacks",
-  "alt_text": "A Novel Defense Against ERC4626 Inflation Attacks",
+  "overlay_text": "Overview of the Inflation Attack",
+  "alt_text": "Overview of the Inflation Attack",
   "severity": null
 }

@@ -1,35 +1,37 @@
 [
   {
-    "record_id": "thread_1/export/2/1",
+    "record_id": "thread_1/export/1/1",
     "slot_id": "thread_1",
-    "attempt": 2,
+    "attempt": 1,
     "type": "tech-thread",
     "topic_id": "KB-01",
     "topic_name": "Reentrancy",
     "tweets": [
-      "1/6 External calls in Solidity can hand control to another contract, allowing it to call back before the original call returns. This creates a window for repeated execution against unchanged state.",
-      "2/6 The root cause is that state updates are deferred until after external calls. For example, a withdrawal function that sends Ether before clearing the caller's balance leaves the balance intact for a callback to exploit again.",
-      "3/6 Reentrancy isn't limited to Ether transfers. Any external call, including those to dependent contracts, can serve as an entry point for callbacks that bypass intended state changes, even through indirect paths.",
-      "4/6 Mitigate reentrancy by following checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0; recipient.transfer(amount);`",
-      "5/6 Ensure external calls succeed or revert. If the call fails, the operation rolls back, maintaining state consistency. Review all callable functions and contracts sharing the affected state, reentrancy risks extend beyond direct paths.",
-      "6/6 A closing check: Are external calls made only after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions consistently."
+      "1/8 External calls can reenter before state changes take full effect. When a contract calls another, control shifts to that contract, which may call back before the original call completes.",
+      "2/8 The root cause is state updates happening after external calls. For example, a withdrawal function that sends Ether before clearing the balance allows an attacker to call back and drain funds again.",
+      "3/8 In the classic example, a contract holds Ether for a user and lets them withdraw. If the withdrawal sends Ether before reducing the stored balance, a malicious recipient can call back and withdraw the same amount repeatedly.",
+      "4/8 Mitigate this by following checks-effects-interactions: validate inputs, update storage, then make external calls. For the withdrawal example, save the withdrawal amount and clear the balance before sending Ether.",
+      "5/8 Code pattern: `balances[msg.sender] = 0;` before calling the recipient ensures the balance is updated before any external call can reenter.",
+      "6/8 Also require the external call to succeed. If it fails, revert the entire operation to maintain consistency.",
+      "7/8 Check other callable paths and contracts sharing the affected state. A callback might enter through another function or dependency.",
+      "8/8 Does your contract update state before making external calls, or could an attacker reenter and repeat operations?"
     ],
     "image": "images/slot-thread_1.png"
   },
   {
-    "record_id": "thread_2/export/1/1",
+    "record_id": "thread_2/export/2/1",
     "slot_id": "thread_2",
-    "attempt": 1,
+    "attempt": 2,
     "type": "tech-thread",
-    "topic_id": "WEB-074564991fed74d2",
+    "topic_id": "WEB-a0fdaa7b887ec446",
     "topic_name": "ERC-4626 vault inflation attack",
     "tweets": [
-      "1/6 ERC-4626 vaults can be manipulated to inflate share value, causing depositors to lose funds due to rounding. This attack exploits the exchange rate calculation, where an attacker front-runs a deposit to dilute the value of shares for legitimate users.",
-      "2/6 The root cause lies in how shares are minted: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker can inflate the denominator (`asset.balanceOf`) before a user deposits, causing the user's share calculation to round down to zero.",
-      "3/6 Example: An attacker deposits 1 wei, then transfers 20,000 USDT before a victim deposits 20,000 USDT. The victim's share calculation becomes `1 * 20,000 / (20,000 + 1)`, rounding down to 0 shares. The attacker then withdraws all funds.",
-      "4/6 Mitigation: Track total assets internally to exclude direct transfers from the balance used in share calculations. This removes the inflation risk but requires careful handling of re-basing tokens and potential gas overhead.",
-      "5/6 Alternative: Use virtual shares and assets to offset rounding errors. For example, adding a virtual asset offset of 1 and a share supply offset of 1e8 reduces the impact of inflation attacks by making them unprofitable.",
-      "6/6 Check your vault: Does it rely on `asset.balanceOf(address(this))` for share calculations? If so, consider internal asset tracking or virtual offsets to mitigate inflation risks."
+      "1/6 An attacker front-runs a fresh ERC-4626 vault's first deposit with a 1 wei contribution, secures a single share, then donates a large amount directly to the vault. When the victim deposits, their shares round down to zero due to the inflated asset-to-share ratio.",
+      "2/6 The attack exploits a rounding flaw in share calculation: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. A donation inflates the denominator, causing the victim's deposit to yield zero or one share instead of the expected amount.",
+      "3/6 In a vault with no initial shares, a victim deposits 100 tokens. The attacker front-runs with 1 wei, earning 1 share.",
+      "4/6 They then donate 100 tokens directly to the vault, making `totalAssets()` equal 101. The victim's 100 tokens yield `1 * 100 / 101 = 0` shares, losing their deposit.",
+      "5/6 Mitigate this by minting a fixed number of dead shares on the first deposit, such as `uint constant NUMBER_OF_DEAD_SHARES = 1000;` before minting user shares. This stabilizes the ratio and prevents inflation attacks.",
+      "6/6 Test for direct token transfers to your vault's address. If `totalAssets()` relies solely on `asset.balanceOf(address(this))`, an attacker can inflate the denominator without calling `deposit()`, bypassing share accounting entirely."
     ],
     "image": "images/slot-thread_2.png"
   },
@@ -38,15 +40,14 @@
     "slot_id": "thread_3",
     "attempt": 1,
     "type": "tech-thread",
-    "topic_id": "KB-05",
-    "topic_name": "Unprotected selfdestruct",
+    "topic_id": "KB-20",
+    "topic_name": "Business logic errors",
     "tweets": [
-      "1/6 A contract's `selfdestruct` can be triggered without checks, letting attackers delete it and steal funds. The impact depends on the EVM version, before Cancun, it wipes storage too.",
-      "2/6 Root cause: No access control gates the `selfdestruct` call. Even if the contract's code lacks it, an attacker can invoke it via `delegatecall` or `callcode`.",
-      "3/6 Before EVM Cancun (Shanghai and earlier), `selfdestruct` sends remaining Ether to a target and deletes the contract's code and storage. From Cancun onward, only Ether is sent, storage and code persist unless called in the creation transaction.",
-      "4/6 Solidity deprecated `selfdestruct` in 0.8.18 (EIP-6049) and warns against it in new contracts. If needed, use a multisig scheme to restrict who can trigger it. Otherwise, remove it entirely.",
-      "5/6 To deactivate a contract safely, change its internal state so all functions revert. This avoids relying on `selfdestruct`, which can still be exploited.",
-      "6/6 Check: Does your contract use `selfdestruct`? If so, verify it's protected by strict access controls, or replace it with state-based deactivation."
+      "1/5 A lending protocol checks borrow capacity against the requested loan amount, not the user's collateral. The code runs as written, but the loan exceeds the collateral.",
+      "2/5 This is a business logic error: the protocol's rules let borrowers take more than they've posted. The code enforces no economic invariant because it never compares the loan to the collateral balance.",
+      "3/5 The root cause is missing invariants. The protocol assumes borrow capacity depends only on the requested amount, but in reality, it must depend on the collateral held. Without this check, the system violates its core rule: loans cannot exceed collateral.",
+      "4/5 To fix this, compute borrow capacity using the user's collateral balance. For example, enforce that `borrowAmount <= collateralBalance * loanToValueRatio` before approving any loan.",
+      "5/5 Check for two things in your contracts: whether loan limits depend on collateral, and whether state transitions enforce economic rules. Model these as code invariants."
     ],
     "image": "images/slot-thread_3.png"
   },
@@ -58,31 +59,31 @@
     "topic_id": "ANGLE-service",
     "topic_name": "service",
     "tweets": [
-      "Teams can request a review of their smart contract code. Each review includes findings with severity, root cause, and a recommended fix. Learn more."
+      "Every finding in a Sentinel Grove review includes its severity, root cause, and a recommended fix. Request a review of your contracts."
     ],
     "image": "images/slot-marketing_1.png"
   },
   {
-    "record_id": "marketing_2/export/1/1",
+    "record_id": "marketing_2/export/2/1",
     "slot_id": "marketing_2",
-    "attempt": 1,
+    "attempt": 2,
     "type": "marketing-post",
     "topic_id": "ANGLE-credibility",
     "topic_name": "credibility",
     "tweets": [
-      "Sentinel Grove has completed 12 smart contract audits with 3 auditors. We're a smart contract audit firm ready to review your code."
+      "Sentinel Grove has completed 12 smart contract audits. The team of 3 auditors is available to review your contracts. Teams can request a review from Sentinel Grove."
     ],
     "image": "images/slot-marketing_2.png"
   },
   {
-    "record_id": "marketing_3/export/2/1",
+    "record_id": "marketing_3/export/1/1",
     "slot_id": "marketing_3",
-    "attempt": 2,
+    "attempt": 1,
     "type": "marketing-post",
     "topic_id": "ANGLE-education",
     "topic_name": "education-to-cta",
     "tweets": [
-      "External calls can reenter before state updates finish, allowing repeated execution. How does your contract handle callbacks that withdraw again? Request a review to assess the risk."
+      "Missing access controls in withdrawal functions let anyone drain Ether from a contract. How could you verify that only authorized parties can trigger transfers?"
     ],
     "image": "images/slot-marketing_3.png"
   }

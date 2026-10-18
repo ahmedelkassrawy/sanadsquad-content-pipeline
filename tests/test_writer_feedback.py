@@ -78,10 +78,12 @@ async def test_validator_length_feedback_retries_with_the_actual_rejected_draft(
     requests = [call[3] for call in models.calls if call[2] == "Draft" and call[1] == "a"]
     assert "tweet_1:length" in requests[1]["feedback"]
     measured = [
-        item for item in requests[1]["feedback"] if item.startswith("tweet_1:weighted_length:")
+        item
+        for item in requests[1]["feedback"]
+        if item.startswith("writer_note:tweet_1:weighted_length:")
     ]
     assert len(measured) == 1
-    weighted, limit = measured[0].split(":")[2].split("/")
+    weighted, limit = measured[0].split(":")[3].split("/")
     assert int(weighted) > 160 and limit == "140"
     assert f":shorten_by_at_least:{int(weighted) - 140}:" in measured[0]
     assert measured[0].endswith(":max_words:18")

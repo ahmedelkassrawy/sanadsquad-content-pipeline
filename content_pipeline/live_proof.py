@@ -233,7 +233,7 @@ def main(argv=None):
         "--model", help="Override every agent's model; omit to use each agent.yaml model."
     )
     parser.add_argument("--reasoning-effort", choices=["none", "low", "medium", "high"])
-    parser.add_argument("--token-budget", type=int, default=250000)
+    parser.add_argument("--token-budget", type=int, default=400000)
     parser.add_argument("--max-concurrency", type=int)
     parser.add_argument("--cost-budget", type=float, default=1.0)
     parser.add_argument("--grounding-cost-budget", type=float, default=0.2)

@@ -1,32 +1,27 @@
 Post Text,Image
-"1/9 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again and again, because the balance is still unchanged when control comes back.
-2/9 The mechanism: calling another contract hands it control. It can call back before the first call returns. State updates that come after an untrusted call allow repeated execution.
-3/9 In the withdrawal case, the callback runs while the stored balance has not been cleared yet. So the second withdrawal is checked against the same old balance as the first.
-4/9 Ether transfers are not the only way in. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.
-5/9 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.
-6/9 For the withdrawal, save the amount and clear the stored balance before calling the recipient, as in `balances[msg.sender] = 0;` placed ahead of the external call.
-7/9 Then require the call to succeed, so a failure reverts the whole operation instead of leaving state half finished.
-8/9 A callback may enter through another function or dependency, not just the one you are reading. Review other callable paths and contracts that share the affected state.
-9/9 Closing check for your own code: in each function, does any external call happen before the storage it depends on is updated? And which other paths share that state?",images/slot-thread_1.png
-"1/10 An empty ERC-4626 vault, a 1 unit deposit and a direct token transfer to the vault can leave the next depositor with zero shares. The attacker then redeems for the vault's whole balance.
-2/10 The root cause is the share price. A donation sent straight to the vault mints no shares, so the attacker's single share is now worth everything in the vault.
-3/10 Take a victim about to deposit 100 tokens into a brand-new vault. The attacker front-runs with a deposit of 1 wei and gets exactly one share. Then the attacker transfers 100 tokens directly to the vault.
-4/10 The vault now holds 100 tokens plus 1 wei behind one share. The victim's 100-token deposit divides by that balance and rounds down to zero shares, so the victim receives nothing tradeable.
-5/10 The vault then holds about 200 tokens, and the attacker owns its only share. Redeeming that share takes the whole balance, including the victim's deposit.
-6/10 No access control bug is needed. The vault in that example reads its live token balance with `balanceOf(address(this))`, so a plain transfer shifts the exchange rate without calling deposit.
-7/10 OpenZeppelin's fix uses virtual shares and assets with a decimal offset. The rate becomes `totalAssets() + 1` over `totalSupply()+10**offset`, so even an empty vault has a defined rate.
-8/10 The offset raises the donation an attacker needs by that many orders of magnitude. The virtual shares also capture part of the donation, which sets a high price for inflating the rate.
-9/10 Other mitigations: dead shares minted to an unrecoverable address at deployment, an initial deposit made atomically at deploy, and minimum share checks that revert a deposit receiving too few shares.
-10/10 Before trusting a vault, check how it computes `totalAssets()`, whether it uses virtual shares or seeds an initial deposit, and whether deposits revert on too few shares. Does yours do all three?",images/slot-thread_2.png
-"1/9 A lending protocol that values collateral with a price an attacker can move is making decisions on incorrect values. That is price oracle manipulation, listed by OWASP as SC03.
-2/9 The root cause is trust. A contract implicitly assumes the price reflects market conditions, so the oracle becomes a trust boundary. Manipulation, staleness or misconfiguration can violate that trust.
-3/9 Spot price manipulation can come from large trades, flash loans or just-in-time liquidity in the same block. If core prices read a single spot value, the attacker only needs to move that one input.
-4/9 TWAPs are not automatically safe. OWASP lists TWAP manipulation over short windows or low-liquidity periods, plus stale or stuck data when freshness is not enforced.
-5/9 Aggregation can fail too. If it does not reject outliers, one manipulated source can still skew the result.
-6/9 Mitigation starts with inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold.
-7/9 Limit exposure to any single source. Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed.
-8/9 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Also monitor deviations between the oracle and reference markets with automated alerts.
-9/9 Check your own contract: which price inputs can an attacker move, directly or indirectly? Is freshness enforced, are outliers rejected, and what pauses when the price feed fails?",images/slot-thread_3.png
-"Each finding comes with its severity, its root cause and a recommended fix. Sentinel Grove is a smart contract audit firm that reports findings this way. Want a review of your smart contract code? Request one.",images/slot-marketing_1.png
-"12 smart contract audits completed, by a team of 3 auditors. Sentinel Grove is a smart contract audit firm. Request a review of your code when you're ready.",images/slot-marketing_2.png
-How can anyone drain a contract's Ether? A withdrawal function without a caller check lets any account trigger the transfer. Restrict withdrawals to authorized parties. Want a second look at yours? Sentinel Grove can review your smart contract code.,images/slot-marketing_3.png
+"1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.
+2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.
+3/8 Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.
+4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.
+5/8 A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.
+6/8 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.
+7/8 Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.
+8/8 Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",images/slot-thread_1.png
+"1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.
+2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.
+3/8 A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.
+4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.
+5/8 Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.
+6/8 OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.
+7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.
+8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",images/slot-thread_2.png
+"1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.
+2/7 Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.
+3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.
+4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.
+5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.
+6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.
+7/7 Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",images/slot-thread_3.png
+"A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",images/slot-marketing_1.png
+"Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",images/slot-marketing_2.png
+"Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",images/slot-marketing_3.png

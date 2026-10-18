@@ -1,4 +1,5 @@
 import asyncio
+import re
 from pathlib import Path
 from pydantic import ValidationError
 from . import record_ids
@@ -28,6 +29,73 @@ from .review_scoring import (
 
 
 __all__ = ["load_rubric"]
+
+
+# Words too general to count toward a focus at all.
+_FOCUS_STOPWORDS = frozenset(
+    "the and for with from that this into over against attack attacks exploit exploits "
+    "vulnerability vulnerabilities bug bugs smart contract contracts issue issues".split()
+)
+# Words that appear in several KB labels without naming a topic ("value" is in "return value" and
+# "block values"). A focus must share at least one other word with an entry to match it.
+_FOCUS_GENERIC_WORDS = (
+    "value missing lack proper incorrect weak failed unchecked unprotected dependence proxy call"
+)
+# At least this share of a focus's words must appear in an entry's label.
+FOCUS_MIN_OVERLAP = 0.5
+
+
+def _stem(word: str) -> str:
+    return word[:-1] if len(word) > 3 and word.endswith("s") else word
+
+
+_FOCUS_GENERIC = frozenset(_stem(word) for word in _FOCUS_GENERIC_WORDS.split())
+
+
+def _focus_words(text: str) -> list[str]:
+    """Content words of a focus or label; "re-entrancy" and "reentrancy" are the same word."""
+    joined = re.sub(r"(?<=[a-z0-9])-(?=[a-z0-9])", "", text.casefold())
+
+    return [
+        _stem(word)
+        for word in re.findall(r"[a-z0-9]+", joined)
+        if len(word) >= 3 and word not in _FOCUS_STOPWORDS
+    ]
+
+
+def _label_words(entry: dict) -> set[str]:
+    """Words of a KB entry's name, category and aliases, with "front running" also joined."""
+    words = set()
+
+    for part in [entry["name"], entry.get("category", ""), *entry.get("aliases", [])]:
+        joined = re.sub(r"(?<=[a-z0-9])-(?=[a-z0-9])", "", part.casefold())
+        pieces = re.findall(r"[a-z0-9]+", joined)
+
+        words.update(_focus_words(part))
+        words.update(_stem(a + b) for a, b in zip(pieces, pieces[1:]))
+
+    return words
+
+
+def focus_matches(focus: str, kb, topic_id: str) -> bool:
+    """Whether a KB entry's name, aliases or category cover the requested focus.
+
+    At least half of the focus's words must appear in the entry's label, and one of them must be
+    a distinctive word, so "unchecked return value" cannot match "Block values as time proxy"
+    through "value". A focus with no meaningful words (a single letter) matches anything. Only the
+    entry's label counts, not its description, so "re-pricing" cannot match a flash-loan entry
+    that mentions pricing in passing. A focus that matches no entry fails closed: research
+    searches the web for it.
+    """
+    wanted = set(_focus_words(focus))
+
+    if not wanted:
+        return True
+
+    entry = next(e for e in kb.entries if e["id"] == topic_id)
+    overlap = wanted & _label_words(entry)
+
+    return len(overlap) / len(wanted) >= FOCUS_MIN_OVERLAP and bool(overlap - _FOCUS_GENERIC)
 
 
 def identity(slot_id, attempt, output):
@@ -94,7 +162,7 @@ class ResearchAgent(Agent):
             nonlocal searches
 
             if searches >= 4:
-                raise ModelFailure("failed_research")
+                raise ModelFailure("failed_research", "search_limit_reached:4_searches")
 
             searches += 1
 
@@ -151,13 +219,22 @@ class ResearchAgent(Agent):
                 if not action.source_ids or any(
                     id not in evidence or evidence[id].status != "ok" for id in action.source_ids
                 ):
-                    raise ModelFailure("failed_research")
+                    raise ModelFailure("failed_research", "finish_cited_no_usable_source")
 
                 selected = [evidence[id] for id in dict.fromkeys(action.source_ids)]
                 topic = action.topic_id or selected[0].source_id
 
                 if action.topic_id and action.topic_id not in action.source_ids:
-                    raise ModelFailure("failed_research")
+                    raise ModelFailure("failed_research", "topic_not_among_cited_sources")
+
+                if (
+                    slot.focus
+                    and topic.startswith("KB-")
+                    and not focus_matches(slot.focus, self.kb, topic)
+                ):
+                    # The operator asked for one topic; shipping the nearest other one is a
+                    # substitution, so the slot fails instead.
+                    raise ModelFailure("failed_research", "topic_does_not_match_focus")
 
                 title = (
                     self.kb.source(topic).title
@@ -170,11 +247,11 @@ class ResearchAgent(Agent):
                 )
 
             if not action.query.strip():
-                raise ModelFailure("failed_research")
+                raise ModelFailure("failed_research", "empty_search_query")
 
             await search(action.action, action.query)
 
-        raise ModelFailure("failed_research")
+        raise ModelFailure("failed_research", "step_limit_reached_without_supporting_evidence")
 
 
 class TopicSelector(Agent):

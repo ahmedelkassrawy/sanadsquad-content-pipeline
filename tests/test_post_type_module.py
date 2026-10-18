@@ -202,7 +202,7 @@ def test_post_type_module_assigns_research_packs_by_topic_source():
     assert from_angle.topic_name == "service"
     # The service angle gets only its configured stats.
     assert {source.source_id: source.evidence_text for source in from_angle.sources} == {
-        id: rules.approved_stats[id] for id in ["STAT-03", "STAT-04"]
+        id: rules.approved_stats[id] for id in ["STAT-04", "STAT-05"]
     }
 
     assert types.assigned_pack(ResolvedSlot(slot_id="c", type="tech-thread"), kb) is None

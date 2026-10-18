@@ -3,17 +3,17 @@
     "record_id": "thread_1/visual/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "a6a5f73d4038d63941d25cf88025f12b82c1aaceef671630128a46f6e8d10eef",
+    "input_sha256": "378cc01acd9d2cac6fe3422494386de56571b5f2f98f73c7a59da178e31c6eaa",
     "spec": {
-      "concept": "Reentrancy: external calls can reenter before state is finalized",
-      "scene": "Technical card on a deep navy background. A simple diagram shows a contract box sending a call out to a second box, with an arrow looping back to the first box before the state box updates. Amber accents highlight the looping arrow and the state box. Clean lines, ample whitespace, calm engineering feel.",
+      "concept": "Reentrancy: external calls can reenter before state is finalized, so update state before calling out",
+      "scene": "Dark navy background with a simple diagram of two contract boxes connected by a looping arrow in amber, showing a call going out and a callback returning before the balance is cleared",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
       "overlay_text": "State updates after untrusted calls allow repeated execution",
-      "alt_text": "Diagram of one contract calling another, with an arrow looping back to the first contract before its state is updated, illustrating reentrancy.",
+      "alt_text": "Diagram of two contract boxes joined by a looping amber arrow on a navy background, showing a callback returning before the stored balance is cleared",
       "severity": "high"
     },
     "result": {
@@ -28,48 +28,20 @@
     }
   },
   {
-    "record_id": "thread_3/visual/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "b3585efbb3a730ef6d5fb950010737e0088218ed93efce9ec8b6623d004c682d",
-    "spec": {
-      "concept": "Price oracle manipulation as a broken trust boundary: the protocol trusts price inputs that attackers can move.",
-      "scene": "Technical-style card on a deep navy background. A simple line diagram shows a price feed node connected to a contract node, with an amber dashed line marking the trust boundary between them. A small amber warning marker sits on the feed side. Clean, calm, precise layout with generous margins.",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "trust boundary",
-      "alt_text": "Diagram of a price feed connected to a smart contract across a dashed amber line labeled as a trust boundary, with the text trust boundary.",
-      "severity": "high"
-    },
-    "result": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "marketing_2/visual/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "851c8d72d68c624f40b16cbcd721b6be9b92df95acdddf11eb6916d70465c7e6",
+    "input_sha256": "ed2bd9cf05db9e1490ade80772d3cb8b0dfec75ace4cd4fa55d79c09718cd1d3",
     "spec": {
-      "concept": "Credibility through a simple, factual statement of audit experience from a smart contract audit firm.",
-      "scene": "A clean brand card with a deep navy background, a thin amber accent rule beneath the overlay text, and a minimal outline of a grove of stylized trees as a subtle watermark in the corner. Calm, precise, no clutter.",
+      "concept": "Credibility through a track record of completed smart contract audits, with an invitation to request a review",
+      "scene": "Clean brand card on a deep navy background with a single amber accent line beneath the headline, minimal shield-and-grove motif in the corner, generous white space, calm and precise layout",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "12 smart contract audits completed",
-      "alt_text": "Brand card with navy background and white text reading 12 smart contract audits completed, with an amber accent line beneath.",
+      "overlay_text": "completed 12 smart contract audits",
+      "alt_text": "Brand card with navy background and amber accent line reading: completed 12 smart contract audits",
       "severity": null
     },
     "result": {
@@ -84,48 +56,20 @@
     }
   },
   {
-    "record_id": "marketing_1/visual/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "7da6cdf430f042c630cc4f6f29ed6d0b569cf52c04402b618e56008ff0adfde8",
-    "spec": {
-      "concept": "A smart contract audit review that reports each finding with its severity, root cause and a recommended fix",
-      "scene": "Clean brand card on a deep navy background with a simple amber shield outline beside a short list of three finding lines, suggesting a structured audit report. Minimal, calm and engineering-focused, with generous spacing.",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "its severity, its root cause and a recommended fix",
-      "alt_text": "Navy brand card with an amber shield outline and a short list of report lines, with the text: its severity, its root cause and a recommended fix.",
-      "severity": null
-    },
-    "result": {
-      "slot_id": "marketing_1",
-      "path": "images/slot-marketing_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "marketing_3/visual/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "a1ac56db3431a59cb78802d38d1769966b470f1ed2da35d01cc01633fc8e4b15",
+    "input_sha256": "e23a10712b58f4e842f1eda405356250394de16ac530ed955d703f6f5147ead8",
     "spec": {
-      "concept": "Missing caller authorization lets anyone withdraw a contract's Ether; withdrawals should be restricted to authorized parties.",
-      "scene": "A calm, minimal brand card on a deep navy background with a simple vault outline whose door is held shut by a single amber key-shaped lock, with clean geometric lines and ample empty space for the overlay text.",
+      "concept": "Unprotected Ether withdrawal: missing caller checks let anyone drain a contract",
+      "scene": "A simple vault outlined in amber on a deep navy background with a single open door and a keyhole, suggesting that only authorized callers should be able to move Ether out. Clean flat geometric style with generous space for the overlay text.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
       "overlay_text": "Restrict withdrawals to authorized parties",
-      "alt_text": "Brand image card with a navy background, an amber lock on a vault outline, and the text Restrict withdrawals to authorized parties.",
+      "alt_text": "Navy card with an amber vault outline and keyhole above the text: Restrict withdrawals to authorized parties",
       "severity": null
     },
     "result": {
@@ -140,21 +84,77 @@
     }
   },
   {
-    "record_id": "thread_2/visual/2/1",
-    "slot_id": "thread_2",
-    "attempt": 2,
-    "input_sha256": "9b569c3b9cb4f945cf7d278acc2a4d056b723b33cc09445cdcb829e4449249fb",
+    "record_id": "marketing_1/visual/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "5811fdfb2151def0ad802728e4bfc3cd6e8f0b7a8e572d483f5c72dd01e940b3",
     "spec": {
-      "concept": "ERC-4626 inflation attack: a direct donation to an empty vault inflates the share price so the next depositor's shares round down to zero.",
-      "scene": "Calm technical diagram on a deep navy background: a single vault box holding one glowing amber share, with a straight arrow labelled as a direct token transfer entering the vault, and a second smaller arrow showing a deposit that results in zero shares. Clean lines, minimal, no people.",
+      "concept": "A review that reports each finding clearly, with severity, root cause and a recommended fix",
+      "scene": "Clean brand card on a deep navy background with a single amber accent line beneath the headline text, minimal layout with generous spacing and no illustrations",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "direct token transfer",
-      "alt_text": "Diagram of a vault holding a single share while a direct token transfer inflates its value and a victim's deposit returns zero shares.",
+      "overlay_text": "its severity, its root cause and a recommended fix",
+      "alt_text": "Navy card with white text reading its severity, its root cause and a recommended fix, underlined by an amber accent line",
       "severity": null
+    },
+    "result": {
+      "slot_id": "marketing_1",
+      "path": "images/slot-marketing_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_3/visual/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "79a78939d5178ef88d8bd5ad616d5ec0579fb93fe361258d704a3812fc32977a",
+    "spec": {
+      "concept": "A single failed external call blocks an entire batch of payments, so each payout should be isolated and pulled by the recipient.",
+      "scene": "Technical diagram on a deep navy background: a row of recipient nodes connected by a line from a central contract node, with one node marked in amber to show the failed call blocking the rest. A separate simple pull-style path is sketched beside it with clean lines and generous spacing.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "one failing recipient can block the whole operation",
+      "alt_text": "Diagram of a contract sending payments to a row of recipients, with one highlighted failing recipient blocking the others, beside a simpler withdraw-style path.",
+      "severity": "medium"
+    },
+    "result": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_2/visual/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "d3eb8e773155ad6ac40a1051e49c962117bdbcb57c38de6b302d0824c0a5f99a",
+    "spec": {
+      "concept": "A price oracle as a trust boundary: the contract trusts a price input that an attacker can move",
+      "scene": "Dark navy background with a simple diagram: a market price line on the left jumps sharply upward, passes through a gate labelled as a boundary in amber, and reaches a contract block on the right. Clean technical style, thin amber lines, white labels, calm and precise.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "An oracle is a trust boundary",
+      "alt_text": "Diagram of a price line spiking in a market, crossing an amber boundary gate and feeding a smart contract block, illustrating price oracle manipulation as a trust boundary.",
+      "severity": "high"
     },
     "result": {
       "slot_id": "thread_2",

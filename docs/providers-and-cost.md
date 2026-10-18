@@ -25,8 +25,8 @@ invented one), while Nemotron passed it, so the stronger model sits on the gate.
 (`output/free-run-with-drops`) 3 of 6 shipped: Ministral padded the marketing posts with unsupported
 claims, which the reviewer dropped. After the code checks (claim words, length split, link note) and
 the prompt and input changes (grounded openings, STAT-04) went in together, the same models
-shipped 6 of 6 in the last two runs (`output/free-run-6-of-6`, $0.02); runs in between shipped
-4 and 2 of 6. It needs `NVIDIA_API_KEY` and `MISTRALAI_API_KEY`.
+shipped 6 of 6 on the final code (`output/free-run-6-of-6`, $0.02); runs while the fixes went in
+shipped between 2 and 6 of 6. It needs `NVIDIA_API_KEY` and `MISTRALAI_API_KEY`.
 `config/prices.yaml` prices the two NVIDIA models at 0 (their hosted endpoint is free) and
 Mistral at its paid list price, so every call is costed and no `--allow-unpriced` is needed.
 Add other models there.
@@ -69,7 +69,7 @@ use a paid key or the sample setup below.
 
 ## Cost and budget
 
-Defaults are 250,000 tokens and 1 USD for the whole run, including the advisor. Before each
+Defaults are 400,000 tokens and 1 USD for the whole run, including the advisor. Before each
 model call the guard reserves the estimated input plus the full output cap. If that does not
 fit, the call does not start and the slot is marked `failed_budget`. Finished slots still
 export. It is a guard, not a hard cap: estimates can be wrong and providers can bill more.
@@ -77,7 +77,7 @@ export. It is a guard, not a hard cap: estimates can be wrong and providers can 
 `--estimate` prints a worst-case ceiling as JSON and exits. It starts no model or search
 client, makes no network call and writes no run folder. The ceiling assumes every retry
 happens, so it is far above a real run (about 11 million tokens for the committed config,
-against 181,099 used by the sample). A model with no known price is refused unless you pass
+against 106,341 used by the sample). A model with no known price is refused unless you pass
 `--allow-unpriced`; then only the token limit applies. Prices come from `genai-prices`
 and the overrides in `config/prices.yaml`. USD covers model calls only. Search
 and image calls are counted in `external-usage.json` but not priced.
@@ -89,19 +89,21 @@ config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, all at reasoning ef
 `MODEL_OVERRIDE` empty and the advisor off:
 
 ```
-python run_week.py --plan plan.json --output <run> --set thread_2="ERC-4626 vault inflation attack" --max-concurrency 3
+python run_week.py --plan plan.json --output <run> --set thread_2="oracle manipulation" --max-concurrency 3
 ```
 
-Result: 6 of 6 pieces shipped, 181,099 tokens, 0.6324 USD confirmed, every call priced.
-`thread_2` used Tavily web search because its topic is not in the KB. The reviewer rejected its
-first draft because the worked example did not add up (the source's own "101 tokens" total, where
-the thread's numbers give about 200), and the retry shipped with the corrected figure. The education post took KB-04, because thread_1 already
-covers reentrancy (KB-01). The other five shipped on the first attempt. Cloudflare returned
-HTTP 429 for every image, so all six are Pillow cards (brand header, title, the thread's own
-code line). The full per-slot story is in
+Result: 6 of 6 pieces shipped, 106,341 tokens, 0.3916 USD confirmed, every call priced. The
+`--set` is the brief's own example; the knowledge base covers it (KB-18), so research made no web
+search. thread_2 ("Other failure shapes:", "More mitigations:") and thread_3 ("Two things to
+check:") were first rejected by code for outline labels and shipped on the retry; the other four
+shipped on the first attempt. Each thread got its own hook and closing style from
+`post_types/tech-thread/type.yaml`. Cloudflare returned HTTP 429 for every image, so all six are Pillow
+cards (brand header, title, the thread's own code line). Reviewer rejections, retries and a drop
+on the same models are in `output/claude-run-with-drop`; web search runs in
+`output/free-run-6-of-6` and `output/failed-source-example`. The full per-slot story is in
 `output/sample-week/run.log`.
 
 The free run copied to `output/free-run-with-drops` (Ministral writers, Nemotron reviewer, about 3 minutes)
 shows the drop path: 3 of 6 shipped, and the reviewer dropped two marketing posts and one
 thread after a retry for claims the evidence does not support. `output/free-run-6-of-6` is the
-same setup on the code as of that run: 6 of 6 shipped, three of them after a rejection and a retry.
+same free setup on the round-4 code: 6 of 6 shipped, three of them after a rejection and a retry.

@@ -45,7 +45,7 @@ def test_marketing_type_loads_its_claim_words():
     assert {"thorough", "specialized", "expertise", "rigorous", "precise"} <= set(words)
     # Security advice uses these legitimately, so the reviewer judges them, not code.
     assert not {"ensure", "prevent", "catch", "protect", "critical"} & set(words)
-    assert load_type(ROOT, "tech-thread").claim_words == []
+    assert load_type(ROOT, "tech-thread").claim_words == ["twice", "thrice"]
 
 
 def test_filler_quality_claims_are_rejected_before_review():
@@ -102,7 +102,7 @@ def test_claim_feedback_says_delete_and_stays_out_of_drop_reasons():
     notes = claim_feedback(result)
 
     assert notes == [
-        'tweet_1:unsupported_claim_word:rigorous:delete the clause containing "rigorous"; '
+        'writer_note:tweet_1:unsupported_claim_word:rigorous:delete the clause containing "rigorous"; '
         "do not replace it with another general claim; a shorter post is fine"
     ]
     assert is_writer_note(notes[0])

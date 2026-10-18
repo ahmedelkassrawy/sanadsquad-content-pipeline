@@ -13,7 +13,7 @@ from .config import (
     read_type_file,
     read_utf8,
 )
-from .contracts import Rubric
+from .contracts import Rubric, WriteStyle
 from .models import AgentConfig, BrandRules, PostType, ResearchPack, ResolvedSlot, SourceRecord
 
 
@@ -177,6 +177,24 @@ class PostTypes:
             return None
 
         return next((id for id in angle.source_ids if id not in week_topics), angle.source_ids[0])
+
+    def writing_style(self, slot: ResolvedSlot, plan: list[ResolvedSlot]) -> WriteStyle | None:
+        """The hook and closing style for a slot: its index among the plan's slots of its type.
+
+        The first slot of a type gets the first style, the second the second, wrapping around, so
+        the lanes need no shared state to write differently. None when the type has no styles.
+        """
+        spec = self.spec(slot.type)
+        same_type = [other.slot_id for other in plan if other.type == slot.type]
+        index = same_type.index(slot.slot_id) if slot.slot_id in same_type else 0
+
+        def pick(styles: list[str]) -> str | None:
+            return styles[index % len(styles)] if styles else None
+
+        hook = pick(spec.hook_styles)
+        closing = pick(spec.closing_styles)
+
+        return WriteStyle(hook=hook, closing=closing) if hook or closing else None
 
     def assigned_pack(self, slot: ResolvedSlot, kb) -> ResearchPack | None:
         """Return the pack for an already-assigned topic, or None when research must search."""

@@ -66,6 +66,46 @@
           },
           "title": "Claim Words",
           "type": "array"
+        },
+        "max_approved_stats": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Approved Stats"
+        },
+        "max_brand_mentions": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Brand Mentions"
+        },
+        "hook_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hook Styles",
+          "type": "array"
+        },
+        "closing_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Closing Styles",
+          "type": "array"
         }
       },
       "required": [
@@ -306,6 +346,38 @@
       ],
       "title": "VisualConfig",
       "type": "object"
+    },
+    "WriteStyle": {
+      "additionalProperties": false,
+      "description": "The hook and closing style code assigned to one slot; None leaves that part to the writer.",
+      "properties": {
+        "hook": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hook"
+        },
+        "closing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Closing"
+        }
+      },
+      "title": "WriteStyle",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -344,6 +416,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/Draft"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "style": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WriteStyle"
         },
         {
           "type": "null"

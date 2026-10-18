@@ -66,6 +66,46 @@
           },
           "title": "Claim Words",
           "type": "array"
+        },
+        "max_approved_stats": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Approved Stats"
+        },
+        "max_brand_mentions": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Brand Mentions"
+        },
+        "hook_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hook Styles",
+          "type": "array"
+        },
+        "closing_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Closing Styles",
+          "type": "array"
         }
       },
       "required": [

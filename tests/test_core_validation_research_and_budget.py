@@ -232,7 +232,8 @@ def test_a_tweet_ending_in_a_colon_is_a_violation_with_writer_feedback():
     assert "tweet_1:dangling_colon" in result.violations
     assert result.accepted is False
     assert colon_feedback(result)[0] == (
-        "tweet_1:dangling_colon:finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
+        "writer_note:tweet_1:dangling_colon:"
+        "finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
     )
 
 

@@ -53,10 +53,14 @@ from .tools import configured_web_search
 from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
-    link_feedback,
     colon_feedback,
+    credit_feedback,
     is_writer_note,
+    label_feedback,
     length_feedback,
+    link_feedback,
+    post_limit_feedback,
+    stat_feedback,
     validate,
 )
 from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
@@ -874,6 +878,7 @@ class Pipeline:
             feedback=state.feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
+            style=self.types.writing_style(state.slot, self.plan),
         )
 
         saved = self.replay.reuse(
@@ -943,6 +948,10 @@ class Pipeline:
             + colon_feedback(result)
             + claim_feedback(result)
             + link_feedback(result)
+            + stat_feedback(result)
+            + credit_feedback(result)
+            + label_feedback(result)
+            + post_limit_feedback(result, self.rules.brand_name)
         )
 
         if saved is not None:

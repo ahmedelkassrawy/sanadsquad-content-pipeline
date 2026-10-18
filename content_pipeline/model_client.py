@@ -954,6 +954,9 @@ class ModelClient:
         if outcome.action == "fail":
             detail = row.failure_kind.value if row.failure_kind else None
 
+            if detail and row.http_status and row.http_status >= 400:
+                detail = f"{detail}:http_{row.http_status}"
+
             raise ModelFailure(outcome.failure, detail) from None
 
         return outcome, result

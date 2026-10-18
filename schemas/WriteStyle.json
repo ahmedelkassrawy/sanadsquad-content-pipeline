@@ -1,0 +1,32 @@
+{
+  "additionalProperties": false,
+  "description": "The hook and closing style code assigned to one slot; None leaves that part to the writer.",
+  "properties": {
+    "hook": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Hook"
+    },
+    "closing": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Closing"
+    }
+  },
+  "title": "WriteStyle",
+  "type": "object"
+}

@@ -195,12 +195,12 @@ async def test_resume_uses_snapshot_preserves_increased_budget_and_renamed_ident
     summary = await run_pipeline(
         root,
         resume=renamed,
-        budget_overrides={"run_token_budget": 300000},
+        budget_overrides={"run_token_budget": 450000},
         model_factory=models.factory,
         search_factory=search_factory,
     )
     assert summary.run_id == "original" and summary.shipped == 1
-    assert json.loads((renamed / "runtime-settings.json").read_text())["run_token_budget"] == 300000
+    assert json.loads((renamed / "runtime-settings.json").read_text())["run_token_budget"] == 450000
     assert (
         "synthetic-new-policy"
         not in (renamed / "snapshot/post_types/tech-thread/writer.md").read_text()

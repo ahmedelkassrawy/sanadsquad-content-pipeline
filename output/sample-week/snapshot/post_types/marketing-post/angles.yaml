@@ -1,17 +1,18 @@
 # Each angle gets its own approved stats, so two marketing posts in one week cannot say the
-# same thing. The education angle picks the first KB topic no thread covers that week.
+# same thing. Only the credibility angle states a firm fact; service and credibility invite a review.
+# The education angle picks the first KB topic no thread covers that week.
 angles:
 - id: ANGLE-service
   name: service
   stat_ids:
-  - STAT-03
   - STAT-04
+  - STAT-05
 - id: ANGLE-credibility
   name: credibility
+  # Two stats only, matching the post type's max_approved_stats: the audit count and the offer.
   stat_ids:
   - STAT-01
-  - STAT-02
-  - STAT-03
+  - STAT-05
 - id: ANGLE-education
   name: education-to-cta
   pick_one: true
@@ -21,5 +22,5 @@ angles:
   - KB-05
   - KB-07
   - KB-03
-  stat_ids:
-  - STAT-03
+  # No firm stats: the education post ends on its engagement question, not the review offer.
+  stat_ids: []

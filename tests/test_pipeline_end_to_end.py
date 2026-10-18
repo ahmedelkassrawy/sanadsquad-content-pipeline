@@ -403,6 +403,20 @@ async def test_a_failed_api_slot_records_its_error_in_the_summary_and_log(tmp_pa
             assert "synthetic-key-must-not-leak" not in path.read_text(encoding="utf-8")
 
 
+async def test_a_focused_slot_fails_rather_than_ship_a_different_kb_topic(tmp_path):
+    # The fake research finishes on the top KB hit, which is not about the requested topic.
+    focus = "Zorvex ledger re-pricing exploit in Cairo 9 vaults"
+    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus=focus), plan_pair()[1]]
+
+    summary = await run(tmp_path, OfflineModels(), slots)
+
+    assert summary.slots["a"].outcome.value == "failed_research"
+    assert summary.slots["a"].error == (
+        "ModelFailure: failed_research (topic_does_not_match_focus)"
+    )
+    assert summary.slots["b"].outcome.value == "shipped"
+
+
 @pytest.mark.parametrize("focus", ["unknown", "endless", "no-evidence", "fetch-failed"])
 async def test_research_web_fallback_retained_evidence_and_step_cap(tmp_path, focus):
     models = OfflineModels()
@@ -425,6 +439,10 @@ async def test_research_web_fallback_retained_evidence_and_step_cap(tmp_path, fo
         call for call in models.calls if call[1] == "a" and call[2] == "ResearchAction"
     ]
     assert len(research_calls) <= 4
+    if focus != "unknown":
+        # The summary says why research failed, not just that it did.
+        assert summary.slots["a"].error.startswith("ModelFailure: failed_research (")
+        assert summary.slots["a"].error != "ModelFailure: failed_research"
 
 
 @pytest.mark.parametrize("mode", ["visual_api", "banned", "new-stat"])

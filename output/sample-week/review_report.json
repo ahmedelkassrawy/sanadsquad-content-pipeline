@@ -1,59 +1,15 @@
 [
   {
-    "record_id": "thread_3/reviewer/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "c4aff13d273c9563c38a62840a2b52dfb50289bc45109f99c592e8dcd5e006dc",
-    "review": {
-      "slot_id": "thread_3",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 4.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
     "record_id": "thread_1/reviewer/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "864a7343f3a2353942664bc0216b8f030838941e4955bfeecba9aadd8dbb067d",
+    "input_sha256": "e5a5e6df093f768ca54dbb3eee28613d04a388af641f8075c107e0e840d40a6e",
     "review": {
       "slot_id": "thread_1",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 5.0,
+        "technical_accuracy": 4.0,
         "grounding": 4.0,
-        "voice": 3.0,
-        "clarity": 5.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "The tone is calm and precise. However, tweets carry section labels (\"The mechanism:\" in tweet 2 and \"Closing check for your own code:\" in tweet 9), which the rubric caps at 3."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "f88c50be0809c20cd4c38f26ef716b27b46bb2f29fd13909824cd7cb931f2d83",
-    "review": {
-      "slot_id": "marketing_1",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 5.0
@@ -61,29 +17,6 @@
       "reasons": [],
       "hard_fail": [],
       "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "1c5d6362f8caae4ef8e1c471e6f8ae4b9df2adbfb229d69801470ede7d02055f",
-    "review": {
-      "slot_id": "thread_2",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 1.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 4.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "The worked example in tweets 3 and 4 does not add up. A 1 wei deposit plus a donation of 100 tokens gives a balance of 100 tokens plus 1 wei, not 101 tokens. After the victim's 100-token deposit, the vault holds about 200 tokens, so the attacker cannot redeem a 'full 101 token balance, including the victim's deposit'. The rubric scores an inconsistent total 1 even when the source repeats it. Fix the numbers, for example a 1 wei deposit plus a 100-token donation, then a victim deposit of 100 tokens gets 0 shares and the attacker redeems about 200 tokens."
-      ],
-      "hard_fail": [],
-      "accepted": false
     },
     "failure": null
   },
@@ -91,7 +24,7 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "28815bf851f06e6ef3b434131028e26540ac7c172dcf7fccbd2d81d9e8772740",
+    "input_sha256": "fc0fe4075473bf5cad33f58b7b15e8ffa075c7e2f36bced209cf5b845e64ea48",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
@@ -99,11 +32,11 @@
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 5.0
+        "clarity": 5.0,
+        "cta": 4.0
       },
       "reasons": [
-        "The post opens with the concrete count \"12 smart contract audits completed\", which is specific. It reads as a plain credential line, though, not a contrast or angle, so it is clear but generic."
+        "The opening 'Sentinel Grove has completed 12 smart contract audits.' is a clear, specific statement, but it reads as a plain credential with no contrast or angle that pulls the reader in."
       ],
       "hard_fail": [],
       "accepted": true
@@ -114,16 +47,60 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "51174aa2107de1cd2e65c39cf67c4462bb3127d3866077333bde0618b2ff267e",
+    "input_sha256": "ccb09ad647a927be4adab2f8ac8b42725f45b4487d4246210720fce1ad886849",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "b4305388a83341cec91e6b84ecac8f34280f8154cea2416eebb0c72ff1228933",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
         "voice": 5.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
+      },
+      "reasons": [
+        "The opening is a clear, specific statement of what a review delivers, matching STAT-04. However, it restates the stat verbatim and gives no contrast or angle that draws the reader in, so it is clear but plain."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "21df7fafbf27b3a1cd951ff9ea78bb5c1511a9e72907262de28b9bd8341eb0e8",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 5.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],
@@ -135,16 +112,16 @@
     "record_id": "thread_2/reviewer/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "96a068d8f865d88335d37112e7a3a7d481f9e54ddfdfa690c73362cba3829139",
+    "input_sha256": "b1872e3ff81a6727a5375e6f24c69faefa742fe9af804a1f2e78de3605e5da75",
     "review": {
       "slot_id": "thread_2",
       "scores": {
         "hook": 5.0,
-        "technical_accuracy": 4.0,
+        "technical_accuracy": 5.0,
         "grounding": 4.0,
-        "voice": 4.0,
+        "voice": 5.0,
         "clarity": 4.0,
-        "cta": 4.0
+        "cta": 5.0
       },
       "reasons": [],
       "hard_fail": [],
