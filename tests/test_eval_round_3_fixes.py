@@ -93,16 +93,27 @@ def test_only_credibility_describes_the_firm():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
     firm = {}
+    offer = {}
 
     for angle in types.angles("marketing-post"):
         slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id=angle.id)
         ids = {s.source_id for s in types.assigned_pack(slot, kb).sources}
         firm[angle.name] = "STAT-03" in ids
-
-        # Every angle can still invite a review.
-        assert "STAT-05" in ids, angle.id
+        offer[angle.name] = "STAT-05" in ids
 
     assert firm == {"service": False, "credibility": True, "education-to-cta": False}
+    # The education post ends on its own question, so only two posts carry the review offer.
+    assert offer == {"service": True, "credibility": True, "education-to-cta": False}
+
+
+def test_an_empty_stat_list_means_the_angle_uses_no_firm_stats():
+    types = PostTypes(ROOT)
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+    slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id="ANGLE-education")
+
+    kinds = {s.kind for s in types.assigned_pack(slot, kb).sources}
+
+    assert kinds == {"kb"}
 
 
 async def test_research_failures_say_why():

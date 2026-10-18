@@ -23,5 +23,5 @@ angles:
   - KB-05
   - KB-07
   - KB-03
-  stat_ids:
-  - STAT-05
+  # No firm stats: the education post ends on its engagement question, not the review offer.
+  stat_ids: []
