@@ -69,7 +69,7 @@ evidence. `--estimate` prints a worst-case cost ceiling without any call. Defaul
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
 and every retry, repair and search turn happens (about $52 on the committed Claude models, while
-the sample run cost about $0.39). It is a warning, not a plan. What keeps a run inside the $1
+the sample run cost about $0.41). It is a warning, not a plan. What keeps a run inside the $1
 budget is the guard in `model_client.py`, which reserves each call's worst case before sending
 it and refuses the call (`failed_budget`) when it no longer fits.
 

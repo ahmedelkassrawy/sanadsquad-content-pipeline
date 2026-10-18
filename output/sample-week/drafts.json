@@ -1,178 +1,52 @@
 [
   {
-    "record_id": "thread_2/validator/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "4aade3aaa89665dc524ef8e5f68ddf7909604099e92b36411203c91e9ac9f095",
-    "audit": {
-      "original": {
-        "slot_id": "thread_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "The cause is simple: the protocol trusts price inputs that attackers can move. Any contract that relies on price or valuation data an attacker can influence, directly or indirectly, decides on incorrect values.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "Other failure shapes: TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "OWASP mitigations for inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows. Reject prices older than a maximum staleness threshold.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "More mitigations: avoid basing core prices on illiquid pools, cap the impact of a single pool or feed, and halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data.",
-            "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
-            "source_ids": [
-              "KB-18"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "3/8 The cause is simple: the protocol trusts price inputs that attackers can move. Any contract that relies on price or valuation data an attacker can influence, directly or indirectly, decides on incorrect values.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "5/8 Other failure shapes: TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "6/8 OWASP mitigations for inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows. Reject prices older than a maximum staleness threshold.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "7/8 More mitigations: avoid basing core prices on illiquid pools, cap the impact of a single pool or feed, and halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data.",
-          "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
-          "source_ids": [
-            "KB-18"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [
-        "tweet_5:section_label:other failure shapes",
-        "tweet_7:section_label:more mitigations"
-      ],
-      "accepted": false
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "4742ba033327f8f9c30734b05109c7bc314e53b86804a3ca163f39f6cd3a5bc2",
+    "input_sha256": "4225a4a428bea49b75d5dc6ba2260e7f75323941777676d48f48e59ead4e638f",
     "audit": {
       "original": {
         "slot_id": "thread_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+            "text": "A withdrawal that sends Ether before it clears the caller's balance can be drained: the recipient calls back while the stored balance is still unchanged, and withdraws against it again.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
+            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, so any state you have not finalized yet is still visible in its old form.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.",
+            "text": "The cause is ordering: state updates that happen after an untrusted call let the same logic run repeatedly. Nothing about the Ether transfer itself is special.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.",
+            "text": "Calls to other contracts count too, not only Ether transfers. Dependencies spanning several contracts matter, so a callback may enter through a different function or a dependency that shares the same state.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.",
+            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. Order matters more than any single line.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.",
+            "text": "In the withdrawal case, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",
+            "text": "Does any function in your code make an external call before it finishes updating storage that another callable function, or another contract, also reads?",
             "source_ids": [
               "KB-01"
             ]
@@ -181,49 +55,43 @@
       },
       "normalized": [
         {
-          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+          "text": "1/7 A withdrawal that sends Ether before it clears the caller's balance can be drained: the recipient calls back while the stored balance is still unchanged, and withdraws against it again.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
+          "text": "2/7 Calling another contract hands it control. It can call back into yours before the first call returns, so any state you have not finalized yet is still visible in its old form.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/8 Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.",
+          "text": "3/7 The cause is ordering: state updates that happen after an untrusted call let the same logic run repeatedly. Nothing about the Ether transfer itself is special.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.",
+          "text": "4/7 Calls to other contracts count too, not only Ether transfers. Dependencies spanning several contracts matter, so a callback may enter through a different function or a dependency that shares the same state.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.",
+          "text": "5/7 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. Order matters more than any single line.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.",
+          "text": "6/7 In the withdrawal case, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "8/8 Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",
+          "text": "7/7 Does any function in your code make an external call before it finishes updating storage that another callable function, or another contract, also reads?",
           "source_ids": [
             "KB-01"
           ]
@@ -232,6 +100,125 @@
       "fixes": [],
       "violations": [],
       "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "e1bd8cb76e599e3d140146b61ecae5b0a7fb9ab7426e24f0538d58caad198265",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "An attacker moves a thin pool's price with one large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never agreed with.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "A price oracle is a trust boundary. The contract assumes the number reflects market conditions. Manipulation, stale data or misconfiguration can break that assumption, and the protocol then decides on incorrect values.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Protocols trust price inputs that attackers can move. That is the whole flaw, and it shows up wherever a contract consumes price data, such as a lending protocol valuing collateral or deciding liquidations.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "OWASP lists several ways in: spot price pushed by large trades, flash loans or just-in-time liquidity in one block, TWAPs skewed over short windows or low-liquidity periods, stale data, and aggregation that keeps outliers.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "First fix: aggregate multiple sources with a median or mean, and reject outliers. Also avoid basing core prices on illiquid pools, and cap how much a single pool or feed can influence the result.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "For time-based prices, use TWAPs over sufficient windows, and reject any price older than a maximum staleness threshold. A short window or an old value is itself an attack surface.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Add automated alerts that monitor deviations between your oracle and reference markets.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Grep for every place your contracts read a price, then test each one: does it reject a stale value, and does it survive a single-block swing in one pool's spot price?",
+            "source_ids": [
+              "KB-18"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 An attacker moves a thin pool's price with one large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never agreed with.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "2/8 A price oracle is a trust boundary. The contract assumes the number reflects market conditions. Manipulation, stale data or misconfiguration can break that assumption, and the protocol then decides on incorrect values.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "3/8 Protocols trust price inputs that attackers can move. That is the whole flaw, and it shows up wherever a contract consumes price data, such as a lending protocol valuing collateral or deciding liquidations.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "4/8 OWASP lists several ways in: spot price pushed by large trades, flash loans or just-in-time liquidity in one block, TWAPs skewed over short windows or low-liquidity periods, stale data, and aggregation that keeps outliers.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "5/8 First fix: aggregate multiple sources with a median or mean, and reject outliers. Also avoid basing core prices on illiquid pools, and cap how much a single pool or feed can influence the result.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "6/8 For time-based prices, use TWAPs over sufficient windows, and reject any price older than a maximum staleness threshold. A short window or an old value is itself an attack surface.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "7/8 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Add automated alerts that monitor deviations between your oracle and reference markets.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "8/8 Grep for every place your contracts read a price, then test each one: does it reject a stale value, and does it survive a single-block swing in one pool's spot price?",
+          "source_ids": [
+            "KB-18"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_5:section_label:first fix"
+      ],
+      "accepted": false
     },
     "failure": null,
     "failure_detail": null
@@ -240,173 +227,117 @@
     "record_id": "thread_3/validator/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "3b5a00a4d7c6559afc73fbbd19ac043735fc17a5d3314eb73d5b3c4c6b6b0cc1",
+    "input_sha256": "dcc6b6c83df7939140a143b4386fcab45d578ba92ce14ccd22fd2c2f18ec90e2",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
+            "text": "A wallet that checks tx.origin == owner assumes only the owner can trigger a transfer. In reality, any contract the owner calls can trigger it too, because tx.origin still points at the owner deeper in the call chain.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "The cause is that progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
+            "text": "The two variables answer different questions. tx.origin returns the sender of the transaction across the full call chain. msg.sender is the sender of the current call. Mixing them up is where this bug starts.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
+            "text": "Authorization with tx.origin treats the original transaction sender as if it were the immediate caller. If an authorized account calls into a malicious contract, that contract inherits the account's authority for the rest of the call.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
+            "text": "The Solidity documentation shows a wallet whose transferTo function requires tx.origin == owner. Nothing in that check looks at who is calling transferTo right now.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
+            "text": "Attack path: the owner is tricked into sending Ether to an attack wallet. Its receive function calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
+            "text": "The fix is to stop using tx.origin for authorization and check msg.sender instead: `require(msg.sender == owner);`",
             "source_ids": [
-              "KB-11"
+              "KB-07"
             ]
           },
           {
-            "text": "Two things to check: does any loop push Ether to many recipients, and does one failed call stop the rest of the batch from completing?",
+            "text": "With that check, the wallet sees the attack wallet's address as the caller, not the owner's address. The authorization check fails and the transfer does not go through.",
             "source_ids": [
-              "KB-11"
+              "KB-07"
+            ]
+          },
+          {
+            "text": "Before you ship, check two things: does any authorization condition read tx.origin, and does every owner check compare against msg.sender?",
+            "source_ids": [
+              "KB-07"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
+          "text": "1/8 A wallet that checks tx.origin == owner assumes only the owner can trigger a transfer. In reality, any contract the owner calls can trigger it too, because tx.origin still points at the owner deeper in the call chain.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "2/7 The cause is that progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
+          "text": "2/8 The two variables answer different questions. tx.origin returns the sender of the transaction across the full call chain. msg.sender is the sender of the current call. Mixing them up is where this bug starts.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
+          "text": "3/8 Authorization with tx.origin treats the original transaction sender as if it were the immediate caller. If an authorized account calls into a malicious contract, that contract inherits the account's authority for the rest of the call.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
+          "text": "4/8 The Solidity documentation shows a wallet whose transferTo function requires tx.origin == owner. Nothing in that check looks at who is calling transferTo right now.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
+          "text": "5/8 Attack path: the owner is tricked into sending Ether to an attack wallet. Its receive function calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
+          "text": "6/8 The fix is to stop using tx.origin for authorization and check msg.sender instead: `require(msg.sender == owner);`",
           "source_ids": [
-            "KB-11"
+            "KB-07"
           ]
         },
         {
-          "text": "7/7 Two things to check: does any loop push Ether to many recipients, and does one failed call stop the rest of the batch from completing?",
+          "text": "7/8 With that check, the wallet sees the attack wallet's address as the caller, not the owner's address. The authorization check fails and the transfer does not go through.",
           "source_ids": [
-            "KB-11"
+            "KB-07"
+          ]
+        },
+        {
+          "text": "8/8 Before you ship, check two things: does any authorization condition read tx.origin, and does every owner check compare against msg.sender?",
+          "source_ids": [
+            "KB-07"
           ]
         }
       ],
       "fixes": [],
       "violations": [
-        "tweet_7:section_label:two things to check"
+        "tweet_5:section_label:attack path"
       ],
       "accepted": false
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_2/validator/1/1",
-    "slot_id": "marketing_2",
-    "attempt": 1,
-    "input_sha256": "a0bdfcda9111db192276393ce302c23cf204a650641538c55ae686e8d32d5154",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_2",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",
-            "source_ids": [
-              "STAT-01",
-              "STAT-05"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",
-          "source_ids": [
-            "STAT-01",
-            "STAT-05"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_3/validator/1/1",
-    "slot_id": "marketing_3",
-    "attempt": 1,
-    "input_sha256": "2f42265f1b3dbacbb376142f78d791681f1295f90f796c43915f202f8806d76e",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_3",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
-            "source_ids": [
-              "KB-04"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
-          "source_ids": [
-            "KB-04"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
     },
     "failure": null,
     "failure_detail": null
@@ -415,7 +346,7 @@
     "record_id": "marketing_1/validator/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "8b3822dd988fbc9562daed8a56f06fc0d4acca38116bed8955bb5a6b62aba1f0",
+    "input_sha256": "0f3aed2c102c312a58f5a8d2350eb22ca9bf01856433f357a56fdbb7b7312fb7",
     "audit": {
       "original": {
         "slot_id": "marketing_1",
@@ -447,100 +378,63 @@
     "failure_detail": null
   },
   {
-    "record_id": "thread_3/validator/2/1",
-    "slot_id": "thread_3",
-    "attempt": 2,
-    "input_sha256": "34df8d77fb6c74d249b1c14dfc166d93c18854957f4a0c5ddb40da07e28cfad6",
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "b814384b3daba19acb7cb4bfe603516b110ca13012738a88e4bcd96bada31192",
     "audit": {
       "original": {
-        "slot_id": "thread_3",
-        "attempt": 2,
+        "slot_id": "marketing_2",
+        "attempt": 1,
         "tweets": [
           {
-            "text": "A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
+            "text": "Sentinel Grove has completed 12 smart contract audits. If your team has contracts that need a second look, you can request a review of your smart contract code.",
             "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
-            "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
-            "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
-            "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
-            "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
-            "source_ids": [
-              "KB-11"
-            ]
-          },
-          {
-            "text": "Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",
-            "source_ids": [
-              "KB-11"
+              "STAT-01",
+              "STAT-05"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
+          "text": "Sentinel Grove has completed 12 smart contract audits. If your team has contracts that need a second look, you can request a review of your smart contract code.",
           "source_ids": [
-            "KB-11"
+            "STAT-01",
+            "STAT-05"
           ]
-        },
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "200de0c2e7755b76fc9500bbfd9049c163f44837362f01ae4baac790427abdf9",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Who can move Ether out of your contract? Without effective caller authorization, a withdrawal function lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Which of your functions can anyone call?",
+            "source_ids": [
+              "KB-04"
+            ]
+          }
+        ]
+      },
+      "normalized": [
         {
-          "text": "2/7 Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
+          "text": "Who can move Ether out of your contract? Without effective caller authorization, a withdrawal function lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Which of your functions can anyone call?",
           "source_ids": [
-            "KB-11"
-          ]
-        },
-        {
-          "text": "3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
-          "source_ids": [
-            "KB-11"
-          ]
-        },
-        {
-          "text": "4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
-          "source_ids": [
-            "KB-11"
-          ]
-        },
-        {
-          "text": "5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
-          "source_ids": [
-            "KB-11"
-          ]
-        },
-        {
-          "text": "6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
-          "source_ids": [
-            "KB-11"
-          ]
-        },
-        {
-          "text": "7/7 Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",
-          "source_ids": [
-            "KB-11"
+            "KB-04"
           ]
         }
       ],
@@ -555,56 +449,56 @@
     "record_id": "thread_2/validator/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "79e93613f253bd4fda9798aa765b2fca717f64818b3422ebd41a1fa70bf7e264",
+    "input_sha256": "50e8988953660d7ab2d596a42de8925e3acd267001bb638319a8519450e0abb1",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 2,
         "tweets": [
           {
-            "text": "An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
+            "text": "An attacker moves a thin pool's price with one large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never agreed with.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
+            "text": "A price oracle is a trust boundary. The contract assumes the number reflects market conditions. Manipulation, stale data or misconfiguration can break that assumption, and the protocol then decides on incorrect values.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.",
+            "text": "A protocol that trusts price inputs an attacker can move has a flaw wherever it consumes price data, such as a lending protocol valuing collateral or deciding liquidations.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
+            "text": "OWASP lists several ways in: spot price pushed by large trades, flash loans or just-in-time liquidity in one block, TWAPs skewed over short windows or low-liquidity periods, stale data, and aggregation that keeps outliers.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
+            "text": "Start by aggregating multiple sources with a median or mean, and reject outliers. Also avoid basing core prices on illiquid pools, and cap how much a single pool or feed can influence the result.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+            "text": "For time-based prices, use TWAPs over sufficient windows, and reject any price older than a maximum staleness threshold. A short window or an old value is itself an attack surface.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+            "text": "When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Add automated alerts that monitor deviations between your oracle and reference markets.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
+            "text": "Grep for every place your contracts read a price, then test each one: does it reject a stale value, and does it survive a single-block swing in one pool's spot price?",
             "source_ids": [
               "KB-18"
             ]
@@ -613,51 +507,168 @@
       },
       "normalized": [
         {
-          "text": "1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
+          "text": "1/8 An attacker moves a thin pool's price with one large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never agreed with.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
+          "text": "2/8 A price oracle is a trust boundary. The contract assumes the number reflects market conditions. Manipulation, stale data or misconfiguration can break that assumption, and the protocol then decides on incorrect values.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "3/8 A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.",
+          "text": "3/8 A protocol that trusts price inputs an attacker can move has a flaw wherever it consumes price data, such as a lending protocol valuing collateral or deciding liquidations.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
+          "text": "4/8 OWASP lists several ways in: spot price pushed by large trades, flash loans or just-in-time liquidity in one block, TWAPs skewed over short windows or low-liquidity periods, stale data, and aggregation that keeps outliers.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "5/8 Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
+          "text": "5/8 Start by aggregating multiple sources with a median or mean, and reject outliers. Also avoid basing core prices on illiquid pools, and cap how much a single pool or feed can influence the result.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "6/8 OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+          "text": "6/8 For time-based prices, use TWAPs over sufficient windows, and reject any price older than a maximum staleness threshold. A short window or an old value is itself an attack surface.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+          "text": "7/8 When data looks suspicious or is unavailable, halt sensitive operations such as borrowing and liquidations. Add automated alerts that monitor deviations between your oracle and reference markets.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
+          "text": "8/8 Grep for every place your contracts read a price, then test each one: does it reject a stale value, and does it survive a single-block swing in one pool's spot price?",
           "source_ids": [
             "KB-18"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "89d5b8b68fe479d8a9ed30645f0070b1f6f7ec530579cea7cae3d70183dcc03f",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A wallet that checks tx.origin == owner assumes only the owner can trigger a transfer. In reality, any contract the owner calls can trigger it too, because tx.origin still points at the owner deeper in the call chain.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "The two variables answer different questions. tx.origin returns the sender of the transaction across the full call chain. msg.sender is the sender of the current call. Mixing them up is where this bug starts.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "Authorization with tx.origin treats the original transaction sender as if it were the immediate caller. If an authorized account calls into a malicious contract, the contract can act under that account's authority.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "The Solidity documentation shows a wallet whose transferTo function requires tx.origin == owner. Nothing in that check looks at who is calling transferTo right now.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "Suppose the owner is tricked into sending Ether to an attack wallet. Its receive function calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "The fix is to stop using tx.origin for authorization and check msg.sender instead: `require(msg.sender == owner);`",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "With that check, the wallet sees the attack wallet's address as the caller, not the owner's address. The authorization check fails and the transfer does not go through.",
+            "source_ids": [
+              "KB-07"
+            ]
+          },
+          {
+            "text": "Before you ship, confirm that no authorization condition reads tx.origin, and that every owner check compares against msg.sender.",
+            "source_ids": [
+              "KB-07"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 A wallet that checks tx.origin == owner assumes only the owner can trigger a transfer. In reality, any contract the owner calls can trigger it too, because tx.origin still points at the owner deeper in the call chain.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "2/8 The two variables answer different questions. tx.origin returns the sender of the transaction across the full call chain. msg.sender is the sender of the current call. Mixing them up is where this bug starts.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "3/8 Authorization with tx.origin treats the original transaction sender as if it were the immediate caller. If an authorized account calls into a malicious contract, the contract can act under that account's authority.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "4/8 The Solidity documentation shows a wallet whose transferTo function requires tx.origin == owner. Nothing in that check looks at who is calling transferTo right now.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "5/8 Suppose the owner is tricked into sending Ether to an attack wallet. Its receive function calls transferTo on the victim wallet and moves the balance to the attacker. The check passes because tx.origin is still the owner.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "6/8 The fix is to stop using tx.origin for authorization and check msg.sender instead: `require(msg.sender == owner);`",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "7/8 With that check, the wallet sees the attack wallet's address as the caller, not the owner's address. The authorization check fails and the transfer does not go through.",
+          "source_ids": [
+            "KB-07"
+          ]
+        },
+        {
+          "text": "8/8 Before you ship, confirm that no authorization condition reads tx.origin, and that every owner check compares against msg.sender.",
+          "source_ids": [
+            "KB-07"
           ]
         }
       ],

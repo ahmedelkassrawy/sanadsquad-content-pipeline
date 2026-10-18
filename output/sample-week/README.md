@@ -6,7 +6,7 @@ Start with `posts.csv` and `run.log`.
 | --- | --- |
 | `posts.csv` | The deliverable: accepted posts (Post Text, Image) for a scheduler. |
 | `run.log` | What happened to each slot, step by step, and the totals. |
-| `run_summary.json` | Shipped, dropped and why, tokens and cost. |
+| `run_summary.json` | Shipped, dropped and why, tokens and cost in total and per agent. |
 | `plan.resolved.json` | The plan after --set overrides. |
 | `research_log.json` | Every search and the evidence each slot was given. |
 | `drafts.json` | Every draft, the code fixes applied and any rule violations. |
@@ -15,8 +15,8 @@ Start with `posts.csv` and `run.log`.
 | `posts.json` | posts.csv as JSON. |
 | `visuals.json` | Image specs and how each image was made. |
 | `images/` | One image (and its spec) per accepted piece. |
-| `ledger.json` | Token and cost totals per slot and agent. |
-| `usage.jsonl` | One line per model call: model, tokens, cost. |
+| `ledger.json` | The budget guard's charge for each model call, with its status. |
+| `usage.jsonl` | One line per model call: agent step, model, tokens, cost. |
 | `external-usage.json` | Search, fetch and image calls. |
 | `advisor.json` | Optional advisor output: suggested instruction edits. |
 | `snapshot/` | Copy of the inputs and instructions this run used. |

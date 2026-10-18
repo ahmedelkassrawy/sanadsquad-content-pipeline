@@ -2,7 +2,7 @@
   "record_id": "_run/summary/1/1",
   "slot_id": "_run",
   "attempt": 1,
-  "run_id": "week-74",
+  "run_id": "week-76",
   "slots": {
     "thread_1": {
       "outcome": "shipped",
@@ -21,7 +21,7 @@
     "thread_3": {
       "outcome": "shipped",
       "attempts": 2,
-      "topic_id": "KB-11",
+      "topic_id": "KB-07",
       "reasons": [],
       "error": null
     },
@@ -48,9 +48,9 @@
     }
   },
   "shipped": 6,
-  "confirmed_tokens": 106341,
+  "confirmed_tokens": 107909,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.391606,
+  "confirmed_cost_usd": 0.41116199999999997,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {
@@ -67,5 +67,35 @@
   },
   "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
   "advisor": "not_enabled",
-  "advisor_reason": null
+  "advisor_reason": null,
+  "agents": {
+    "research": {
+      "calls": 3,
+      "tokens": 10424,
+      "cost_usd": 0.021920000000000002,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "writer": {
+      "calls": 8,
+      "tokens": 40121,
+      "cost_usd": 0.107674,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "reviewer": {
+      "calls": 6,
+      "tokens": 39044,
+      "cost_usd": 0.233152,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "visual": {
+      "calls": 6,
+      "tokens": 18320,
+      "cost_usd": 0.048416,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    }
+  }
 }
