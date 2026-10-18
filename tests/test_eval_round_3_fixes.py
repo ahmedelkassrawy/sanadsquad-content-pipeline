@@ -193,22 +193,43 @@ def test_a_source_credited_in_two_tweets_is_rejected_with_a_note():
         "5/5 Can one pool set the price?",
     ]
 
-    assert check_repeated_credits(texts) == ["repeated_credit:owasp"]
-    assert check_repeated_credits(texts[:2] + texts[3:]) == []
-    assert check_repeated_credits(
-        ["The Solidity documentation says x.", "Per the Solidity docs, y."]
-    ) == ["repeated_credit:solidity"]
-
-    draft = Draft(
-        slot_id="thread_1", tweets=[Tweet(text=t[4:], source_ids=["KB-01"]) for t in texts]
-    )
     pack = ResearchPack(
         slot_id="thread_1",
         topic_id="KB-01",
         topic_name="x",
         sources=[
-            SourceRecord(source_id="KB-01", kind="kb", title="x", evidence_text="SC03 OWASP.")
+            SourceRecord(
+                source_id="KB-01",
+                kind="kb",
+                title="OWASP Smart Contract Top 10",
+                url="https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
+                evidence_text="SC03 OWASP.",
+            )
         ],
+    )
+    solidity_pack = ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-01",
+        topic_name="x",
+        sources=[
+            SourceRecord(
+                source_id="KB-01",
+                kind="kb",
+                title="Solidity documentation",
+                url="https://docs.soliditylang.org/en/latest/security-considerations.html",
+                evidence_text="Solidity documentation.",
+            )
+        ],
+    )
+
+    assert check_repeated_credits(texts, pack) == ["repeated_credit:owasp"]
+    assert check_repeated_credits(texts[:2] + texts[3:], pack) == []
+    assert check_repeated_credits(
+        ["The Solidity documentation says x.", "Per the Solidity docs, y."], solidity_pack
+    ) == ["repeated_credit:solidity"]
+
+    draft = Draft(
+        slot_id="thread_1", tweets=[Tweet(text=t[4:], source_ids=["KB-01"]) for t in texts]
     )
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
     notes = credit_feedback(result)
@@ -233,14 +254,31 @@ def test_focus_matches_the_kb_label_not_its_description():
 def test_ordinary_capitalized_prose_is_not_a_credit():
     from content_pipeline.validation import check_repeated_credits
 
-    assert check_repeated_credits(["External calls can fail.", "External calls again."]) == []
+    pack = ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-18",
+        topic_name="oracle",
+        sources=[
+            SourceRecord(
+                source_id="KB-18",
+                kind="kb",
+                title="OWASP Smart Contract Top 10",
+                url="https://scs.owasp.org/",
+                evidence_text="OWASP guidance.",
+            )
+        ],
+    )
+
+    assert check_repeated_credits(["External calls can fail.", "External calls again."], pack) == []
     assert (
         check_repeated_credits(
-            ["Funds come from Uniswap pools.", "Swaps from Uniswap set the price."]
+            ["Funds come from Uniswap pools.", "Swaps from Uniswap set the price."], pack
         )
         == []
     )
-    assert check_repeated_credits(["Function names collide.", "Function names collide."]) == []
+    assert (
+        check_repeated_credits(["Function names collide.", "Function names collide."], pack) == []
+    )
 
 
 def _label_result(last_tweet):

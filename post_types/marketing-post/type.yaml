@@ -18,6 +18,9 @@ review:
 visual:
   template: brand
   severity_badge: never
+# Whole-post credibility guards. Other post types leave these unset.
+max_approved_stats: 2
+max_brand_mentions: 1
 # Words that praise the firm's quality, which a post may use only when the slot's evidence
 # uses them. Code rejects the draft before review and tells the writer to delete the clause.
 # Action verbs such as "ensure" or "prevent" are left to the reviewer, because security

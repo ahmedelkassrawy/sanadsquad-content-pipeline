@@ -1,6 +1,7 @@
 import re
 import unicodedata
 from functools import partial
+from itertools import combinations
 from twitter_text import parse_tweet
 from skills import brand_rules
 from .models import BrandRules, Draft, PostType, ResearchPack, SourceRecord, ValidationResult
@@ -31,10 +32,6 @@ _HYPHEN_LIKE = "\u2010\u2011\u2012\u2013\u2015\u2212"
 _NUMBER = re.compile(r"(?<![\w.])(?<![A-Za-z]-)(?:[vV](?=\d+\.\d))?(\d+(?:\.\d+)*)")
 _THOUSANDS = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
 _TOKEN = re.compile(r"\S+")
-CLAIM_NOTE_MARKER = ":delete the clause containing"
-LINK_NOTE_MARKER = ":X turns"
-STAT_NOTE_MARKER = ":state"
-CREDIT_NOTE_MARKER = ":name this source"
 # A violation id never starts with this, so it marks a note for the writer and nothing else.
 WRITER_NOTE_PREFIX = "writer_note:"
 
@@ -168,54 +165,42 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     ]
 
 
-# A credit names a source: "OWASP lists", "per OWASP", "listed by OWASP", "the Solidity docs say".
-_CREDIT_VERBS = (
-    # Not "calls", "names" or "notes": "External calls", "Function names" are not credits.
-    "says|say|lists|list|recommends|suggests|describes|warns|adds|defines|docs|documentation"
-)
-# Nouns that stand for a source's text: "OWASP's guidance says", "The SWC registry says".
-_CREDIT_NOUNS = (
-    "guidance|registry|guide|checklist|advisory|report|spec|specification|page|entry|catalog"
-)
-# The lead-in words may open a sentence ("Per OWASP"); only the credited name must be capitalized.
-_CREDIT_AFTER = re.compile(
-    r"\b(?i:per|according to|listed by|cited by|as described by)\s+(?i:the\s+)?"
-    r"([A-Z][A-Za-z0-9.-]+)"
-)
-_CREDIT_BEFORE = re.compile(
-    r"\b([A-Z][A-Za-z0-9.-]+)(?:['’]s)?"
-    r"(?:\s+(?:" + _CREDIT_NOUNS + r"))?"
-    r"\s+(?:" + _CREDIT_VERBS + r")\b"
-)
-# Capitalized words that are not a source's name.
-_NOT_A_SOURCE = frozenset(
-    "the this that it its a an code each every one some any no step check".split()
-)
+# These aliases are derived only when a pack source identifies the publisher in its title or URL.
+# That keeps a protocol used as an example ("Per Uniswap pool") from becoming a source credit.
+_CREDIT_SOURCE_MARKERS = {
+    "consensys": ("consensys",),
+    "openzeppelin": ("openzeppelin",),
+    "owasp": ("owasp",),
+    "solidity": ("solidity", "soliditylang"),
+    "swc": ("swc-registry", "swcregistry", "smartcontractsecurity/swc"),
+}
 
 
-def check_repeated_credits(texts: list[str]) -> list[str]:
-    """Report a source credited in more than one tweet of a thread ("OWASP says" again and again).
+def _credit_source_names(pack: ResearchPack) -> set[str]:
+    """Publisher names exposed by the pack's source titles and URLs."""
+    names = set()
 
-    Name a source once; after that, state its facts directly. A capitalized word the thread also
-    uses in lowercase ("External calls" beside "external calls") is ordinary prose, not a name.
-    """
-    prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
-    lowercase_words = set(re.findall(r"\b[a-z][a-z0-9.-]*\b", " ".join(prose)))
+    for source in pack.sources:
+        identity = unicodedata.normalize("NFKC", f"{source.title} {source.url or ''}").casefold()
+
+        for name, markers in _CREDIT_SOURCE_MARKERS.items():
+            if any(marker in identity for marker in markers):
+                names.add(name)
+
+    return names
+
+
+def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
+    """Report a pack source named in more than one tweet of a thread."""
     tweets_by_name = {}
+    source_names = _credit_source_names(pack)
 
-    for index, text in enumerate(prose):
-        names = (
-            {
-                match.group(1).rstrip(".").casefold()
-                for pattern in (_CREDIT_AFTER, _CREDIT_BEFORE)
-                for match in pattern.finditer(text)
-            }
-            - _NOT_A_SOURCE
-            - lowercase_words
-        )
+    for index, text in enumerate(texts):
+        prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)).casefold()
 
-        for name in names:
-            tweets_by_name.setdefault(name, set()).add(index)
+        for name in source_names:
+            if re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", prose):
+                tweets_by_name.setdefault(name, set()).add(index)
 
     return [
         f"repeated_credit:{name}"
@@ -225,21 +210,22 @@ def check_repeated_credits(texts: list[str]) -> list[str]:
 
 
 # A tweet that opens with a short lead-in and a colon ("Closing check:", "Root cause in one
-# line:", "Mitigation 1:"). A word is plain text, so a backtick or a URL scheme never matches.
-_LABEL_WORD = r"[A-Za-z0-9][A-Za-z0-9'’-]*"
+# line:", "Mitigation #2:"). A word is plain text, so a backtick or URL scheme never matches.
+_LABEL_WORD = r"(?:[A-Za-z0-9][A-Za-z0-9'’-]*|#[0-9]+)"
 LABEL_MAX_WORDS = 5
 _SECTION_LABEL = re.compile(
-    r"^((?:"
+    r"^(?:(TL;DR)|((?:"
     + _LABEL_WORD
     + r"\s+){0,"
     + str(LABEL_MAX_WORDS - 1)
     + r"}"
     + _LABEL_WORD
-    + r"):(?!//)"
+    + r")):(?!//)",
+    re.I,
 )
 # A lead-in that starts with a verb is an instruction ("Check each function: ..."), not an outline.
 _IMPERATIVE_STARTS = frozenset(
-    "add ask avoid check compare confirm consider do don't ensure grep keep look make mitigate "
+    "add ask avoid check compare confirm consider do don't ensure fix grep keep look make mitigate "
     "never prefer put read remember remove replace review run search set test to try update use "
     "verify watch write".split()
 )
@@ -248,8 +234,30 @@ _IMPERATIVE_STARTS = frozenset(
 _LEAD_IN_VERBS = frozenset(
     "is are was were be been has have had does did can could will would should must may might "
     "also follows starts fixes lists recommends recommend suggests describes appear appears "
-    "means lets allows needs requires shows uses trusts".split()
+    "means lets allows needs requires shows uses trusts reenter become".split()
 )
+_LABEL_PHRASES = frozenset("code pattern|why this is dangerous|tl;dr".split("|"))
+_NON_VERB_S_WORDS = frozenset("areas causes checks focus forms shares steps things".split())
+_SUBJECT_MODIFIERS = frozenset(
+    "a an the this that these those one two three four five more concrete useful key closing".split()
+)
+
+
+def _has_finite_verb(words: list[str]) -> bool:
+    """Whether a short lead-in reads as a clause rather than a noun-phrase label."""
+    if _LEAD_IN_VERBS.intersection(words):
+        return True
+
+    for index, word in enumerate(words[1:], 1):
+        previous = words[index - 1]
+
+        if previous in _SUBJECT_MODIFIERS or word in _NON_VERB_S_WORDS:
+            continue
+
+        if re.search(r"(?:s|ed)$", word):
+            return True
+
+    return False
 
 
 def _section_label(text: str) -> str | None:
@@ -260,14 +268,13 @@ def _section_label(text: str) -> str | None:
     if not match:
         return None
 
-    label = match.group(1).casefold()
+    label = (match.group(1) or match.group(2)).casefold()
     words = label.split()
 
-    # Inline code right after the colon is the point itself: "Fix: `x = 0;`".
-    if body[match.end() :].lstrip().startswith("`"):
-        return None
+    if label in _LABEL_PHRASES:
+        return label
 
-    if words[0] in _IMPERATIVE_STARTS or _LEAD_IN_VERBS.intersection(words):
+    if words[0] in _IMPERATIVE_STARTS or _has_finite_verb(words):
         return None
 
     return label
@@ -321,6 +328,120 @@ def check_repeated_openings(texts: list[str]) -> list[str]:
     ]
 
 
+_REPEAT_STOPWORDS = frozenset(
+    "a an and are as at be before but by can could do does for from had has have if in into is "
+    "it its may more must not of on or our should so than that the their them then there these "
+    "they this those to under up use used using was we when where which while who will with "
+    "would you your".split()
+)
+_REPEAT_STEMS = {
+    "clearing": "clear",
+    "reducing": "reduce",
+    "repeatedly": "repeat",
+    "sending": "send",
+    "sends": "send",
+    "sent": "send",
+    "withdrawal": "withdraw",
+    "withdrawals": "withdraw",
+}
+REPEATED_POINT_MIN_OVERLAP = 0.35
+REPEATED_POINT_HIGH_OVERLAP = 0.5
+REPEATED_POINT_MIN_SHARED = 7
+REPEATED_POINT_MIN_BIGRAMS = 2
+REPEATED_POINT_MAX_DISTANCE = 2
+_EXAMPLE_MARKER = re.compile(
+    r"(?i)(?:\b(?:case|concretely|example|picture|scenario)\b|^(?:take|typical case)\b)"
+)
+
+
+def _repeat_stem(word: str) -> str:
+    if word in _REPEAT_STEMS:
+        return _REPEAT_STEMS[word]
+
+    if len(word) > 5 and word.endswith("ies"):
+        return word[:-3] + "y"
+
+    if len(word) > 5 and word.endswith("ing"):
+        return word[:-3]
+
+    if len(word) > 4 and word.endswith("ed"):
+        return word[:-2]
+
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+
+    return word
+
+
+def _repeat_words(text: str) -> list[str]:
+    """Lightly stemmed content words used to compare two tweets."""
+    prose = NUMBERING_PREFIX.sub("", CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)))
+
+    return [
+        _repeat_stem(word)
+        for word in re.findall(r"[a-z][a-z0-9]+", prose.casefold())
+        if len(word) >= 3 and word not in _REPEAT_STOPWORDS
+    ]
+
+
+def repeated_point_score(left: str, right: str) -> tuple[float, int, int]:
+    """Overlap coefficient, shared words and shared adjacent phrases for two tweets."""
+    left_words = _repeat_words(left)
+    right_words = _repeat_words(right)
+    left_set = set(left_words)
+    right_set = set(right_words)
+
+    if not left_set or not right_set:
+        return 0.0, 0, 0
+
+    shared = left_set & right_set
+    left_bigrams = set(zip(left_words, left_words[1:]))
+    right_bigrams = set(zip(right_words, right_words[1:]))
+
+    return (
+        len(shared) / min(len(left_set), len(right_set)),
+        len(shared),
+        len(left_bigrams & right_bigrams),
+    )
+
+
+def check_repeated_points(texts: list[str]) -> list[str]:
+    """Report a non-closing tweet that repeats an earlier thread point or example."""
+    violations = []
+
+    # A final checklist or question may deliberately recap the opening. Compare the substantive
+    # body tweets only; repeated openings have their own separate check.
+    for left, right in combinations(range(max(0, len(texts) - 1)), 2):
+        score, shared, bigrams = repeated_point_score(texts[left], texts[right])
+
+        if shared < REPEATED_POINT_MIN_SHARED or score < REPEATED_POINT_MIN_OVERLAP:
+            continue
+
+        left_is_example = bool(_EXAMPLE_MARKER.search(NUMBERING_PREFIX.sub("", texts[left])))
+        right_is_example = bool(_EXAMPLE_MARKER.search(NUMBERING_PREFIX.sub("", texts[right])))
+
+        if left_is_example != right_is_example:
+            continue
+
+        repeated_example = (
+            left_is_example and right_is_example and bigrams >= REPEATED_POINT_MIN_BIGRAMS
+        )
+        repeated_point = (
+            not left_is_example
+            and score >= REPEATED_POINT_HIGH_OVERLAP
+            and shared >= REPEATED_POINT_MIN_SHARED + 1
+            and bigrams >= 1
+            and right - left <= REPEATED_POINT_MAX_DISTANCE
+        )
+
+        if not repeated_example and not repeated_point:
+            continue
+
+        violations.append(f"tweet_{right + 1}:repeats_tweet:{left + 1}")
+
+    return violations
+
+
 # How many words after a number the stat's noun may come ("12 smart contract audits").
 _STAT_NOUN_WINDOW = 4
 _SENTENCE = re.compile(r"(?<=[.?!])\s+")
@@ -357,6 +478,12 @@ def _sentence_words(sentence: str) -> tuple[list[str], set[int]]:
     previous_end = -1
 
     for match in _WORDS.finditer(sentence.casefold()):
+        if match.group().isdigit() and (
+            (match.start() and sentence[match.start() - 1] == ".")
+            or (match.end() < len(sentence) and sentence[match.end()] == ".")
+        ):
+            continue
+
         word = _NUMBER_WORDS.get(match.group(), match.group())
 
         if words and words[-1].isdigit() and match.start() == previous_end + 1:
@@ -426,6 +553,26 @@ def _binds_stat(
     return head in {_singular(w) for w in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]}
 
 
+def _stat_distortion(words: list[str], index: int) -> str | None:
+    """A qualifier that turns an approved count into a different claim."""
+    before = words[max(0, index - 2) : index]
+    after = words[index + 1 : index + 8]
+
+    if before[-1:] and before[-1] in {"almost", "nearly", "over"}:
+        return before[-1]
+
+    if before[-2:] in (["at", "least"], ["more", "than"], ["less", "than"]):
+        return "_".join(before[-2:])
+
+    if "per" in after:
+        return "per"
+
+    if before[-1:] and before[-1] in {"all", "every"} and "found" in after:
+        return "all_found"
+
+    return None
+
+
 def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     """Keep approved firm stats as the separate facts they are.
 
@@ -433,7 +580,8 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     auditors" or "12 auditors" fails, "12 completed audits" passes; "12 auditors review every
     audit" fails, whatever noun comes later in the sentence), and numbers from two
     different stats may not share a sentence ("our three auditors completed 12 audits" claims the
-    three did all twelve). Spelled-out numbers count; numbers in code spans and links do not.
+    three did all twelve). Qualifiers such as "over" and "per auditor" fail. Spelled-out numbers
+    count; unrelated technical counts, dotted versions, code spans and links do not.
     """
     stats = [s for s in pack.sources if s.kind == "stat" and s.status == "ok"]
 
@@ -443,6 +591,12 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     violations = []
     prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
     prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
+    stat_heads = {
+        head
+        for stat in stats
+        for number in numbers_in(stat.evidence_text)
+        if (head := _stat_head_noun(stat.evidence_text, number))
+    }
 
     for sentence in _SENTENCE.split(prose):
         words, glued = _sentence_words(sentence)
@@ -457,16 +611,108 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
             if not owners:
                 continue
 
+            counted = _counted_noun(words, index, glued)
+            window = {
+                _singular(candidate)
+                for candidate in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]
+            }
+            owner_heads = {
+                head for owner in owners if (head := _stat_head_noun(owner.evidence_text, word))
+            }
+
+            # A pack may include the firm's count of 3 auditors while the technical prose says
+            # "3 functions" or "step 3". Only enforce the stat when the count is attached to a
+            # firm-stat noun, or when that noun appears in the number's short phrase.
+            if counted not in stat_heads and not owner_heads.intersection(window):
+                continue
+
             bound = [s for s in owners if _binds_stat(s, word, words, index, glued)]
 
             if bound:
                 used.add(bound[0].source_id)
+
+                if distortion := _stat_distortion(words, index):
+                    violations.append(f"stat_distorted:{word}:{distortion}")
             else:
                 following = words[index + 1] if index + 1 < len(words) else ""
                 violations.append(f"stat_misbound:{word} {following}".rstrip())
 
         if len(used) > 1:
             violations.append("joined_stats:" + "+".join(sorted(used)))
+
+    return violations
+
+
+_STAT_SIGNATURE_STOPWORDS = _REPEAT_STOPWORDS | frozenset(
+    "code contract from grove sentinel smart team teams their our".split()
+)
+_BRAND_WORD = re.compile(r"[a-z][a-z0-9]+")
+APPROVED_STAT_SIGNATURE_OVERLAP = 0.6
+
+
+def _stat_signature_words(text: str) -> set[str]:
+    return {
+        _repeat_stem(word)
+        for word in _BRAND_WORD.findall(unicodedata.normalize("NFKC", text).casefold())
+        if word not in _STAT_SIGNATURE_STOPWORDS
+    }
+
+
+def approved_stats_used(text: str, pack: ResearchPack) -> set[str]:
+    """Approved firm-stat ids whose distinctive fact appears in the post."""
+    prose_words, _ = _sentence_words(text)
+    prose_set = {_singular(word) for word in prose_words}
+    used = set()
+
+    for stat in (source for source in pack.sources if source.kind == "stat"):
+        numbers = numbers_in(stat.evidence_text)
+
+        if numbers:
+            if any(
+                number in prose_words and _stat_head_noun(stat.evidence_text, number) in prose_set
+                for number in numbers
+            ):
+                used.add(stat.source_id)
+
+            continue
+
+        signature = _stat_signature_words(stat.evidence_text)
+
+        if not signature:
+            continue
+
+        overlap = len(signature & _stat_signature_words(text)) / len(signature)
+
+        if overlap >= APPROVED_STAT_SIGNATURE_OVERLAP:
+            used.add(stat.source_id)
+
+    return used
+
+
+def check_post_limits(
+    texts: list[str], pack: ResearchPack, spec: PostType, brand_name: str
+) -> list[str]:
+    """Apply optional post-type limits to the full post, not individual tweets."""
+    text = " ".join(texts)
+    violations = []
+
+    if spec.max_approved_stats is not None:
+        count = len(approved_stats_used(text, pack))
+
+        if count > spec.max_approved_stats:
+            violations.append(f"approved_stat_limit:{count}/{spec.max_approved_stats}")
+
+    if spec.max_brand_mentions is not None:
+        count = len(
+            re.findall(
+                r"(?<!\w)" + re.escape(brand_name) + r"(?!\w)",
+                unicodedata.normalize("NFKC", text),
+                re.I,
+            )
+        )
+
+        if count > spec.max_brand_mentions:
+            violations.append(f"brand_mention_limit:{count}/{spec.max_brand_mentions}")
 
     return violations
 
@@ -562,11 +808,15 @@ def validate(
         tweet.text = numbering(spec, i, len(fixed.tweets)) + text
 
     errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+    errors.extend(
+        check_post_limits([tweet.text for tweet in fixed.tweets], pack, spec, rules.brand_name)
+    )
 
     if len(fixed.tweets) > 1:
         texts = [tweet.text for tweet in fixed.tweets]
         errors.extend(check_repeated_openings(texts))
-        errors.extend(check_repeated_credits(texts))
+        errors.extend(check_repeated_credits(texts, pack))
+        errors.extend(check_repeated_points(texts))
         errors.extend(check_section_labels(texts))
 
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
@@ -592,7 +842,8 @@ def validate(
 def colon_feedback(result: ValidationResult) -> list[str]:
     """Writer-only note for dangling colons, so a retry knows what to change."""
     return [
-        f"{violation}:finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
+        f"{WRITER_NOTE_PREFIX}{violation}:"
+        "finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
         for violation in result.violations
         if violation.endswith(":dangling_colon")
     ]
@@ -607,7 +858,8 @@ def claim_feedback(result: ValidationResult) -> list[str]:
 
         if separator:
             notes.append(
-                f'{violation}{CLAIM_NOTE_MARKER} "{word}"; do not replace it with another '
+                f'{WRITER_NOTE_PREFIX}{violation}:delete the clause containing "{word}"; '
+                "do not replace it with another "
                 "general claim; a shorter post is fine"
             )
 
@@ -623,7 +875,8 @@ def link_feedback(result: ValidationResult) -> list[str]:
 
         if separator:
             notes.append(
-                f'{violation}{LINK_NOTE_MARKER} "{domain}" into a link, even inside backticks; '
+                f'{WRITER_NOTE_PREFIX}{violation}:X turns "{domain}" into a link, even inside '
+                "backticks; "
                 "rewrite it with no dot between two words, for example "
                 '"target.call" as "a low-level call to target"'
             )
@@ -636,9 +889,13 @@ def stat_feedback(result: ValidationResult) -> list[str]:
     notes = []
 
     for violation in result.violations:
-        if ":joined_stats:" in violation or ":stat_misbound:" in violation:
+        if any(
+            marker in violation
+            for marker in (":joined_stats:", ":stat_misbound:", ":stat_distorted:")
+        ):
             notes.append(
-                f"{violation}{STAT_NOTE_MARKER} each approved stat in its own sentence, with the "
+                f"{WRITER_NOTE_PREFIX}{violation}:state each approved stat exactly, in its own "
+                "sentence, with the "
                 "number next to the same noun the stat uses (for example two sentences: one for "
                 "the audit count, one for the team size)"
             )
@@ -649,11 +906,31 @@ def stat_feedback(result: ValidationResult) -> list[str]:
 def credit_feedback(result: ValidationResult) -> list[str]:
     """Writer-only note for a source credited in more than one tweet."""
     return [
-        f"{violation}{CREDIT_NOTE_MARKER} once in the thread; in other tweets state its facts "
-        "directly, without naming it again"
+        f"{WRITER_NOTE_PREFIX}{violation}:name this source once in the thread; in other tweets "
+        "state its facts directly, without naming it again"
         for violation in result.violations
         if violation.startswith("repeated_credit:")
     ]
+
+
+def post_limit_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only notes for configured whole-post fact and brand-name limits."""
+    notes = []
+
+    for violation in result.violations:
+        if violation.startswith("approved_stat_limit:"):
+            notes.append(
+                f"{WRITER_NOTE_PREFIX}{violation}:delete one firm fact; keep at most two approved "
+                "firm stats and connect the remaining fact to what the reviewing team gets"
+            )
+
+        if violation.startswith("brand_mention_limit:"):
+            notes.append(
+                f'{WRITER_NOTE_PREFIX}{violation}:use "we" or "our team" instead of naming '
+                "Sentinel Grove a second time"
+            )
+
+    return notes
 
 
 def label_feedback(result: ValidationResult) -> list[str]:
@@ -668,14 +945,7 @@ def label_feedback(result: ValidationResult) -> list[str]:
 
 def is_writer_note(reason: str) -> bool:
     """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
-    return (
-        (reason.startswith("tweet_") and ":weighted_length:" in reason)
-        or reason.startswith(WRITER_NOTE_PREFIX)
-        or CLAIM_NOTE_MARKER in reason
-        or LINK_NOTE_MARKER in reason
-        or CREDIT_NOTE_MARKER in reason
-        or STAT_NOTE_MARKER + " each approved stat" in reason
-    )
+    return reason.startswith(WRITER_NOTE_PREFIX)
 
 
 def length_feedback(result: ValidationResult, limit: int = 280) -> list[str]:
@@ -688,7 +958,9 @@ def length_feedback(result: ValidationResult, limit: int = 280) -> list[str]:
             words = len(tweet.text.split())
 
             notes.append(
-                f"tweet_{i}:weighted_length:{weighted}/{limit}:shorten_by_at_least:{weighted - limit}:words:{words}:max_words:{max(1, int(limit / 7.5))}"
+                f"{WRITER_NOTE_PREFIX}tweet_{i}:weighted_length:{weighted}/{limit}:"
+                f"shorten_by_at_least:{weighted - limit}:words:{words}:"
+                f"max_words:{max(1, int(limit / 7.5))}"
             )
 
     return notes

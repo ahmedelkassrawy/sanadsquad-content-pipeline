@@ -65,7 +65,7 @@ python run_piece.py --type tech-thread --topic "reentrancy"
 A relative `--plan` is resolved against the repo root (`--root`, default: this repo), not the
 current folder, and falls back to `inputs/plan.json` when `plan.json` is missing there. `--set slot_id=topic` sets a topic only; it still needs knowledge base or web
 evidence. `--estimate` prints a worst-case cost ceiling without any call. Default budget is
-250,000 tokens and 1 USD per run.
+400,000 tokens and 1 USD per run.
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
 and every retry, repair and search turn happens (about $52 on the committed Claude models, while
@@ -109,7 +109,8 @@ rejects the draft even if the average passes.
 | Limitation | Next step |
 | --- | --- |
 | The committed Claude sample shows one code rejection and retry but no reviewer rejection or drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, same code as the sample: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
-| The general number check skips bare single digits ("3 steps") and numbers written as words ("three steps"); only the firm-stat check reads spelled-out numbers (up to twenty). A stat joined to another stat across two sentences ("...12 smart contract audits. All 3 auditors worked on each one.") is semantic and left to the reviewer. | Extend the check once false positives are measured. |
+| The general number check skips bare single digits ("3 steps") and numbers written as words ("three steps"); the firm-stat check ignores unrelated technical counts and dotted versions but reads spelled-out approved counts up to twenty. Cross-sentence joins ("...12 smart contract audits. All 3 auditors worked on each one.") remain semantic and stay with the reviewer. | Extend the check once false positives are measured. |
+| Within-thread repetition uses stemmed content-word overlap plus repeated phrases; it excludes the closing tweet and asymmetric example/detail transitions, so semantic repetition with little shared language remains with the reviewer. | Add embeddings only after measuring their false-positive rate on accepted threads. |
 | The reviewer (Opus) is a different model from the writers, which reduces shared blind spots but is still an LLM judgement. Tests use scripted models, so they prove routing and rules, not real judgement quality. | Run `live_proof --live` and hand-check a sample after every model change. |
 | The advisor is off by default (`ADVISOR_ENABLED=false`) and did not run in the sample. It is optional and outside the brief. | Set `ADVISOR_ENABLED=true` to try it. |
 | Cloudflare FLUX backgrounds are unit-tested with mocked HTTP. In live runs Cloudflare returned HTTP 429 (rate limit) for every image, so the sample's images are Pillow cards: brand header, title, the post's own code line for threads, an accent bar and a severity badge. | Check new images by eye after a prompt change; retry Cloudflare on a paid plan. |

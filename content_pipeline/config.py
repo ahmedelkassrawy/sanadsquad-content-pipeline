@@ -14,7 +14,7 @@ class Settings(Contract):
     model_override: str | None = None
     reasoning_effort_override: Literal["none", "low", "medium", "high"] | None = None
     max_tweet_chars: int = Field(default=280, ge=1, le=280)
-    run_token_budget: int = Field(default=250000, ge=1)
+    run_token_budget: int = Field(default=400000, ge=1)
     run_cost_budget_usd: float = Field(default=1.0, gt=0)
     allow_unpriced: bool = False
     advisor_enabled: bool = False

@@ -102,7 +102,7 @@ def test_claim_feedback_says_delete_and_stays_out_of_drop_reasons():
     notes = claim_feedback(result)
 
     assert notes == [
-        'tweet_1:unsupported_claim_word:rigorous:delete the clause containing "rigorous"; '
+        'writer_note:tweet_1:unsupported_claim_word:rigorous:delete the clause containing "rigorous"; '
         "do not replace it with another general claim; a shorter post is fine"
     ]
     assert is_writer_note(notes[0])

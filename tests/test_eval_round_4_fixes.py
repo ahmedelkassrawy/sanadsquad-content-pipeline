@@ -40,6 +40,40 @@ def stat_pack():
     )
 
 
+def credit_pack(*names):
+    identities = {
+        "owasp": ("KB-18", "kb", "OWASP Smart Contract Top 10", "https://scs.owasp.org/"),
+        "solidity": (
+            "WEB-acde",
+            "web",
+            "Solidity documentation",
+            "https://docs.soliditylang.org/",
+        ),
+        "swc": (
+            "WEB-beef",
+            "web",
+            "SWC registry",
+            "https://swcregistry.io/",
+        ),
+    }
+
+    return ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-18",
+        topic_name="source",
+        sources=[
+            SourceRecord(
+                source_id=identities[name][0],
+                kind=identities[name][1],
+                title=identities[name][2],
+                url=identities[name][3],
+                evidence_text=name,
+            )
+            for name in names
+        ],
+    )
+
+
 # Fix 1: credits.
 
 
@@ -50,29 +84,34 @@ def test_a_capitalized_lead_in_is_still_a_credit():
         "Per OWASP, add checks.",
     ]
 
-    assert check_repeated_credits(texts) == ["repeated_credit:owasp"]
-    assert check_repeated_credits(["OWASP says x.", "As described by OWASP, y."]) == [
-        "repeated_credit:owasp"
-    ]
-    assert check_repeated_credits(["Listed by OWASP as SC03.", "Cited by OWASP again."]) == [
-        "repeated_credit:owasp"
-    ]
+    assert check_repeated_credits(texts, credit_pack("owasp")) == ["repeated_credit:owasp"]
+    assert check_repeated_credits(
+        ["OWASP says x.", "As described by OWASP, y."], credit_pack("owasp")
+    ) == ["repeated_credit:owasp"]
+    assert check_repeated_credits(
+        ["Listed by OWASP as SC03.", "Cited by OWASP again."], credit_pack("owasp")
+    ) == ["repeated_credit:owasp"]
 
 
 def test_possessive_and_the_x_says_forms_are_credits():
-    assert check_repeated_credits(["OWASP's guidance says x.", "Per OWASP, y."]) == [
-        "repeated_credit:owasp"
-    ]
-    assert check_repeated_credits(["The SWC registry says x.", "Per the SWC registry, y."]) == [
-        "repeated_credit:swc"
-    ]
+    assert check_repeated_credits(
+        ["OWASP's guidance says x.", "Per OWASP, y."], credit_pack("owasp")
+    ) == ["repeated_credit:owasp"]
+    assert check_repeated_credits(
+        ["The SWC registry says x.", "Per the SWC registry, y."], credit_pack("swc")
+    ) == ["repeated_credit:swc"]
 
 
 def test_capitalized_lead_ins_do_not_make_ordinary_prose_a_credit():
-    assert check_repeated_credits(["Per transaction, one call.", "Per transaction, another."]) == []
-    assert check_repeated_credits(["External calls fail.", "External calls again."]) == []
-    assert check_repeated_credits(["Funds from Uniswap.", "More from Uniswap pools."]) == []
-    assert check_repeated_credits(["OWASP says x.", "Different source: Per SWC, y."]) == []
+    pack = credit_pack("owasp", "swc")
+
+    assert (
+        check_repeated_credits(["Per transaction, one call.", "Per transaction, another."], pack)
+        == []
+    )
+    assert check_repeated_credits(["External calls fail.", "External calls again."], pack) == []
+    assert check_repeated_credits(["Funds from Uniswap.", "More from Uniswap pools."], pack) == []
+    assert check_repeated_credits(["OWASP says x.", "Different source: Per SWC, y."], pack) == []
 
 
 # Fix 2: stats bind to the noun they count.

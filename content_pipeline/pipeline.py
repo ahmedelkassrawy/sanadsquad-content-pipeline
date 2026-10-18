@@ -53,13 +53,14 @@ from .tools import configured_web_search
 from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
-    credit_feedback,
-    label_feedback,
-    link_feedback,
-    stat_feedback,
     colon_feedback,
+    credit_feedback,
     is_writer_note,
+    label_feedback,
     length_feedback,
+    link_feedback,
+    post_limit_feedback,
+    stat_feedback,
     validate,
 )
 from .advisor import Advisor, InvalidAdvice, advice_patch, instruction_files
@@ -950,6 +951,7 @@ class Pipeline:
             + stat_feedback(result)
             + credit_feedback(result)
             + label_feedback(result)
+            + post_limit_feedback(result)
         )
 
         if saved is not None:

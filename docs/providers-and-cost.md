@@ -69,7 +69,7 @@ use a paid key or the sample setup below.
 
 ## Cost and budget
 
-Defaults are 250,000 tokens and 1 USD for the whole run, including the advisor. Before each
+Defaults are 400,000 tokens and 1 USD for the whole run, including the advisor. Before each
 model call the guard reserves the estimated input plus the full output cap. If that does not
 fit, the call does not start and the slot is marked `failed_budget`. Finished slots still
 export. It is a guard, not a hard cap: estimates can be wrong and providers can bill more.

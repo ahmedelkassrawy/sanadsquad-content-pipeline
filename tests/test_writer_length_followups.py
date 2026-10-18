@@ -28,7 +28,7 @@ def test_numbered_thread_reports_only_the_overlong_tweet_measured_with_prefix():
     weighted = parse_tweet("3/5 " + "x" * 278).weightedLength
     assert weighted == 282 and parse_tweet("x" * 278).weightedLength == 278
     assert length_feedback(result) == [
-        "tweet_3:weighted_length:282/280:shorten_by_at_least:2:words:2:max_words:37"
+        "writer_note:tweet_3:weighted_length:282/280:shorten_by_at_least:2:words:2:max_words:37"
     ]
 
 
@@ -68,7 +68,9 @@ async def test_dropped_lane_reasons_exclude_writer_only_notes_but_retry_feedback
     assert "tweet_1:length" in slot.reasons
     requests = [call[3] for call in models.calls if call[2] == "Draft" and call[1] == "a"]
     assert len(requests) == 2
-    assert any(item.startswith("tweet_1:weighted_length:") for item in requests[1]["feedback"])
+    assert any(
+        item.startswith("writer_note:tweet_1:weighted_length:") for item in requests[1]["feedback"]
+    )
     assert not any(":weighted_length:" in reason for reason in slot.reasons)
 
 

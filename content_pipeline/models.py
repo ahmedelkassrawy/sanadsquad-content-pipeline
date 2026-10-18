@@ -222,6 +222,9 @@ class PostType(Contract):
     visual: VisualConfig
     # Words that make a quality or outcome claim; allowed only when the slot's evidence uses them.
     claim_words: list[str] = Field(default_factory=list)
+    # Optional whole-post limits. None leaves the rule disabled for this post type.
+    max_approved_stats: int | None = Field(default=None, ge=1)
+    max_brand_mentions: int | None = Field(default=None, ge=1)
     # Hook and closing styles handed out to the slots of this type in plan order (the first slot
     # gets the first style, and so on, wrapping around), so a week's threads do not all open and
     # end the same way. Empty means the writer is free.
