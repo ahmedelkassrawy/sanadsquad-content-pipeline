@@ -200,3 +200,77 @@ def test_kb_09_describes_post_merge_ethereum():
     text = kb["KB-09"]["description"]
 
     assert "12-second slots" in text and "historical" in text
+
+
+# Round-6 review, second pass.
+
+
+@pytest.mark.parametrize(
+    "texts,name",
+    [
+        (["In practice OWASP recommends a guard.", "OWASP lists y."], "owasp"),
+        (["The attack surface OWASP catalogs: a.", "Mitigations per OWASP: b."], "owasp"),
+        (["Teams should follow OWASP guidance.", "Teams follow OWASP guidance again."], "owasp"),
+        (["OWASP's Top 10 ranks it.", "OWASP says y."], "owasp"),
+        (["Per EIP-150, a.", "EIP-150 says b."], "eip"),
+        (["#solidity: the Solidity docs say a.", "Solidity documentation warns b."], "solidity"),
+    ],
+)
+def test_the_publisher_is_found_even_after_another_capitalized_word(texts, name):
+    assert check_repeated_credits(texts, OWASP) == [f"repeated_credit:{name}"]
+
+
+@pytest.mark.parametrize(
+    "texts",
+    [
+        ["We recommend checks-effects-interactions.", "We also suggest pull payments."],
+        ["Developers read the docs.", "Developers skip the docs."],
+        ["Contract states change.", "Contract states again."],
+        ["Access lists help.", "Access lists again."],
+        ["Uniswap V2 adds a fee.", "Uniswap V2 adds more."],
+    ],
+)
+def test_pronouns_and_common_nouns_are_not_sources(texts):
+    assert check_repeated_credits(texts, OWASP) == []
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "OWASP says: a.",
+        "Solidity warns: a.",
+        "The SWC entry notes: a.",
+        "Attackers drained the pool: a.",
+        "The attacker reentered withdraw: a.",
+        "This pattern caused the DAO hack: a.",
+        "You need two checks: a.",
+        "Solidity 0.8.0 changed this: a.",
+        "The DAO lost 3.6M ETH: a.",
+    ],
+)
+def test_past_tense_quote_intros_and_pronoun_clauses_are_not_labels(text):
+    assert check_section_labels([f"1/2 {text}"]) == []
+
+
+@pytest.mark.parametrize(
+    "label",
+    ["Mitigations per OWASP", "Defenses against reentrancy", "Examples like the DAO"],
+)
+def test_plural_labels_with_any_preposition_are_flagged(label):
+    assert check_section_labels([f"1/2 {label}: a."]) == [
+        f"tweet_1:section_label:{label.casefold()}"
+    ]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Book a review before March 12.",
+        "Book a call at 3 pm.",
+        "Pick three.",
+        "A 3 minute read.",
+        "Runs on Node 12+ only.",
+    ],
+)
+def test_dates_times_and_bare_picks_are_not_firm_claims(text):
+    assert check_stat_claims(text, stat_pack()) == []

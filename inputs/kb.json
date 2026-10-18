@@ -157,7 +157,7 @@
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
         "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties",
-        "https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/"
+        "https://github.com/ethereum/consensus-specs/blob/dev/specs/bellatrix/beacon-chain.md"
       ],
       "review_status": "pending_owner_review"
     },

@@ -196,16 +196,17 @@ def _credit_source_names(pack: ResearchPack) -> set[str]:
 _KNOWN_PUBLISHERS = frozenset(
     "consensys openzeppelin owasp solidity swc mixbytes trail ethereum.org eip".split()
 )
-# A name, up to two words, then a crediting word: "OWASP also recommends", "The Solidity scoping
+# A name, up to four words, then a crediting word: "OWASP also recommends", "The Solidity scoping
 # documentation", "SWC registry says". A mention without one ("Before Solidity 0.8, overflow
-# wrapped") is the subject of the tweet, not a credit.
+# wrapped") is the subject of the tweet, not a credit. Each pattern is a lookahead, so every
+# capitalized word is tried as the name: "In practice OWASP recommends" finds OWASP, not "In".
 _CREDIT_WORDS = (
     "says|say|lists|list|recommends|recommend|suggests|suggest|warns|warn|notes|describes|"
     "describe|adds|defines|explains|states|documentation|docs|guidance"
 )
+_NAME = r"(?<![\w.-])([A-Z][\w.-]*)(?:['’]s)?"
 _CREDIT_BEFORE_NAME = re.compile(
-    r"(?<![\w.-])(?!(?:The|This|That|These|Those|A|An|Each|Every|Its|Their)\b)"
-    r"([A-Z][\w.-]*)(?:['’]s)?(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:" + _CREDIT_WORDS + r")\b"
+    r"(?=" + _NAME + r"(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:" + _CREDIT_WORDS + r")\b)"
 )
 _CREDIT_AFTER_LEAD_IN = re.compile(
     r"\b(?i:per|according to|listed by|cited by|as described by)\s+(?:the\s+)?([A-Z][\w.-]*)"
@@ -214,55 +215,55 @@ _CREDIT_AFTER_LEAD_IN = re.compile(
 _CREDIT_IN_WORDS = re.compile(r"\b(?i:in)\s+(?:the\s+)?([A-Z][\w.-]*)['’]s\s+words\b")
 # "From OWASP: ..." credits only when the name is followed by a colon.
 _CREDIT_FROM_COLON = re.compile(r"\b(?i:from)\s+(?:the\s+)?([A-Z][\w.-]*):")
-# Verbs that also read as nouns ("External calls", "Red flags") credit only a known publisher.
+# Verbs that also read as nouns ("External calls", "Red flags"); they only ever count for a
+# publisher, which the name filter below enforces for every pattern.
 _PUBLISHER_ONLY_CREDIT = re.compile(
-    r"(?<![\w.-])([A-Z][\w.-]*)(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:calls|flags|catalogs|ranks|names)\b"
+    r"(?=" + _NAME + r"(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:calls|flags|catalogs|ranks|names)\b)"
 )
-# Capitalized words that are not a source's name.
-_NOT_A_SOURCE = frozenset(
-    "the this that it its a an code each every one some any no step check if when".split()
-)
+_ACRONYM = re.compile(r"^[A-Z]{2,}[A-Z0-9]*$")
 
 
 def _credit_key(name: str) -> str:
-    """One key per source: "SWC-107" and "SWC" are the same registry."""
+    """One key per source: "SWC-107" and "SWC" are the same registry, so are EIP numbers."""
     key = name.rstrip(".").casefold()
 
-    return "swc" if key.startswith("swc") else key
+    for prefix in ("swc", "eip"):
+        if key.startswith(prefix):
+            return prefix
+
+    return key
 
 
 def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
     """Report a source credited in more than one tweet of a thread.
 
-    A credit is a name in crediting phrasing, not any mention of it. A name followed by a
-    crediting word counts for any source; "per X" or "according to X" counts only for a known
-    publisher or a name from the pack's own sources. A capitalized word the thread also uses in
-    lowercase ("External calls" beside "external calls") is ordinary prose.
+    A credit is a source's name in crediting phrasing, not any mention of it. Only a source's
+    name counts: a known publisher, a name from the pack's own sources, or an acronym such as
+    OWASP. So "We recommend", "Developers ... docs" and "Uniswap V2 adds" are not credits, and
+    "Per Uniswap pool" is not one either.
     """
     prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
-    lowercase_words = set(re.findall(r"\b[a-z][a-z0-9.-]*\b", " ".join(prose)))
     publishers = _KNOWN_PUBLISHERS | _credit_source_names(pack)
     tweets_by_name = {}
 
     for index, text in enumerate(prose):
-        names = {
-            _credit_key(match.group(1))
-            for match in _CREDIT_BEFORE_NAME.finditer(text)
-            if match.group(1).casefold() not in lowercase_words
-        }
-        names |= {
-            _credit_key(match.group(1))
-            for pattern in (
-                _CREDIT_AFTER_LEAD_IN,
-                _CREDIT_IN_WORDS,
-                _CREDIT_FROM_COLON,
-                _PUBLISHER_ONLY_CREDIT,
-            )
-            for match in pattern.finditer(text)
-            if _credit_key(match.group(1)) in publishers
-        }
+        names = set()
 
-        for name in names - _NOT_A_SOURCE:
+        for pattern in (
+            _CREDIT_BEFORE_NAME,
+            _CREDIT_AFTER_LEAD_IN,
+            _CREDIT_IN_WORDS,
+            _CREDIT_FROM_COLON,
+            _PUBLISHER_ONLY_CREDIT,
+        ):
+            for match in pattern.finditer(text):
+                raw = match.group(1)
+                key = _credit_key(raw)
+
+                if key in publishers or _ACRONYM.match(raw.rstrip(".")):
+                    names.add(key)
+
+        for name in names:
             tweets_by_name.setdefault(name, set()).add(index)
 
     return [
@@ -303,8 +304,19 @@ _LABEL_PHRASES = frozenset("code pattern|why this is dangerous|tl;dr".split("|")
 
 
 _QUESTION_WORDS = frozenset("why what how when where which who".split())
-# "Areas to focus on" is a noun phrase: a preposition after a plural is not its verb.
-_PREPOSITIONS = frozenset("to of for in on at with from by about into under over worth".split())
+# Subjects that make a lead-in a clause ("You need two checks:", "We recommend:").
+_PRONOUN_SUBJECTS = frozenset("i we you they he she it".split())
+# Verbs that are past tense without -ed, and crediting verbs, so "The DAO lost 3.6M ETH:" and
+# "OWASP says:" read as clauses.
+_IRREGULAR_VERBS = frozenset(
+    "lost made took found ran broke left sent got gave became held paid stole won saw knew said "
+    "says say warns notes explains states adds defines need needs".split()
+)
+# "Areas to focus on", "Mitigations per OWASP": a preposition after a plural is not its verb.
+_PREPOSITIONS = frozenset(
+    "to of for in on at with from by about into under over worth per against like across via "
+    "without within through".split()
+)
 # Words before a plural noun that make it a counted noun, not a verb: "two things", "more entries".
 _QUANTIFIERS = frozenset(
     "a an the this that these those our your their its my one two three four five six more "
@@ -320,15 +332,27 @@ def _has_finite_verb(words: list[str]) -> bool:
     - an auxiliary or a common finite verb ("The fix is X", "OWASP lists") makes it a clause;
     - a plural subject followed by a plain verb ("Callbacks reenter", "Callbacks run first")
       is a clause, but not when the second word is a participle ("Lessons learned");
+    - a pronoun subject ("You need two checks") makes it a clause;
+    - a past-tense verb with words after it ("Attackers drained the pool", "This pattern caused
+      the DAO hack") makes it a clause; a final participle ("Lessons learned") does not;
+    - a singular -s verb in the middle after a noun ("OWASP names four areas") makes it a clause;
     - anything else, including plural-noun phrases ("Common pitfalls", "Attack vectors",
-      "Other mitigations"), is a label. A word ending in -s is never taken as a verb on its own,
-      because labels usually end in a plural noun.
+      "Other mitigations"), is a label. A trailing -s word is the label's plural noun.
+    Known limit: an adjective before a plural with words after it ("Common pitfalls in lending
+    protocols") reads as a clause, so that label passes; failing that way costs nothing.
     """
     if words[0] in _QUESTION_WORDS:
         return False
 
-    if _LEAD_IN_VERBS.intersection(words):
+    if words[0] in _PRONOUN_SUBJECTS:
         return True
+
+    if _LEAD_IN_VERBS.intersection(words) or _IRREGULAR_VERBS.intersection(words[1:]):
+        return True
+
+    for index in range(1, len(words) - 1):
+        if words[index].endswith("ed") and words[index - 1] not in _QUANTIFIERS:
+            return True
 
     if len(words) >= 2 and _is_plural_noun(words[0]):
         second = words[1]
@@ -663,6 +687,14 @@ _FIRM_NOUNS = frozenset(
     "people staff developer audit review assessment engagement client customer project "
     "protocol team firm year report finding".split()
 )
+_FIRM_VERBS = frozenset("completed finished delivered shipped audited reviewed".split())
+_MONTHS = frozenset(
+    "january february march april may june july august september october november december "
+    "jan feb mar apr jun jul aug sep sept oct nov dec".split()
+)
+_TIME_UNITS = frozenset(
+    "am pm minute minutes min hour hours hr day days week weeks month months second seconds".split()
+)
 _ORDINAL_LABELS = frozenset("step part phase stage tweet line item version".split())
 # Qualifiers that make an exact approved count approximate or a bound.
 _APPROXIMATE_BEFORE = frozenset(
@@ -721,10 +753,13 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
     stat_numbers = {number for stat in stats for number in numbers_in(stat.evidence_text)}
 
-    # "12+" turns an exact count into a lower bound; the word split below drops the "+".
-    for number in re.findall(r"(?<![\w.])(\d+)\+", prose):
-        if number in stat_numbers:
-            violations.append(f"stat_distorted:{number}:plus")
+    # "12+ audits" turns an exact count into a lower bound; the word split below drops the "+".
+    # Only a count of firm work counts ("Node 12+" is a version requirement).
+    for match in re.finditer(r"(?<![\w.])(\d+)\+((?:\s+[A-Za-z-]+){1,4})", prose):
+        following = {_singular(word) for word in match.group(2).casefold().split()}
+
+        if match.group(1) in stat_numbers and following & _FIRM_NOUNS:
+            violations.append(f"stat_distorted:{match.group(1)}:plus")
 
     for sentence in _SENTENCE.split(prose):
         words, glued = _sentence_words(sentence)
@@ -750,6 +785,20 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
 
             if counted and counted not in _FIRM_NOUNS:
                 continue
+
+            # A number that counts nothing is a firm claim only in a sentence about the firm's
+            # work ("We have completed 12.", "Our auditors number 12."). Dates, times and
+            # durations ("before March 12", "at 3 pm", "a 3 minute read") and bare picks
+            # ("Pick three.") are not.
+            if counted is None:
+                previous = words[index - 1] if index else ""
+                following = words[index + 1] if index + 1 < len(words) else ""
+                firm_context = any(
+                    _singular(other) in _FIRM_NOUNS or other in _FIRM_VERBS for other in words
+                )
+
+                if previous in _MONTHS or following in _TIME_UNITS or not firm_context:
+                    continue
 
             bound = [s for s in owners if _binds_stat(s, word, words, index, glued)]
 
