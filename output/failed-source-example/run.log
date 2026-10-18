@@ -1,11 +1,12 @@
 == piece_1
    research   search_kb 'Zorvex ledger re-pricing exploit in Cairo 9 vaults' -> KB-19:ok, KB-04:ok, KB-14:ok, KB-12:ok, KB-11:ok
-   research   web_search 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause and mitigation' -> WEB-a0f9e5938cc0f97d:ok, WEB-be758544fabe27fa:ok, WEB-b38a8b8cbee5e8a0:ok, WEB-d69911780aa14320:ok, WEB-4e8345589b870ebe:ok
-   research   search_kb 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause mitigation' -> KB-11:ok, KB-19:ok, KB-04:ok, KB-14:ok, KB-01:ok
-   research   search_kb 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause mitigation' -> KB-11:ok, KB-19:ok, KB-04:ok, KB-14:ok, KB-01:ok
+   research   web_search 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause and mitigation' -> WEB-54ecbd749629057d:ok, WEB-aaf7d1211742cc2d:ok, WEB-3deb6b8ce4e57522:ok, WEB-3d33ffac81943287:ok, WEB-2be8610a28ebf046:ok
+   research   web_search 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause and mitigation' -> WEB-54ecbd749629057d:ok, WEB-aaf7d1211742cc2d:ok, WEB-3deb6b8ce4e57522:ok, WEB-3d33ffac81943287:ok, WEB-2be8610a28ebf046:ok
+   research   web_search 'Zorvex ledger re-pricing exploit Cairo 9 vaults root cause and mitigation' -> WEB-54ecbd749629057d:ok, WEB-aaf7d1211742cc2d:ok, WEB-3deb6b8ce4e57522:ok, WEB-3d33ffac81943287:ok, WEB-2be8610a28ebf046:ok
    research failed: failed_research
    outcome    failed_research after 0 attempt(s): failed_research
+   error      ModelFailure: failed_research
 
 shipped 0, dropped or failed 1
-tokens 34541, LLM cost $0.0069
+tokens 59969, LLM cost $0.0120
 advisor not_enabled

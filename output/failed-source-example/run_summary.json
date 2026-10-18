@@ -11,21 +11,21 @@
       "reasons": [
         "failed_research"
       ],
-      "error": null
+      "error": "ModelFailure: failed_research"
     }
   },
   "shipped": 0,
-  "confirmed_tokens": 34541,
+  "confirmed_tokens": 59969,
   "uncertain_tokens": 0,
-  "confirmed_cost_usd": 0.0069082,
+  "confirmed_cost_usd": 0.0119938,
   "uncertain_cost_usd": 0.0,
   "unpriced": false,
   "external_usage": {
-    "search_calls": 1,
-    "tavily_calls": 0,
-    "ddgs_calls": 1,
-    "fetch_calls": 5,
-    "tavily_credits": 0.0,
+    "search_calls": 3,
+    "tavily_calls": 3,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 3.0,
     "tavily_credits_estimated": false,
     "image_calls": 0,
     "cloudflare_images": 0,
