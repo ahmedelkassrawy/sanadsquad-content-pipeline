@@ -205,6 +205,15 @@ def test_redaction_covers_key_values_of_any_shape():
 
     for leaked in ["tvly1234abcd5678", "wJalrXUtnFEMI", "ab.cd.ef"]:
         assert leaked not in described
+
+    # Short secrets in quoted bodies or after a plain space.
+    for shape in [
+        'body {"api_key": "QQshort123"}',
+        "{'password': 'QQshort123'}",
+        'token="QQshort123"',
+        "api key QQshort123 is invalid",
+    ]:
+        assert "QQshort123" not in describe_error(RuntimeError(shape)), shape
     assert describe_error(ModelFailure("auth")) == "ModelFailure: auth"
     assert describe_error(ModelFailure("failed_output", "slot_id_mismatch")) == (
         "ModelFailure: failed_output (slot_id_mismatch)"

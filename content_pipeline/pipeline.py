@@ -446,8 +446,11 @@ def _writer_failure_note(detail):
 _SECRET_LIKE = re.compile(r"(?:sk|nvapi|gsk|AIza|tvly)[-_A-Za-z0-9]{8,}|[A-Za-z0-9_\-+/=]{28,}")
 # The value after a credential-looking name or an auth scheme, whatever its shape.
 _SECRET_VALUE = re.compile(
-    r"(?i)(authorization\s*[=:]\s*(?:(?:bearer|basic)\s+)?|(?:bearer|basic)\s+"
-    r"|(?:api[_-]?key|key|token|secret|password)\s*[=:]\s*)[^\s&,;\"']+"
+    # A quote may close the name ({"api_key": "x"}), the separator may be = : or a space
+    # ("api key x"), and a quote may open the value. Over-redacting a word is the safe side.
+    r"(?i)(authorization[\"']?\s*[=:]\s*[\"']?(?:(?:bearer|basic)\s+)?|(?:bearer|basic)\s+"
+    r"|(?:api[_ -]?key|access[_-]?token|key|token|secret|password)[\"']?\s*[=:\s]\s*[\"']?)"
+    r"[^\s&,;\"'}]+"
 )
 
 
