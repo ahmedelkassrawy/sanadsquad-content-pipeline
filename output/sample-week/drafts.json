@@ -1,9 +1,129 @@
 [
   {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "4aade3aaa89665dc524ef8e5f68ddf7909604099e92b36411203c91e9ac9f095",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "The cause is simple: the protocol trusts price inputs that attackers can move. Any contract that relies on price or valuation data an attacker can influence, directly or indirectly, decides on incorrect values.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Other failure shapes: TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "OWASP mitigations for inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows. Reject prices older than a maximum staleness threshold.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "More mitigations: avoid basing core prices on illiquid pools, cap the impact of a single pool or feed, and halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
+            "source_ids": [
+              "KB-18"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "3/8 The cause is simple: the protocol trusts price inputs that attackers can move. Any contract that relies on price or valuation data an attacker can influence, directly or indirectly, decides on incorrect values.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "5/8 Other failure shapes: TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "6/8 OWASP mitigations for inputs: aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows. Reject prices older than a maximum staleness threshold.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "7/8 More mitigations: avoid basing core prices on illiquid pools, cap the impact of a single pool or feed, and halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
+          "source_ids": [
+            "KB-18"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_5:section_label:other failure shapes",
+        "tweet_7:section_label:more mitigations"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "ebbffff4d4fa55ef7f989700a8b6d78c432b92a053a92014c473ed4dcf1c9036",
+    "input_sha256": "4742ba033327f8f9c30734b05109c7bc314e53b86804a3ca163f39f6cd3a5bc2",
     "audit": {
       "original": {
         "slot_id": "thread_1",
@@ -22,37 +142,37 @@
             ]
           },
           {
-            "text": "Root cause: state updates placed after an untrusted call allow repeated execution. The callee re-enters while the old values are still in storage.",
+            "text": "Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
+            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+            "text": "A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
+            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
+            "text": "Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
+            "text": "Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",
             "source_ids": [
               "KB-01"
             ]
@@ -73,195 +193,39 @@
           ]
         },
         {
-          "text": "3/8 Root cause: state updates placed after an untrusted call allow repeated execution. The callee re-enters while the old values are still in storage.",
+          "text": "3/8 Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
+          "text": "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "text": "5/8 A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
+          "text": "6/8 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
+          "text": "7/8 Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
+          "text": "8/8 Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",
           "source_ids": [
             "KB-01"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [
-        "tweet_3:section_label:root cause"
-      ],
-      "accepted": false
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "thread_3/validator/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "e9e2162fb1555ab3ad9e9faa023b9e7c9329bff0ed7a19f8fae16b6cd5993584",
-    "audit": {
-      "original": {
-        "slot_id": "thread_3",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning that an outer variable is shadowed.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "The Solidity scoping documentation shows such a case: the first assignment to x assigns the outer variable rather than the inner one. The code reads as if one thing is set, and another is.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
-            "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Closing check: does any contract compiled before Solidity 0.6.0 redeclare a state variable name that a base contract already has, and do any compiler warnings report a shadowed variable?",
-            "source_ids": [
-              "KB-15"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning that an outer variable is shadowed.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "5/8 The Solidity scoping documentation shows such a case: the first assignment to x assigns the outer variable rather than the inner one. The code reads as if one thing is set, and another is.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
-          "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "8/8 Closing check: does any contract compiled before Solidity 0.6.0 redeclare a state variable name that a base contract already has, and do any compiler warnings report a shadowed variable?",
-          "source_ids": [
-            "KB-15"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [
-        "tweet_8:section_label:closing check"
-      ],
-      "accepted": false
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "marketing_1/validator/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "7862bf6d8a545cab636389b48e649499143101943553c73ed56b67067e1985a2",
-    "audit": {
-      "original": {
-        "slot_id": "marketing_1",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
-            "source_ids": [
-              "STAT-04",
-              "STAT-05"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
-          "source_ids": [
-            "STAT-04",
-            "STAT-05"
           ]
         }
       ],
@@ -273,118 +237,106 @@
     "failure_detail": null
   },
   {
-    "record_id": "thread_2/validator/1/1",
-    "slot_id": "thread_2",
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "485f2d0b854ff8ffbc4aa2008c24eac9be8d7367080b8c1b2f6b0bee8310d466",
+    "input_sha256": "3b5a00a4d7c6559afc73fbbd19ac043735fc17a5d3314eb73d5b3c4c6b6b0cc1",
     "audit": {
       "original": {
-        "slot_id": "thread_2",
+        "slot_id": "thread_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+            "text": "A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+            "text": "The cause is that progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+            "text": "A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+            "text": "Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "Two more forms: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+            "text": "The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+            "text": "Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
             "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           },
           {
-            "text": "Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+            "text": "Two things to check: does any loop push Ether to many recipients, and does one failed call stop the rest of the batch from completing?",
             "source_ids": [
-              "KB-18"
-            ]
-          },
-          {
-            "text": "Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
-            "source_ids": [
-              "KB-18"
+              "KB-11"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+          "text": "1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+          "text": "2/7 The cause is that progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+          "text": "3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+          "text": "4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "5/8 Two more forms: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+          "text": "5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+          "text": "6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
           "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         },
         {
-          "text": "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+          "text": "7/7 Two things to check: does any loop push Ether to many recipients, and does one failed call stop the rest of the batch from completing?",
           "source_ids": [
-            "KB-18"
-          ]
-        },
-        {
-          "text": "8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
-          "source_ids": [
-            "KB-18"
+            "KB-11"
           ]
         }
       ],
       "fixes": [],
       "violations": [
-        "tweet_5:section_label:two more forms"
+        "tweet_7:section_label:two things to check"
       ],
       "accepted": false
     },
@@ -395,7 +347,7 @@
     "record_id": "marketing_2/validator/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "f73244b68f56c25d8a7ae96b6d13cc27edf6aa8671168ea6a1a66f077488e82d",
+    "input_sha256": "a0bdfcda9111db192276393ce302c23cf204a650641538c55ae686e8d32d5154",
     "audit": {
       "original": {
         "slot_id": "marketing_2",
@@ -430,14 +382,14 @@
     "record_id": "marketing_3/validator/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "93f72195f687150a6a023babba87c8849f453bd4ef86a6b0df03d043b4fac006",
+    "input_sha256": "2f42265f1b3dbacbb376142f78d791681f1295f90f796c43915f202f8806d76e",
     "audit": {
       "original": {
         "slot_id": "marketing_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?",
+            "text": "Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
             "source_ids": [
               "KB-04"
             ]
@@ -446,7 +398,7 @@
       },
       "normalized": [
         {
-          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?",
+          "text": "Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",
           "source_ids": [
             "KB-04"
           ]
@@ -460,112 +412,30 @@
     "failure_detail": null
   },
   {
-    "record_id": "thread_1/validator/2/1",
-    "slot_id": "thread_1",
-    "attempt": 2,
-    "input_sha256": "df084858bcc92f8be41df5c1209a7bcf1c94722ff1c69c082f49a02b82708b0c",
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "8b3822dd988fbc9562daed8a56f06fc0d4acca38116bed8955bb5a6b62aba1f0",
     "audit": {
       "original": {
-        "slot_id": "thread_1",
-        "attempt": 2,
+        "slot_id": "marketing_1",
+        "attempt": 1,
         "tweets": [
           {
-            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+            "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
             "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
-            "source_ids": [
-              "KB-01"
+              "STAT-04",
+              "STAT-05"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
           "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "3/8 Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
-          "source_ids": [
-            "KB-01"
+            "STAT-04",
+            "STAT-05"
           ]
         }
       ],
@@ -580,109 +450,97 @@
     "record_id": "thread_3/validator/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "94567d964fab21e7a50b6105adcc3d2247afa6c61c342689a726690603e5ba81",
+    "input_sha256": "34df8d77fb6c74d249b1c14dfc166d93c18854957f4a0c5ddb40da07e28cfad6",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 2,
         "tweets": [
           {
-            "text": "A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
+            "text": "A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
+            "text": "Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
+            "text": "A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.",
+            "text": "Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
+            "text": "The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
+            "text": "Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
             "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           },
           {
-            "text": "For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
+            "text": "Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",
             "source_ids": [
-              "KB-15"
-            ]
-          },
-          {
-            "text": "Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",
-            "source_ids": [
-              "KB-15"
+              "KB-11"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
+          "text": "1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
+          "text": "2/7 Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
+          "text": "3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.",
+          "text": "4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "5/8 The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
+          "text": "5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
+          "text": "6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.",
           "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         },
         {
-          "text": "7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
+          "text": "7/7 Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",
           "source_ids": [
-            "KB-15"
-          ]
-        },
-        {
-          "text": "8/8 Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",
-          "source_ids": [
-            "KB-15"
+            "KB-11"
           ]
         }
       ],
@@ -697,44 +555,44 @@
     "record_id": "thread_2/validator/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "30ebb2d55d0cd80490d9177162cd63ff5e4f9893d7836ded94464c7afcbae654",
+    "input_sha256": "79e93613f253bd4fda9798aa765b2fca717f64818b3422ebd41a1fa70bf7e264",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 2,
         "tweets": [
           {
-            "text": "An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+            "text": "An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+            "text": "An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+            "text": "A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+            "text": "Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+            "text": "Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
             "source_ids": [
               "KB-18"
             ]
           },
           {
-            "text": "For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+            "text": "OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
             "source_ids": [
               "KB-18"
             ]
@@ -746,7 +604,7 @@
             ]
           },
           {
-            "text": "Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
+            "text": "Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
             "source_ids": [
               "KB-18"
             ]
@@ -755,37 +613,37 @@
       },
       "normalized": [
         {
-          "text": "1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+          "text": "1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+          "text": "2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+          "text": "3/8 A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+          "text": "4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "5/8 Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+          "text": "5/8 Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.",
           "source_ids": [
             "KB-18"
           ]
         },
         {
-          "text": "6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+          "text": "6/8 OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
           "source_ids": [
             "KB-18"
           ]
@@ -797,7 +655,7 @@
           ]
         },
         {
-          "text": "8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
+          "text": "8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",
           "source_ids": [
             "KB-18"
           ]

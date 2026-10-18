@@ -1,12 +1,12 @@
 {
-  "concept": "A review that reports each finding with its severity, root cause and recommended fix",
-  "scene": "Clean brand card on a deep navy background with a single amber accent line beneath the headline text, minimal layout with generous spacing and white text, no icons or figures",
+  "concept": "A review that reports each finding clearly, with severity, root cause and a recommended fix",
+  "scene": "Clean brand card on a deep navy background with a single amber accent line beneath the headline text, minimal layout with generous spacing and no illustrations",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "its severity, its root cause and a recommended fix",
-  "alt_text": "Navy card with white text reading: its severity, its root cause and a recommended fix, with an amber accent line beneath.",
+  "alt_text": "Navy card with white text reading its severity, its root cause and a recommended fix, underlined by an amber accent line",
   "severity": null
 }

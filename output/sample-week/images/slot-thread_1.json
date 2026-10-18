@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: external calls can reenter before state is finalized, so state must be updated before the call.",
-  "scene": "Dark navy background with a simple diagram: a contract box handing control to a second box via an arrow, with a looping amber arrow returning to the first box before a storage cell is cleared. Clean, calm, technical layout with generous space for the overlay text.",
+  "concept": "Reentrancy: external calls can reenter before state is finalized, so update state before calling out",
+  "scene": "Dark navy background with a simple diagram of two contract boxes connected by a looping arrow in amber, showing a call going out and a callback returning before the balance is cleared",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "State updates after untrusted calls allow repeated execution",
-  "alt_text": "Diagram of one contract calling another, with an arrow looping back to the first contract before its stored balance is cleared, illustrating reentrancy.",
+  "alt_text": "Diagram of two contract boxes joined by a looping amber arrow on a navy background, showing a callback returning before the stored balance is cleared",
   "severity": "high"
 }

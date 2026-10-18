@@ -1,28 +1,27 @@
 Post Text,Image
 "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.
 2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.
-3/8 Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.
-4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.
-5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.
-6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.
-7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.
-8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",images/slot-thread_1.png
-"1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.
-2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.
-3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.
-4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.
-5/8 Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.
-6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.
+3/8 Untrusted calls made before state updates allow repeated execution. That is the root of reentrancy: the order of operations, not the Ether transfer itself.
+4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to any other contract, and dependencies across multiple contracts also matter.
+5/8 A callback may also enter through a different function or dependency that shares the affected state. Guarding one function while another reads the same storage leaves a path open.
+6/8 The fix is checks-effects-interactions: validate inputs and permissions, update storage, then make external calls. In a withdrawal, that means `balances[msg.sender] = 0;` before the call to the recipient.
+7/8 Save the withdrawal amount first, clear the stored balance, then call the recipient. Require the call to succeed so a failure reverts the whole operation.
+8/8 Does any function in your contract make an external call before it clears or updates the storage that a callback could read through this or another function?",images/slot-thread_1.png
+"1/8 An attacker moves a price with a large trade, a flash loan or just-in-time liquidity in the same block, then calls a protocol that reads that price and gets treated as if the market really moved. That is price oracle manipulation.
+2/8 An oracle is a trust boundary. The contract implicitly trusts that the price reflects market conditions, and that trust can be broken by manipulation, staleness or misconfiguration.
+3/8 A contract that relies on price or valuation data an attacker can influence, directly or indirectly, ends up making decisions on incorrect values. The protocol trusts price inputs that attackers can move.
+4/8 Lending protocols are a clear case. They value collateral and decide liquidations from price data, so a manipulated price feeds straight into those decisions.
+5/8 Prices can also go wrong through TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers.
+6/8 OWASP suggests aggregating multiple sources with a median or mean and rejecting outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.
 7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.
-8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",images/slot-thread_2.png
-"1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.
-2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.
-3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.
-4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.
-5/8 The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.
-6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.
-7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.
-8/8 Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",images/slot-thread_3.png
+8/8 Monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test what happens when that price is stale or sharply moved within one block.",images/slot-thread_2.png
+"1/7 A payout loop assumes every recipient will accept their Ether. In practice, external calls can fail accidentally or deliberately, and one failing recipient can block the whole batch.
+2/7 Progress depends on every external transfer or call succeeding. If a function needs all calls in a batch to succeed, a single failure stops the entire operation and the contract is denied service.
+3/7 A concrete case is payments pushed to many recipients in a loop. One recipient that fails blocks everyone else behind it in that loop.
+4/7 Per the Solidity documentation, sending Ether can fail when the recipient runs out of gas, including through require, assert or revert. With transfer or send plus a return value check, this can let the recipient block progress in the sending contract.
+5/7 The fix is to isolate each external call into its own transaction that the recipient can initiate. For payments, let users withdraw funds instead of pushing funds to them automatically. That also lowers the chance of gas limit problems.
+6/7 Avoid combining multiple calls in a single transaction, especially inside a loop. Always assume external calls can fail, and write the contract logic so it handles a failed call.
+7/7 Before shipping, look for a loop that pushes Ether to many recipients, and check whether one failed call stops the rest of the batch from completing.",images/slot-thread_3.png
 "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",images/slot-marketing_1.png
 "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",images/slot-marketing_2.png
-How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?,images/slot-marketing_3.png
+"Who can pull Ether out of your contract? If a withdrawal function has no effective caller check, malicious parties can drain some or all of it. Restrict withdrawals to authorized parties. Which of your functions move Ether out?",images/slot-marketing_3.png

@@ -1,96 +1,5 @@
 [
   {
-    "record_id": "thread_2/research_search/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "pack": null,
-    "evidence": [
-      {
-        "source_id": "KB-18",
-        "kind": "kb",
-        "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
-        "title": "Price oracle manipulation",
-        "retrieved_at": "2026-10-18T18:03:49.195778Z",
-        "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
-        "status": "ok"
-      },
-      {
-        "source_id": "KB-19",
-        "kind": "kb",
-        "url": "https://scs.owasp.org/sctop10/SC04-FlashLoanAttacks/",
-        "title": "Flash loan facilitated attacks",
-        "retrieved_at": "2026-10-18T18:03:49.195798Z",
-        "evidence_text": "A flash loan is uncollateralized, same-transaction borrowing. OWASP says flash loans are not inherently vulnerable, but they give an attacker arbitrarily large, transient capital within one transaction. Any protocol whose trust assumptions rest on capital at risk or historical position size is exposed when an attacker can hold large balances temporarily without risking their own funds. The attacker batches a transaction that borrows via a flash loan, manipulates protocol state, prices or accounting with the borrowed funds, extracts profit, and repays the loan in the same transaction. OWASP names governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks as areas to review.\nRoot cause: Protocol assumptions fail when an attacker temporarily controls substantial liquidity. OWASP notes that flash loans act as a force multiplier for underlying business logic, oracle, arithmetic or access control weaknesses, which must be fixed at the root. Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Rate limit sensitive operations per block or epoch, cap exposure per interaction with limits on slippage, position sizes and borrowing, and include flash-loan scenarios in tests and fuzzing.",
-        "status": "ok"
-      },
-      {
-        "source_id": "KB-01",
-        "kind": "kb",
-        "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
-        "title": "Reentrancy",
-        "retrieved_at": "2026-10-18T18:03:49.195806Z",
-        "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
-        "status": "ok"
-      },
-      {
-        "source_id": "KB-02",
-        "kind": "kb",
-        "url": "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
-        "title": "Integer overflow and underflow",
-        "retrieved_at": "2026-10-18T18:03:49.195812Z",
-        "evidence_text": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.\nRoot cause: Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
-        "status": "ok"
-      },
-      {
-        "source_id": "KB-03",
-        "kind": "kb",
-        "url": "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
-        "title": "Unchecked call return value",
-        "retrieved_at": "2026-10-18T18:03:49.195822Z",
-        "evidence_text": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.\nRoot cause: The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
-        "status": "ok"
-      }
-    ],
-    "action": "search_kb",
-    "query": "oracle manipulation",
-    "failure": null
-  },
-  {
-    "record_id": "thread_2/research/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "pack": {
-      "slot_id": "thread_2",
-      "topic_id": "KB-18",
-      "topic_name": "Price oracle manipulation",
-      "sources": [
-        {
-          "source_id": "KB-18",
-          "kind": "kb",
-          "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
-          "title": "Price oracle manipulation",
-          "retrieved_at": "2026-10-18T18:03:49.195778Z",
-          "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
-          "status": "ok"
-        }
-      ]
-    },
-    "evidence": [
-      {
-        "source_id": "KB-18",
-        "kind": "kb",
-        "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
-        "title": "Price oracle manipulation",
-        "retrieved_at": "2026-10-18T18:03:49.195778Z",
-        "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
-        "status": "ok"
-      }
-    ],
-    "action": "resolved",
-    "query": "",
-    "failure": null
-  },
-  {
     "record_id": "thread_1/research_search/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
@@ -101,7 +10,7 @@
         "kind": "kb",
         "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
         "title": "Reentrancy",
-        "retrieved_at": "2026-10-18T18:03:45.446971Z",
+        "retrieved_at": "2026-10-18T18:39:41.165957Z",
         "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
         "status": "ok"
       },
@@ -110,7 +19,7 @@
         "kind": "kb",
         "url": "https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
         "title": "Business logic errors",
-        "retrieved_at": "2026-10-18T18:03:45.447001Z",
+        "retrieved_at": "2026-10-18T18:39:41.165987Z",
         "evidence_text": "Business logic vulnerabilities are design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain. OWASP describes them as cases where intended economic or functional behavior can be subverted even though low-level checks such as type safety, reentrancy guards and access control are correct: the code does what it says, but what it says permits exploitable outcomes. OWASP lists invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions as areas to focus on. Its vulnerable lending example computes borrow capacity from the requested borrow amount instead of the user's collateral balance, so the check enforces no economic invariant.\nRoot cause: The implementation omits or misapplies a required business invariant. OWASP recommends modeling protocol economics explicitly, for example with adversarial simulations, and expressing core invariants in code and tests, such as total value withdrawn not exceeding total deposits plus realized yield. It also recommends formal verification and property-based fuzzing for key accounting paths, rolling out new strategies behind caps while monitoring metrics and on-chain invariants, and making sure governance and operations teams understand the invariants, not just auditors.",
         "status": "ok"
       },
@@ -119,7 +28,7 @@
         "kind": "kb",
         "url": "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
         "title": "Integer overflow and underflow",
-        "retrieved_at": "2026-10-18T18:03:45.447013Z",
+        "retrieved_at": "2026-10-18T18:39:41.165998Z",
         "evidence_text": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.\nRoot cause: Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
         "status": "ok"
       },
@@ -128,7 +37,7 @@
         "kind": "kb",
         "url": "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
         "title": "Unchecked call return value",
-        "retrieved_at": "2026-10-18T18:03:45.447020Z",
+        "retrieved_at": "2026-10-18T18:39:41.166006Z",
         "evidence_text": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.\nRoot cause: The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
         "status": "ok"
       },
@@ -137,7 +46,7 @@
         "kind": "kb",
         "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
         "title": "Unprotected Ether withdrawal",
-        "retrieved_at": "2026-10-18T18:03:45.447031Z",
+        "retrieved_at": "2026-10-18T18:39:41.166017Z",
         "evidence_text": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. The SWC entry notes that this bug is sometimes caused by unintentionally exposing initialization functions: if a function intended to be a constructor is named wrongly, its code ends up in the runtime bytecode and can be called by anyone to re-initialize the contract. Before Solidity 0.4.22 a constructor was a function named exactly like its contract, so a name mismatch left it a normal callable function.\nRoot cause: Withdrawal functions lack effective caller authorization, so the contract does not check who may trigger a transfer of Ether out. Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system. Also check that initialization code cannot be called again by an arbitrary account. Since Solidity 0.4.22 the constructor keyword makes constructor definitions clearer than the old same-name rule. The SWC registry is no longer actively maintained, so treat its text as historical guidance.",
         "status": "ok"
       }
@@ -160,7 +69,7 @@
           "kind": "kb",
           "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
           "title": "Reentrancy",
-          "retrieved_at": "2026-10-18T18:03:45.446971Z",
+          "retrieved_at": "2026-10-18T18:39:41.165957Z",
           "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
           "status": "ok"
         }
@@ -172,8 +81,99 @@
         "kind": "kb",
         "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
         "title": "Reentrancy",
-        "retrieved_at": "2026-10-18T18:03:45.446971Z",
+        "retrieved_at": "2026-10-18T18:39:41.165957Z",
         "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/research_search/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "KB-18",
+        "kind": "kb",
+        "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
+        "title": "Price oracle manipulation",
+        "retrieved_at": "2026-10-18T18:39:45.039020Z",
+        "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-19",
+        "kind": "kb",
+        "url": "https://scs.owasp.org/sctop10/SC04-FlashLoanAttacks/",
+        "title": "Flash loan facilitated attacks",
+        "retrieved_at": "2026-10-18T18:39:45.039040Z",
+        "evidence_text": "A flash loan is uncollateralized, same-transaction borrowing. OWASP says flash loans are not inherently vulnerable, but they give an attacker arbitrarily large, transient capital within one transaction. Any protocol whose trust assumptions rest on capital at risk or historical position size is exposed when an attacker can hold large balances temporarily without risking their own funds. The attacker batches a transaction that borrows via a flash loan, manipulates protocol state, prices or accounting with the borrowed funds, extracts profit, and repays the loan in the same transaction. OWASP names governance voting, oracle pricing, share and accounting logic, and liquidation and collateral checks as areas to review.\nRoot cause: Protocol assumptions fail when an attacker temporarily controls substantial liquidity. OWASP notes that flash loans act as a force multiplier for underlying business logic, oracle, arithmetic or access control weaknesses, which must be fixed at the root. Design economic and accounting logic on the assumption that arbitrarily large, transient capital is available. Rate limit sensitive operations per block or epoch, cap exposure per interaction with limits on slippage, position sizes and borrowing, and include flash-loan scenarios in tests and fuzzing.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-01",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/security-considerations.html#reentrancy",
+        "title": "Reentrancy",
+        "retrieved_at": "2026-10-18T18:39:45.039048Z",
+        "evidence_text": "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-02",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/080-breaking-changes.html#silent-changes-of-the-semantics",
+        "title": "Integer overflow and underflow",
+        "retrieved_at": "2026-10-18T18:39:45.039054Z",
+        "evidence_text": "Integer types have bounded ranges; overflow or underflow occurs when an arithmetic result falls outside its type range. Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. An unchecked block restores wrapping for arithmetic inside it: for example, uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting.\nRoot cause: Arithmetic bounds are not enforced in legacy wrapping arithmetic or in unchecked operations. Check the compiler version and each unchecked block before reasoning about bounds. Use checked arithmetic or explicit range checks where wrapping is unintended; unchecked blocks require reasoning that their inputs stay within the intended bounds. Functions called from an unchecked block do not inherit its unchecked mode. Division or modulo by zero still fails inside unchecked blocks. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+        "status": "ok"
+      },
+      {
+        "source_id": "KB-03",
+        "kind": "kb",
+        "url": "https://docs.soliditylang.org/en/latest/types.html#members-of-addresses",
+        "title": "Unchecked call return value",
+        "retrieved_at": "2026-10-18T18:39:45.039066Z",
+        "evidence_text": "A failed low-level call can be silently ignored. Solidity low-level call, delegatecall and staticcall return a success boolean plus returned bytes. A callee exception makes the boolean false rather than automatically propagating that exception to the caller. If the caller ignores failure, it can continue as though the intended operation happened. A true success flag alone does not establish the intended application result: a low-level call to an address with no code can return true.\nRoot cause: The caller does not inspect the returned success flag or validate the result needed by the application. Capture the success boolean and handle failure explicitly; require(success) is appropriate when failure must revert the whole operation. If a returned value or contract code is required, check those conditions too. Do not treat a successful low-level call as proof that the destination exists or that an application-specific action succeeded.",
+        "status": "ok"
+      }
+    ],
+    "action": "search_kb",
+    "query": "oracle manipulation",
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/research/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_2",
+      "topic_id": "KB-18",
+      "topic_name": "Price oracle manipulation",
+      "sources": [
+        {
+          "source_id": "KB-18",
+          "kind": "kb",
+          "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
+          "title": "Price oracle manipulation",
+          "retrieved_at": "2026-10-18T18:39:45.039020Z",
+          "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
+          "status": "ok"
+        }
+      ]
+    },
+    "evidence": [
+      {
+        "source_id": "KB-18",
+        "kind": "kb",
+        "url": "https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
+        "title": "Price oracle manipulation",
+        "retrieved_at": "2026-10-18T18:39:45.039020Z",
+        "evidence_text": "Price oracle manipulation is any situation where a contract relies on price or valuation data that an attacker can influence directly or indirectly, so the protocol makes decisions on incorrect values. An oracle is a trust boundary: the contract implicitly trusts that the price reflects market conditions, and that trust can be violated by manipulation, staleness or misconfiguration. OWASP lists spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, TWAP manipulation over short windows or low-liquidity periods, stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. It applies to contracts that consume price data, such as lending protocols that value collateral and decide liquidations.\nRoot cause: The protocol trusts price inputs attackers can move. OWASP mitigations: aggregate multiple sources with a median or mean and reject outliers; use TWAPs over sufficient windows and reject prices older than a maximum staleness threshold; avoid basing core prices on illiquid pools and cap the impact of a single pool or feed; halt sensitive operations such as borrowing and liquidations on suspicious or unavailable data; and monitor deviations between the oracle and reference markets with automated alerts.",
         "status": "ok"
       }
     ],
@@ -187,28 +187,28 @@
     "attempt": 1,
     "pack": {
       "slot_id": "thread_3",
-      "topic_id": "KB-15",
-      "topic_name": "Shadowing state variables",
+      "topic_id": "KB-11",
+      "topic_name": "Denial of service with failed call",
       "sources": [
         {
-          "source_id": "KB-15",
+          "source_id": "KB-11",
           "kind": "kb",
-          "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md",
-          "title": "Shadowing state variables",
-          "retrieved_at": "2026-10-18T18:03:52.583074Z",
-          "evidence_text": "With inheritance, older Solidity allowed ambiguous naming of state variables. If contract A defines a variable x and inherits contract B that also defines a state variable x, there are two separate versions of x, one accessed from A and the other from B. In more complex contract systems this can go unnoticed and lead to security issues. Shadowing can also occur within a single contract when there are multiple definitions at contract and function level. Since Solidity 0.6.0, state variable shadowing is disallowed: a derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.\nRoot cause: Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. Review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, because they can flag the issue within a single contract. The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
+          "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-113.md",
+          "title": "Denial of service with failed call",
+          "retrieved_at": "2026-10-18T18:39:48.873416Z",
+          "evidence_text": "External calls can fail accidentally or deliberately, which can cause a denial of service in the contract. When a contract needs every call in a batch to succeed, for example payments pushed to many recipients in a loop, one failing recipient can block the whole operation. The Solidity documentation adds that sending Ether can fail because the recipient runs out of gas, including through require, assert or revert, and that with transfer or send plus a return value check this can give the recipient a way to block progress in the sending contract.\nRoot cause: Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
           "status": "ok"
         }
       ]
     },
     "evidence": [
       {
-        "source_id": "KB-15",
+        "source_id": "KB-11",
         "kind": "kb",
-        "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-119.md",
-        "title": "Shadowing state variables",
-        "retrieved_at": "2026-10-18T18:03:52.583074Z",
-        "evidence_text": "With inheritance, older Solidity allowed ambiguous naming of state variables. If contract A defines a variable x and inherits contract B that also defines a state variable x, there are two separate versions of x, one accessed from A and the other from B. In more complex contract systems this can go unnoticed and lead to security issues. Shadowing can also occur within a single contract when there are multiple definitions at contract and function level. Since Solidity 0.6.0, state variable shadowing is disallowed: a derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.\nRoot cause: Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. Review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, because they can flag the issue within a single contract. The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
+        "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-113.md",
+        "title": "Denial of service with failed call",
+        "retrieved_at": "2026-10-18T18:39:48.873416Z",
+        "evidence_text": "External calls can fail accidentally or deliberately, which can cause a denial of service in the contract. When a contract needs every call in a batch to succeed, for example payments pushed to many recipients in a loop, one failing recipient can block the whole operation. The Solidity documentation adds that sending Ether can fail because the recipient runs out of gas, including through require, assert or revert, and that with transfer or send plus a return value check this can give the recipient a way to block progress in the sending contract.\nRoot cause: Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
         "status": "ok"
       }
     ],
@@ -230,7 +230,7 @@
           "kind": "stat",
           "url": null,
           "title": "Sentinel Grove",
-          "retrieved_at": "2026-10-18T18:03:52.610039Z",
+          "retrieved_at": "2026-10-18T18:39:48.904948Z",
           "evidence_text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix.",
           "status": "ok"
         },
@@ -239,7 +239,7 @@
           "kind": "stat",
           "url": null,
           "title": "Sentinel Grove",
-          "retrieved_at": "2026-10-18T18:03:52.610051Z",
+          "retrieved_at": "2026-10-18T18:39:48.904960Z",
           "evidence_text": "Teams can request a review of their smart contract code.",
           "status": "ok"
         }
@@ -251,7 +251,7 @@
         "kind": "stat",
         "url": null,
         "title": "Sentinel Grove",
-        "retrieved_at": "2026-10-18T18:03:52.610039Z",
+        "retrieved_at": "2026-10-18T18:39:48.904948Z",
         "evidence_text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix.",
         "status": "ok"
       },
@@ -260,7 +260,7 @@
         "kind": "stat",
         "url": null,
         "title": "Sentinel Grove",
-        "retrieved_at": "2026-10-18T18:03:52.610051Z",
+        "retrieved_at": "2026-10-18T18:39:48.904960Z",
         "evidence_text": "Teams can request a review of their smart contract code.",
         "status": "ok"
       }
@@ -283,7 +283,7 @@
           "kind": "stat",
           "url": null,
           "title": "Sentinel Grove",
-          "retrieved_at": "2026-10-18T18:03:52.650584Z",
+          "retrieved_at": "2026-10-18T18:39:48.940790Z",
           "evidence_text": "Sentinel Grove has completed 12 smart contract audits.",
           "status": "ok"
         },
@@ -292,7 +292,7 @@
           "kind": "stat",
           "url": null,
           "title": "Sentinel Grove",
-          "retrieved_at": "2026-10-18T18:03:52.650597Z",
+          "retrieved_at": "2026-10-18T18:39:48.940803Z",
           "evidence_text": "Teams can request a review of their smart contract code.",
           "status": "ok"
         }
@@ -304,7 +304,7 @@
         "kind": "stat",
         "url": null,
         "title": "Sentinel Grove",
-        "retrieved_at": "2026-10-18T18:03:52.650584Z",
+        "retrieved_at": "2026-10-18T18:39:48.940790Z",
         "evidence_text": "Sentinel Grove has completed 12 smart contract audits.",
         "status": "ok"
       },
@@ -313,7 +313,7 @@
         "kind": "stat",
         "url": null,
         "title": "Sentinel Grove",
-        "retrieved_at": "2026-10-18T18:03:52.650597Z",
+        "retrieved_at": "2026-10-18T18:39:48.940803Z",
         "evidence_text": "Teams can request a review of their smart contract code.",
         "status": "ok"
       }
@@ -336,7 +336,7 @@
           "kind": "kb",
           "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
           "title": "Unprotected Ether withdrawal",
-          "retrieved_at": "2026-10-18T18:03:52.752871Z",
+          "retrieved_at": "2026-10-18T18:39:48.975075Z",
           "evidence_text": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. The SWC entry notes that this bug is sometimes caused by unintentionally exposing initialization functions: if a function intended to be a constructor is named wrongly, its code ends up in the runtime bytecode and can be called by anyone to re-initialize the contract. Before Solidity 0.4.22 a constructor was a function named exactly like its contract, so a name mismatch left it a normal callable function.\nRoot cause: Withdrawal functions lack effective caller authorization, so the contract does not check who may trigger a transfer of Ether out. Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system. Also check that initialization code cannot be called again by an arbitrary account. Since Solidity 0.4.22 the constructor keyword makes constructor definitions clearer than the old same-name rule. The SWC registry is no longer actively maintained, so treat its text as historical guidance.",
           "status": "ok"
         }
@@ -348,7 +348,7 @@
         "kind": "kb",
         "url": "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-105.md",
         "title": "Unprotected Ether withdrawal",
-        "retrieved_at": "2026-10-18T18:03:52.752871Z",
+        "retrieved_at": "2026-10-18T18:39:48.975075Z",
         "evidence_text": "Due to missing or insufficient access controls, malicious parties can withdraw some or all Ether from the contract account. The SWC entry notes that this bug is sometimes caused by unintentionally exposing initialization functions: if a function intended to be a constructor is named wrongly, its code ends up in the runtime bytecode and can be called by anyone to re-initialize the contract. Before Solidity 0.4.22 a constructor was a function named exactly like its contract, so a name mismatch left it a normal callable function.\nRoot cause: Withdrawal functions lack effective caller authorization, so the contract does not check who may trigger a transfer of Ether out. Implement controls so withdrawals can only be triggered by authorized parties or according to the specs of the smart contract system. Also check that initialization code cannot be called again by an arbitrary account. Since Solidity 0.4.22 the constructor keyword makes constructor definitions clearer than the old same-name rule. The SWC registry is no longer actively maintained, so treat its text as historical guidance.",
         "status": "ok"
       }

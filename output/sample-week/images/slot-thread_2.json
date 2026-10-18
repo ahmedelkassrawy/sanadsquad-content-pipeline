@@ -1,12 +1,12 @@
 {
-  "concept": "An oracle is a trust boundary: price inputs that attackers can move",
-  "scene": "Technical diagram style card on a deep navy background. A simple price feed line enters a contract box through a dashed boundary line, with one spike in the line highlighted in amber. Clean geometric shapes, generous empty space for the overlay text, no extra words in the artwork.",
+  "concept": "A price oracle as a trust boundary: the contract trusts a price input that an attacker can move",
+  "scene": "Dark navy background with a simple diagram: a market price line on the left jumps sharply upward, passes through a gate labelled as a boundary in amber, and reaches a contract block on the right. Clean technical style, thin amber lines, white labels, calm and precise.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "An oracle is a trust boundary",
-  "alt_text": "Diagram of a price feed line with one amber spike crossing a dashed trust boundary into a contract box, on a navy background.",
+  "alt_text": "Diagram of a price line spiking in a market, crossing an amber boundary gate and feeding a smart contract block, illustrating price oracle manipulation as a trust boundary.",
   "severity": "high"
 }

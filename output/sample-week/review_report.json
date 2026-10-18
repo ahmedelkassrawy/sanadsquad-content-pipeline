@@ -1,22 +1,20 @@
 [
   {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "4d99f7eb043561a3be3b9860c4acf8142a178405c12f7867b190022962695502",
+    "input_sha256": "e5a5e6df093f768ca54dbb3eee28613d04a388af641f8075c107e0e840d40a6e",
     "review": {
-      "slot_id": "marketing_1",
+      "slot_id": "thread_1",
       "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 5.0
       },
-      "reasons": [
-        "The opening states the STAT-04 deliverable plainly. It is clear and specific to the service angle, but it is a near-verbatim restatement with no contrast or framing to draw the reader in."
-      ],
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
@@ -26,7 +24,7 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "adba10c1b0bfd97f74f7a650aa5defe455315e46d8bc58de874e9cf56b422dec",
+    "input_sha256": "fc0fe4075473bf5cad33f58b7b15e8ffa075c7e2f36bced209cf5b845e64ea48",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
@@ -38,29 +36,8 @@
         "cta": 4.0
       },
       "reasons": [
-        "The opening 'Sentinel Grove has completed 12 smart contract audits.' is specific and supported. It is still a plain credential statement rather than a contrast or question, so it is clear but somewhat generic."
+        "The opening 'Sentinel Grove has completed 12 smart contract audits.' is a clear, specific statement, but it reads as a plain credential with no contrast or angle that pulls the reader in."
       ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/2/1",
-    "slot_id": "thread_1",
-    "attempt": 2,
-    "input_sha256": "352038f24c75d348bcf8e128025aaa0916ca1f6aaf7c1320288ba8ccdb077ecc",
-    "review": {
-      "slot_id": "thread_1",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 4.0
-      },
-      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
@@ -70,15 +47,15 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "ec15f5d17395ed57622e998c06aaad281bb29b79acda986a84d5956658d5a717",
+    "input_sha256": "ccb09ad647a927be4adab2f8ac8b42725f45b4487d4246210720fce1ad886849",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
-        "hook": 4.0,
+        "hook": 5.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 4.0,
+        "clarity": 5.0,
         "cta": 4.0
       },
       "reasons": [],
@@ -88,19 +65,42 @@
     "failure": null
   },
   {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "b4305388a83341cec91e6b84ecac8f34280f8154cea2416eebb0c72ff1228933",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The opening is a clear, specific statement of what a review delivers, matching STAT-04. However, it restates the stat verbatim and gives no contrast or angle that draws the reader in, so it is clear but plain."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
     "record_id": "thread_3/reviewer/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "082afd4b8f6a82afdf5dafbd56889b43387ac60b627666aa01efb34d9676d92b",
+    "input_sha256": "21df7fafbf27b3a1cd951ff9ea78bb5c1511a9e72907262de28b9bd8341eb0e8",
     "review": {
       "slot_id": "thread_3",
       "scores": {
         "hook": 4.0,
         "technical_accuracy": 4.0,
-        "grounding": 4.0,
+        "grounding": 5.0,
         "voice": 4.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],
@@ -112,16 +112,16 @@
     "record_id": "thread_2/reviewer/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "b06bfaad1e6f2527719ddc4273876ed2fe0596f23e185211440be6e6bc648daf",
+    "input_sha256": "b1872e3ff81a6727a5375e6f24c69faefa742fe9af804a1f2e78de3605e5da75",
     "review": {
       "slot_id": "thread_2",
       "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
         "grounding": 4.0,
         "voice": 5.0,
         "clarity": 4.0,
-        "cta": 4.0
+        "cta": 5.0
       },
       "reasons": [],
       "hard_fail": [],

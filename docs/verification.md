@@ -47,7 +47,7 @@ the knowledge base covers it, so no web search ran. Cloudflare returned HTTP 429
 so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; all three threads shipped after a code rejection (an outline label) and their retry. `output/claude-run-with-drop/` is an
+cost. It shipped 6 of 6; two threads shipped after a code rejection (an outline label) and their retry. `output/claude-run-with-drop/` is an
 earlier run on the same models that shows rejections, retries and a drop:
 `thread_2`'s first draft failed a code citation check, the second was rejected by the reviewer
 for the source's wrong "101" total, and the slot was dropped. It excludes the

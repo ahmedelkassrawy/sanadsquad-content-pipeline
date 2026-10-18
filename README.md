@@ -69,7 +69,7 @@ evidence. `--estimate` prints a worst-case cost ceiling without any call. Defaul
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
 and every retry, repair and search turn happens (about $52 on the committed Claude models, while
-the sample run cost about $0.42). It is a warning, not a plan. What keeps a run inside the $1
+the sample run cost about $0.39). It is a warning, not a plan. What keeps a run inside the $1
 budget is the guard in `model_client.py`, which reserves each call's worst case before sending
 it and refuses the call (`failed_budget`) when it no longer fits.
 
@@ -108,7 +108,7 @@ rejects the draft even if the average passes.
 
 | Limitation | Next step |
 | --- | --- |
-| The committed Claude sample shows three code rejections and retries (outline labels) but no reviewer rejection or drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, round-4 code: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
+| The committed Claude sample shows two code rejections and retries (outline labels) but no reviewer rejection or drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, round-4 code: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
 | The general number check skips bare single digits ("3 steps") and numbers written as words ("three steps"); the firm-stat check ignores unrelated technical counts and dotted versions but reads spelled-out approved counts up to twenty. Cross-sentence joins ("...12 smart contract audits. All 3 auditors worked on each one.") remain semantic and stay with the reviewer. | Extend the check once false positives are measured. |
 | Within-thread repetition uses stemmed content-word overlap plus repeated phrases; it excludes the closing tweet and asymmetric example/detail transitions, so semantic repetition with little shared language remains with the reviewer. | Add embeddings only after measuring their false-positive rate on accepted threads. |
 | The reviewer (Opus) is a different model from the writers, which reduces shared blind spots but is still an LLM judgement. Tests use scripted models, so they prove routing and rules, not real judgement quality. | Run `live_proof --live` and hand-check a sample after every model change. |
