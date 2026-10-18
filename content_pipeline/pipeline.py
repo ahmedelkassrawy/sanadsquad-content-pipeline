@@ -36,7 +36,7 @@ from .contracts import (
 )
 from .images import card_style, fallback_spec, overlay_errors, render_card
 from .image_backends import render_image
-from .ledger import BudgetExhausted, Ledger
+from .ledger import BudgetExhausted, Ledger, agent_usage
 from .model_client import (
     PRICES_FILE,
     ModelFailure,
@@ -1450,6 +1450,7 @@ class Pipeline:
             external_usage=self.external,
             advisor=week["advisor"],
             advisor_reason=week.get("advisor_reason"),
+            agents=agent_usage(usage),
         )
 
     async def finalize(self, week):

@@ -81,7 +81,7 @@ brief and off by default. Set `ADVISOR_ENABLED=true` in `.env` to turn it on.
 Each run folder (`output/week-42`, or `output/<UTC time>-<random>` without `--output`) holds
 `posts.csv`, the deliverable. A generated `README.md` in the folder lists the result and
 trace files it contains (internal resume files are not listed), and `run.log` shows what happened to each slot: research, each draft, reviewer
-scores and reasons, and the outcome. `run_summary.json` has tokens and cost. A finished
+scores and reasons, and the outcome. `run_summary.json` has tokens and cost, in total and per agent. A finished
 example is in [output/sample-week](output/sample-week).
 
 Importing `posts.csv` into a scheduler: each row is one post. A thread is one cell, with its

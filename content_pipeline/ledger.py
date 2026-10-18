@@ -7,6 +7,45 @@ class BudgetExhausted(Exception):
     pass
 
 
+def agent_name(node: str) -> str:
+    """The agent behind a usage row's node: every research step counts as research."""
+    return "research" if node.startswith("research") else node
+
+
+def agent_usage(rows: list[dict]) -> dict[str, dict]:
+    """Sum usage.jsonl rows per agent: calls, tokens (input plus output) and USD.
+
+    Rows with status "uncertain" or "dispatched" are also reported separately, matching how the
+    run totals split confirmed from uncertain charges.
+    """
+    agents: dict[str, dict] = {}
+
+    for row in rows:
+        total = agents.setdefault(
+            agent_name(row["node"]),
+            {
+                "calls": 0,
+                "tokens": 0,
+                "cost_usd": 0.0,
+                "uncertain_tokens": 0,
+                "uncertain_cost_usd": 0.0,
+            },
+        )
+
+        tokens = row["input_tokens"] + row["output_tokens"]
+        cost = row["cost_usd"] or 0.0
+
+        total["calls"] += 1
+        total["tokens"] += tokens
+        total["cost_usd"] += cost
+
+        if row["status"] in {"uncertain", "dispatched"}:
+            total["uncertain_tokens"] += tokens
+            total["uncertain_cost_usd"] += cost
+
+    return agents
+
+
 class Ledger:
     def __init__(self, path: Path, token_budget: int, cost_budget: float):
         self.path = path
