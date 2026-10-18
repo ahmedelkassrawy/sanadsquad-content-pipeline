@@ -1,12 +1,12 @@
 {
-  "concept": "Credibility through a simple, factual statement of audit experience from a smart contract audit firm",
-  "scene": "Clean brand card with a deep navy background, a thin amber accent line beneath the overlay text, and a minimal outline of a grove tree with a small shield motif in white. Calm, precise layout with generous spacing.",
+  "concept": "Credibility through plain facts: a small smart contract audit firm with a track record of completed audits and a clear way to request a review.",
+  "scene": "Deep navy background with a single amber accent line beneath the overlay text, in a clean minimal layout with generous spacing and no illustrations.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "completed 12 smart contract audits",
-  "alt_text": "Navy brand card with an amber accent line and a white outline of a tree with a shield, reading: completed 12 smart contract audits.",
+  "alt_text": "Brand image card on a navy background with white text reading completed 12 smart contract audits and an amber accent line below.",
   "severity": null
 }

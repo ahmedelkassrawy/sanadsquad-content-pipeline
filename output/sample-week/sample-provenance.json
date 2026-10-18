@@ -1,7 +1,7 @@
 {
   "provenance": "live run of run_week.py against real providers; no injected or synthetic models",
   "date": "2026-10-18",
-  "commit": "33b9260 (fix/eval-round-3)",
+  "commit": "3fa3a73 (fix/eval-round-3)",
   "command": "python run_week.py --plan plan.json --output <run> --set thread_2=\"oracle manipulation\" --max-concurrency 3",
   "models_by_agent_node": {
     "anthropic:claude-sonnet-5-5": {
@@ -18,9 +18,9 @@
   "complete_six": true,
   "summary": {
     "shipped": 6,
-    "confirmed_tokens": 92890,
+    "confirmed_tokens": 93589,
     "uncertain_tokens": 0,
-    "confirmed_cost_usd": 0.352182,
+    "confirmed_cost_usd": 0.354204,
     "unpriced": false,
     "advisor": "not_enabled",
     "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained."

@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy risk: state updated after an external call lets a callback repeat the withdrawal",
-  "scene": "Flat technical diagram on a deep navy background: a contract block sends an arrow to an external contract, and a looping amber arrow returns to the first block, showing a callback before the balance is cleared. Minimal line icons, calm and precise, with a clear space for overlay text.",
+  "concept": "Reentrancy: update state before making external calls",
+  "scene": "A dark navy card with a bold amber excerpt centered on it, framed by a thin amber border and a simple abstract diagram of two connected contract boxes with a looping arrow showing a callback returning before the first call finishes.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "State updates after untrusted calls",
-  "alt_text": "Diagram of a contract calling an external contract, with a looping arrow showing a callback re-entering before the balance is cleared.",
+  "alt_text": "Navy brand card with the text State updates after untrusted calls and a diagram of two contract boxes linked by a looping callback arrow.",
   "severity": "high"
 }

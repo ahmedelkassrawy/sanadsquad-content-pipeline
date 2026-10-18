@@ -3,16 +3,16 @@
     "record_id": "thread_1/reviewer/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "d07f1a9fd3d73e57d42775d73453b61089b9743cafed14c89705c02f879c76cc",
+    "input_sha256": "0893418ef265e77f8e441d7e0accf7caa7af89bd854b8cecbe3d204e17cfb5c4",
     "review": {
       "slot_id": "thread_1",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 4.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],
@@ -21,22 +21,23 @@
     "failure": null
   },
   {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "0378f9c0157d0c1bcc41b83415d3040780da733a438e7e3864644ad893adad49",
+    "input_sha256": "7f3ebd55b98b84e965296897946b5b8195811f898b2803aa0e51d01b980dae92",
     "review": {
-      "slot_id": "thread_2",
+      "slot_id": "thread_3",
       "scores": {
-        "hook": 4.0,
+        "hook": 3.0,
         "technical_accuracy": 5.0,
         "grounding": 4.0,
         "voice": 3.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
       },
       "reasons": [
-        "The tone is calm and precise. However, OWASP is credited in three tweets (1/9 'listed by OWASP', 4/9 'OWASP lists', 6/9 'OWASP suggests'), and the rubric scores repeated authority crediting as 3."
+        "Tweet 1 opens with an accurate definition of a flash loan and 'arbitrarily large, transient capital'. It is clear but generic. It names no specific vulnerable pattern or contrast, such as a governance vote or oracle price swung within one transaction, that would pull a developer in.",
+        "The tone is calm and precise, with no hype or banned words, and OWASP is credited only once (tweet 2). However, tweet 9 carries the section label 'Closing check:', which the rubric caps at 3. Tweet 3's 'The root cause is an assumption.' also reads label-like."
       ],
       "hard_fail": [],
       "accepted": true
@@ -47,7 +48,7 @@
     "record_id": "marketing_1/reviewer/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "ebe313ee4cb4440073dc0e337a5a7fa2334ce0c8af7625146473c3ee71a7436d",
+    "input_sha256": "085d87026f5cc3866d7a0e174e8f9f0d97ca5a8e0593da432921507484ebefa7",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
@@ -55,11 +56,11 @@
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 5.0,
+        "clarity": 4.0,
         "cta": 5.0
       },
       "reasons": [
-        "The opening sentence is clear and grounded, but it restates STAT-04 verbatim as a plain description rather than a sharper contrast or angle, so it is generic."
+        "The opening restates the STAT-04 service description verbatim. It is clear and specific to the offering but reads as a plain statement with no contrast or angle that draws the reader in."
       ],
       "hard_fail": [],
       "accepted": true
@@ -67,23 +68,21 @@
     "failure": null
   },
   {
-    "record_id": "thread_3/reviewer/1/1",
-    "slot_id": "thread_3",
+    "record_id": "thread_2/reviewer/1/1",
+    "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "cd6f86cb314821f85f45cedd4a1381abcf29189760bfe83c11c96d76e7bc1bd2",
+    "input_sha256": "0545c6bfa3b70aa6bc643306eaba75ac278bfcddf94fbf2af256397731099b2d",
     "review": {
-      "slot_id": "thread_3",
+      "slot_id": "thread_2",
       "scores": {
-        "hook": 5.0,
+        "hook": 4.0,
         "technical_accuracy": 5.0,
         "grounding": 4.0,
-        "voice": 3.0,
-        "clarity": 4.0,
-        "cta": 4.0
+        "voice": 4.0,
+        "clarity": 5.0,
+        "cta": 5.0
       },
-      "reasons": [
-        "The tone is calm and precise, with no hype or banned words. However, tweet 3 opens with the section label 'The root cause:', which the rubric caps at 3."
-      ],
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
@@ -93,7 +92,7 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "1b1220311485b15b18cca6646db4747ce07897e14cee4ee01e0bb2e9a153d4ca",
+    "input_sha256": "a7003e8df01e7df12de8bfa4c191a2a804923ca5924c9c16d5d0240d4f22a3f2",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
@@ -105,8 +104,8 @@
         "cta": 4.0
       },
       "reasons": [
-        "Opens with a specific, supported fact ('completed 12 smart contract audits'), but it reads as a plain stat rather than a statement tied to an angle that the post builds on.",
-        "Understandable, but it reads as three stacked facts rather than one connected thought. 'Sentinel Grove' is repeated, and 'Teams' echoes 'The team', which makes it feel list-like."
+        "Opens with a plain factual statement ('Sentinel Grove has completed 12 smart contract audits.'). It is clear and specific, but it reads as a generic credential line rather than a contrast or angle that draws the reader in.",
+        "The post is three short sentences, but they read as a list of disconnected facts rather than one finished thought. 'Sentinel Grove' is also repeated. It is understandable but list-like."
       ],
       "hard_fail": [],
       "accepted": true
@@ -117,13 +116,13 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "6896fe752efc22a2cb9e518c44f03511c8266f69388530559e7ba6ae24d6f314",
+    "input_sha256": "646a68eee4d30f242e8442690bef907f5604cf50d4960f694c1ecde8f3a9559e",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
         "hook": 4.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "grounding": 4.0,
         "voice": 5.0,
         "clarity": 5.0,
         "cta": 5.0
