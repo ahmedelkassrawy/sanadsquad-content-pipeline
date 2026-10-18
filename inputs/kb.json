@@ -148,15 +148,16 @@
       "name": "Block values as time proxy",
       "severity": "medium",
       "category": "time",
-      "description": "Block values such as block.timestamp and block.number can give a sense of the current time or a time delta, but developers cannot rely on their preciseness. Nodes can synchronize time only to some degree, and the SWC entry says malicious miners can alter the timestamp of their blocks, especially if they gain an advantage. Miners cannot set a timestamp smaller than the previous one, nor too far ahead. The Solidity documentation states that the block timestamp must be strictly larger than the previous block's, but the only guarantee is that it lies between the timestamps of two consecutive blocks in the canonical chain. For block.number, the SWC entry notes that block times are not constant and can change, for example through fork reorganisations and the difficulty bomb.",
-      "root_cause": "Contract logic treats adjustable or approximate block values as precise time. Write contracts with the notion that block values are not precise, because relying on them can lead to unexpected effects. The SWC entry also suggests oracles as an alternative source of time. The SWC registry is no longer actively maintained, so check the target chain's current rules before relying on its description of miners and block times.",
+      "description": "Block values such as block.timestamp and block.number can give a sense of the current time or a time delta, but developers cannot rely on their preciseness. The historical SWC entry describes proof-of-work miners adjusting the timestamp of their blocks within limits. Since the Merge (Paris), Ethereum mainnet produces blocks in fixed 12-second slots, and the consensus rules require a block's timestamp to match its slot, so a proposer cannot pick it freely; slots can still be missed, so time between blocks is not constant. Other chains and layer-2 networks set their own block-time rules. The Solidity documentation states that the only guarantee is that the timestamp lies between the timestamps of two consecutive blocks in the canonical chain.",
+      "root_cause": "Contract logic treats approximate block values as precise time. Write contracts with the notion that block values are coarse and chain-specific, because relying on them for short deadlines or exact ordering can lead to unexpected effects. The SWC entry also suggests oracles as an alternative source of time. The SWC registry is no longer actively maintained, so its miner-based proof-of-work discussion is historical rather than current Ethereum behaviour.",
       "aliases": [
         "timestamp dependence",
         "SWC-116"
       ],
       "references": [
         "https://github.com/SmartContractSecurity/SWC-registry/blob/master/entries/docs/SWC-116.md",
-        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties"
+        "https://docs.soliditylang.org/en/latest/units-and-global-variables.html#block-and-transaction-properties",
+        "https://ethereum.org/en/developers/docs/consensus-mechanisms/pos/"
       ],
       "review_status": "pending_owner_review"
     },

@@ -190,17 +190,80 @@ def _credit_source_names(pack: ResearchPack) -> set[str]:
     return names
 
 
+# Publishers a thread may credit. Merged with the names found in the pack's own sources, these are
+# the only names a lead-in credit ("per X", "according to X") counts for, so "Per Uniswap pool"
+# is not a credit.
+_KNOWN_PUBLISHERS = frozenset(
+    "consensys openzeppelin owasp solidity swc mixbytes trail ethereum.org eip".split()
+)
+# A name, up to two words, then a crediting word: "OWASP also recommends", "The Solidity scoping
+# documentation", "SWC registry says". A mention without one ("Before Solidity 0.8, overflow
+# wrapped") is the subject of the tweet, not a credit.
+_CREDIT_WORDS = (
+    "says|say|lists|list|recommends|recommend|suggests|suggest|warns|warn|notes|describes|"
+    "describe|adds|defines|explains|states|documentation|docs|guidance"
+)
+_CREDIT_BEFORE_NAME = re.compile(
+    r"(?<![\w.-])(?!(?:The|This|That|These|Those|A|An|Each|Every|Its|Their)\b)"
+    r"([A-Z][\w.-]*)(?:['’]s)?(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:" + _CREDIT_WORDS + r")\b"
+)
+_CREDIT_AFTER_LEAD_IN = re.compile(
+    r"\b(?i:per|according to|listed by|cited by|as described by)\s+(?:the\s+)?([A-Z][\w.-]*)"
+)
+# "In OWASP's words, ..." credits; "In Solidity 0.8, ..." does not.
+_CREDIT_IN_WORDS = re.compile(r"\b(?i:in)\s+(?:the\s+)?([A-Z][\w.-]*)['’]s\s+words\b")
+# "From OWASP: ..." credits only when the name is followed by a colon.
+_CREDIT_FROM_COLON = re.compile(r"\b(?i:from)\s+(?:the\s+)?([A-Z][\w.-]*):")
+# Verbs that also read as nouns ("External calls", "Red flags") credit only a known publisher.
+_PUBLISHER_ONLY_CREDIT = re.compile(
+    r"(?<![\w.-])([A-Z][\w.-]*)(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:calls|flags|catalogs|ranks|names)\b"
+)
+# Capitalized words that are not a source's name.
+_NOT_A_SOURCE = frozenset(
+    "the this that it its a an code each every one some any no step check if when".split()
+)
+
+
+def _credit_key(name: str) -> str:
+    """One key per source: "SWC-107" and "SWC" are the same registry."""
+    key = name.rstrip(".").casefold()
+
+    return "swc" if key.startswith("swc") else key
+
+
 def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
-    """Report a pack source named in more than one tweet of a thread."""
+    """Report a source credited in more than one tweet of a thread.
+
+    A credit is a name in crediting phrasing, not any mention of it. A name followed by a
+    crediting word counts for any source; "per X" or "according to X" counts only for a known
+    publisher or a name from the pack's own sources. A capitalized word the thread also uses in
+    lowercase ("External calls" beside "external calls") is ordinary prose.
+    """
+    prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
+    lowercase_words = set(re.findall(r"\b[a-z][a-z0-9.-]*\b", " ".join(prose)))
+    publishers = _KNOWN_PUBLISHERS | _credit_source_names(pack)
     tweets_by_name = {}
-    source_names = _credit_source_names(pack)
 
-    for index, text in enumerate(texts):
-        prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)).casefold()
+    for index, text in enumerate(prose):
+        names = {
+            _credit_key(match.group(1))
+            for match in _CREDIT_BEFORE_NAME.finditer(text)
+            if match.group(1).casefold() not in lowercase_words
+        }
+        names |= {
+            _credit_key(match.group(1))
+            for pattern in (
+                _CREDIT_AFTER_LEAD_IN,
+                _CREDIT_IN_WORDS,
+                _CREDIT_FROM_COLON,
+                _PUBLISHER_ONLY_CREDIT,
+            )
+            for match in pattern.finditer(text)
+            if _credit_key(match.group(1)) in publishers
+        }
 
-        for name in source_names:
-            if re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", prose):
-                tweets_by_name.setdefault(name, set()).add(index)
+        for name in names - _NOT_A_SOURCE:
+            tweets_by_name.setdefault(name, set()).add(index)
 
     return [
         f"repeated_credit:{name}"
@@ -211,8 +274,8 @@ def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
 
 # A tweet that opens with a short lead-in and a colon ("Closing check:", "Root cause in one
 # line:", "Mitigation #2:"). A word is plain text, so a backtick or URL scheme never matches.
-_LABEL_WORD = r"(?:[A-Za-z0-9][A-Za-z0-9'’-]*|#[0-9]+)"
-LABEL_MAX_WORDS = 5
+_LABEL_WORD = r"(?:[A-Za-z0-9][A-Za-z0-9'’.-]*|#[0-9]+)"
+LABEL_MAX_WORDS = 7
 _SECTION_LABEL = re.compile(
     r"^(?:(TL;DR)|((?:"
     + _LABEL_WORD
@@ -234,27 +297,62 @@ _IMPERATIVE_STARTS = frozenset(
 _LEAD_IN_VERBS = frozenset(
     "is are was were be been has have had does did can could will would should must may might "
     "also follows starts fixes lists recommends recommend suggests describes appear appears "
-    "means lets allows needs requires shows uses trusts reenter become".split()
+    "means lets allows needs requires shows uses trusts becomes".split()
 )
 _LABEL_PHRASES = frozenset("code pattern|why this is dangerous|tl;dr".split("|"))
-_NON_VERB_S_WORDS = frozenset("areas causes checks focus forms shares steps things".split())
-_SUBJECT_MODIFIERS = frozenset(
-    "a an the this that these those one two three four five more concrete useful key closing".split()
+
+
+_QUESTION_WORDS = frozenset("why what how when where which who".split())
+# "Areas to focus on" is a noun phrase: a preposition after a plural is not its verb.
+_PREPOSITIONS = frozenset("to of for in on at with from by about into under over".split())
+# Words before a plural noun that make it a counted noun, not a verb: "two things", "more entries".
+_QUANTIFIERS = frozenset(
+    "a an the this that these those our your their its my one two three four five six more "
+    "other few several many some all each every any no".split()
 )
 
 
 def _has_finite_verb(words: list[str]) -> bool:
-    """Whether a short lead-in reads as a clause rather than a noun-phrase label."""
+    """Whether a short lead-in reads as a clause rather than a noun-phrase label.
+
+    The rule is structural, not a list fitted to examples:
+    - a question-word heading ("Why it happens", "What changed") is a label;
+    - an auxiliary or a common finite verb ("The fix is X", "OWASP lists") makes it a clause;
+    - a plural subject followed by a plain verb ("Callbacks reenter", "Callbacks run first")
+      is a clause, but not when the second word is a participle ("Lessons learned");
+    - anything else, including plural-noun phrases ("Common pitfalls", "Attack vectors",
+      "Other mitigations"), is a label. A word ending in -s is never taken as a verb on its own,
+      because labels usually end in a plural noun.
+    """
+    if words[0] in _QUESTION_WORDS:
+        return False
+
     if _LEAD_IN_VERBS.intersection(words):
         return True
 
-    for index, word in enumerate(words[1:], 1):
-        previous = words[index - 1]
+    if len(words) >= 2 and _is_plural_noun(words[0]):
+        second = words[1]
 
-        if previous in _SUBJECT_MODIFIERS or word in _NON_VERB_S_WORDS:
-            continue
+        return (
+            not second.endswith("ed")
+            and second not in _DETERMINERS
+            and second not in _PREPOSITIONS
+            and not second.isdigit()
+        )
 
-        if re.search(r"(?:s|ed)$", word):
+    # A singular verb in the middle of the lead-in ("OWASP names four areas", "Reentrancy comes
+    # from ...", "The attack fits in ..."): an -s word after a noun, with words still following.
+    # A trailing -s word is the label's plural noun ("Common pitfalls"), and one after a number or
+    # quantifier is a plural ("Two more entries on the list").
+    for index in range(1, len(words) - 1):
+        word, previous = words[index], words[index - 1]
+
+        if (
+            _is_plural_noun(word)
+            and previous not in _QUANTIFIERS
+            and not previous.isdigit()
+            and not _is_plural_noun(previous)
+        ):
             return True
 
     return False
@@ -443,7 +541,7 @@ def check_repeated_points(texts: list[str]) -> list[str]:
 
 
 # How many words after a number the stat's noun may come ("12 smart contract audits").
-_STAT_NOUN_WINDOW = 4
+_STAT_NOUN_WINDOW = 5
 _SENTENCE = re.compile(r"(?<=[.?!])\s+")
 _WORDS = re.compile(r"[^\W_]+")
 # Spelled-out numbers count too: "our three auditors" uses STAT-02's 3.
@@ -478,10 +576,14 @@ def _sentence_words(sentence: str) -> tuple[list[str], set[int]]:
     previous_end = -1
 
     for match in _WORDS.finditer(sentence.casefold()):
-        if match.group().isdigit() and (
-            (match.start() and sentence[match.start() - 1] == ".")
-            or (match.end() < len(sentence) and sentence[match.end()] == ".")
-        ):
+        # A number that is part of a dotted version ("0.8.12") is not a count. A number that ends
+        # a sentence ("We have completed 12.") still is.
+        start, end = match.start(), match.end()
+        in_version = (
+            start >= 2 and sentence[start - 1] == "." and sentence[start - 2].isdigit()
+        ) or (end + 1 < len(sentence) and sentence[end] == "." and sentence[end + 1].isdigit())
+
+        if match.group().isdigit() and in_version:
             continue
 
         word = _NUMBER_WORDS.get(match.group(), match.group())
@@ -553,21 +655,46 @@ def _binds_stat(
     return head in {_singular(w) for w in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]}
 
 
+# Nouns a firm claim counts: people and the firm's work. A stat number on any of these must
+# match its stat; a stat number on another noun ("3 functions") is a technical count.
+_FIRM_NOUNS = frozenset(
+    "auditor engineer researcher reviewer expert specialist member analyst employee person "
+    "people staff developer audit review assessment engagement client customer project "
+    "protocol team firm year report finding".split()
+)
+_ORDINAL_LABELS = frozenset("step part phase stage tweet line item version".split())
+# Qualifiers that make an exact approved count approximate or a bound.
+_APPROXIMATE_BEFORE = frozenset(
+    "almost nearly over about around roughly approximately some circa under".split()
+)
+_BOUND_BEFORE = (["at", "least"], ["more", "than"], ["less", "than"], ["up", "to"], ["at", "most"])
+# Outcome verbs that turn "all 12 audits" into a claim about what every audit found.
+_OUTCOME_WORDS = frozenset(
+    "found uncovered discovered caught identified revealed prevented stopped flagged".split()
+)
+_DETERMINERS = frozenset("our the its their a an this that these those my your".split())
+
+
 def _stat_distortion(words: list[str], index: int) -> str | None:
     """A qualifier that turns an approved count into a different claim."""
-    before = words[max(0, index - 2) : index]
+    before = words[max(0, index - 4) : index]
     after = words[index + 1 : index + 8]
 
-    if before[-1:] and before[-1] in {"almost", "nearly", "over"}:
+    if before[-1:] and before[-1] in _APPROXIMATE_BEFORE:
         return before[-1]
 
-    if before[-2:] in (["at", "least"], ["more", "than"], ["less", "than"]):
+    if before[-2:] in _BOUND_BEFORE:
         return "_".join(before[-2:])
 
+    # "12 audits per auditor" divides the count; "per our records" is only attribution.
     if "per" in after:
-        return "per"
+        following = after[after.index("per") + 1 : after.index("per") + 2]
 
-    if before[-1:] and before[-1] in {"all", "every"} and "found" in after:
+        if following and following[0] not in _DETERMINERS:
+            return "per"
+
+    # "All 12 audits found critical bugs", "Every one of our 12 audits uncovered ...".
+    if {"all", "every"}.intersection(before) and _OUTCOME_WORDS.intersection(after):
         return "all_found"
 
     return None
@@ -591,12 +718,12 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     violations = []
     prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
     prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
-    stat_heads = {
-        head
-        for stat in stats
-        for number in numbers_in(stat.evidence_text)
-        if (head := _stat_head_noun(stat.evidence_text, number))
-    }
+    stat_numbers = {number for stat in stats for number in numbers_in(stat.evidence_text)}
+
+    # "12+" turns an exact count into a lower bound; the word split below drops the "+".
+    for number in re.findall(r"(?<![\w.])(\d+)\+", prose):
+        if number in stat_numbers:
+            violations.append(f"stat_distorted:{number}:plus")
 
     for sentence in _SENTENCE.split(prose):
         words, glued = _sentence_words(sentence)
@@ -611,19 +738,16 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
             if not owners:
                 continue
 
-            counted = _counted_noun(words, index, glued)
-            window = {
-                _singular(candidate)
-                for candidate in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]
-            }
-            owner_heads = {
-                head for owner in owners if (head := _stat_head_noun(owner.evidence_text, word))
-            }
+            # "Step 3", "part 12": the number labels a position, it counts nothing.
+            if index and words[index - 1] in _ORDINAL_LABELS:
+                continue
 
-            # A pack may include the firm's count of 3 auditors while the technical prose says
-            # "3 functions" or "step 3". Only enforce the stat when the count is attached to a
-            # firm-stat noun, or when that noun appears in the number's short phrase.
-            if counted not in stat_heads and not owner_heads.intersection(window):
+            # A stat number counting a technical noun ("3 functions", "3 things") is not a firm
+            # claim. A stat number counting people or firm work ("12 engineers", "3 reviewers"),
+            # or counting nothing ("We have completed 12."), must match the stat.
+            counted = _counted_noun(words, index, glued)
+
+            if counted and counted not in _FIRM_NOUNS:
                 continue
 
             bound = [s for s in owners if _binds_stat(s, word, words, index, glued)]
@@ -894,10 +1018,9 @@ def stat_feedback(result: ValidationResult) -> list[str]:
             for marker in (":joined_stats:", ":stat_misbound:", ":stat_distorted:")
         ):
             notes.append(
-                f"{WRITER_NOTE_PREFIX}{violation}:state each approved stat exactly, in its own "
-                "sentence, with the "
-                "number next to the same noun the stat uses (for example two sentences: one for "
-                "the audit count, one for the team size)"
+                f"{WRITER_NOTE_PREFIX}{violation}:state each approved stat exactly as the pack "
+                "words it, in its own sentence, with its number next to the same noun the stat "
+                "uses and no qualifier such as over, about or per"
             )
 
     return notes
@@ -913,21 +1036,27 @@ def credit_feedback(result: ValidationResult) -> list[str]:
     ]
 
 
-def post_limit_feedback(result: ValidationResult) -> list[str]:
-    """Writer-only notes for configured whole-post fact and brand-name limits."""
+def post_limit_feedback(result: ValidationResult, brand_name: str = "the brand") -> list[str]:
+    """Writer-only notes for configured whole-post fact and brand-name limits.
+
+    The limit is read from the violation itself ("approved_stat_limit:3/2" allows 2).
+    """
     notes = []
 
     for violation in result.violations:
-        if violation.startswith("approved_stat_limit:"):
+        name, _, counts = violation.partition(":")
+        limit = counts.partition("/")[2]
+
+        if name == "approved_stat_limit":
             notes.append(
-                f"{WRITER_NOTE_PREFIX}{violation}:delete one firm fact; keep at most two approved "
-                "firm stats and connect the remaining fact to what the reviewing team gets"
+                f"{WRITER_NOTE_PREFIX}{violation}:delete a firm fact; keep at most {limit} approved "
+                "firm stats and connect what remains to what the reviewing team gets"
             )
 
-        if violation.startswith("brand_mention_limit:"):
+        if name == "brand_mention_limit":
             notes.append(
-                f'{WRITER_NOTE_PREFIX}{violation}:use "we" or "our team" instead of naming '
-                "Sentinel Grove a second time"
+                f"{WRITER_NOTE_PREFIX}{violation}:name {brand_name} at most {limit} time(s); use "
+                '"we" or "our team" after that'
             )
 
     return notes

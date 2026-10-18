@@ -951,7 +951,7 @@ class Pipeline:
             + stat_feedback(result)
             + credit_feedback(result)
             + label_feedback(result)
-            + post_limit_feedback(result)
+            + post_limit_feedback(result, self.rules.brand_name)
         )
 
         if saved is not None:
