@@ -85,8 +85,7 @@ and image calls are counted in `external-usage.json` but not priced.
 ## The committed sample
 
 The sample in `output/sample-week` came from a live run on 2026-10-18 with the committed
-config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, reasoning effort low except the thread
-writer at medium),
+config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, all at reasoning effort low),
 `MODEL_OVERRIDE` empty and the advisor off:
 
 ```
