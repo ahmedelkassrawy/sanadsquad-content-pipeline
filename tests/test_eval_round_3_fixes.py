@@ -98,7 +98,7 @@ def test_only_credibility_describes_the_firm():
     for angle in types.angles("marketing-post"):
         slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id=angle.id)
         ids = {s.source_id for s in types.assigned_pack(slot, kb).sources}
-        firm[angle.name] = "STAT-03" in ids
+        firm[angle.name] = "STAT-01" in ids
         offer[angle.name] = "STAT-05" in ids
 
     assert firm == {"service": False, "credibility": True, "education-to-cta": False}
