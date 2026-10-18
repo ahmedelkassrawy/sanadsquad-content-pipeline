@@ -1,12 +1,12 @@
 {
-  "concept": "Price oracle manipulation as a broken trust boundary: the protocol trusts price inputs that attackers can move.",
-  "scene": "Technical-style card on a deep navy background. A simple line diagram shows a price feed node connected to a contract node, with an amber dashed line marking the trust boundary between them. A small amber warning marker sits on the feed side. Clean, calm, precise layout with generous margins.",
+  "concept": "A payout loop where one failing external call blocks every other recipient, and the fix of letting users withdraw instead",
+  "scene": "Dark navy background with a horizontal row of small square nodes representing recipients connected by a line, one amber node highlighted as the failing call that interrupts the line, with white outlined nodes on either side. Clean technical layout with generous spacing and a calm engineering feel.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "trust boundary",
-  "alt_text": "Diagram of a price feed connected to a smart contract across a dashed amber line labeled as a trust boundary, with the text trust boundary.",
-  "severity": "high"
+  "overlay_text": "one failing recipient can block the whole operation",
+  "alt_text": "Diagram of a row of recipient nodes connected by a line, with one amber node breaking the line to show a failed external call blocking a batch payout.",
+  "severity": "medium"
 }

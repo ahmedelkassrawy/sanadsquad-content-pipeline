@@ -21,7 +21,7 @@ Build an educational progression from the supplied evidence:
 2. Mechanism: what goes wrong and why (the root cause).
 3. A concrete condition or example from the evidence.
 4. Mitigation, as the evidence describes it, with one short inline Solidity line or two (for example `balances[msg.sender] = 0;` before the call) when the evidence describes the code pattern. The code only illustrates what the evidence says; it adds no new behavior.
-5. A useful closing check the reader can apply.
+5. A closing check specific to this vulnerability: name its exact condition ("does any storage write come after an external call?"). Do not end with a generic question about "your own code" or "your contracts"; every thread in a week otherwise ends the same way.
 
 State the compiler version or construct a claim depends on in the same tweet as the claim.
 
@@ -33,6 +33,10 @@ X turns any word.word pair whose ending looks like a web domain into a link, eve
 
 - Copy code from the evidence when it has code. Otherwise write only a one-line pattern the evidence describes in words. Never invent a call with arguments the evidence does not show.
 - Every call must be complete and valid for the library or contract it names: all arguments present (an ERC-20 `transfer` needs a recipient and an amount), and nothing that would revert there. If the evidence shows code from one project (for example Uniswap V2 minting to `address(0)`), say which project, and do not present it as working in another library. When unsure, describe the step in words instead of code.
+
+## Formulas
+
+- Copy a formula exactly as the evidence writes it, keeping its operand order and which side is the numerator. If you restate it in words, say which quantity is divided by which, as the evidence does. Never flip a ratio or rebuild a formula from memory.
 
 ## Worked examples must add up
 

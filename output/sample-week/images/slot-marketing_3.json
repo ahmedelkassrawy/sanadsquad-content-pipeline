@@ -1,12 +1,12 @@
 {
-  "concept": "Missing caller authorization lets anyone withdraw a contract's Ether; withdrawals should be restricted to authorized parties.",
-  "scene": "A calm, minimal brand card on a deep navy background with a simple vault outline whose door is held shut by a single amber key-shaped lock, with clean geometric lines and ample empty space for the overlay text.",
+  "concept": "Missing caller checks on withdrawal functions let anyone move Ether out of a contract, so withdrawals should be limited to authorized parties.",
+  "scene": "A minimal navy card with a simple amber padlock icon beside an open vault door, clean geometric shapes, plenty of empty space for the overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Restrict withdrawals to authorized parties",
-  "alt_text": "Brand image card with a navy background, an amber lock on a vault outline, and the text Restrict withdrawals to authorized parties.",
+  "overlay_text": "Limit withdrawals to authorized parties",
+  "alt_text": "Navy brand card with an amber padlock and vault door, with the text: Limit withdrawals to authorized parties.",
   "severity": null
 }

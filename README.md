@@ -69,7 +69,7 @@ evidence. `--estimate` prints a worst-case cost ceiling without any call. Defaul
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
 and every retry, repair and search turn happens (about $52 on the committed Claude models, while
-the sample run cost about $0.63). It is a warning, not a plan. What keeps a run inside the $1
+the sample run cost about $0.73). It is a warning, not a plan. What keeps a run inside the $1
 budget is the guard in `model_client.py`, which reserves each call's worst case before sending
 it and refuses the call (`failed_budget`) when it no longer fits.
 
@@ -117,7 +117,7 @@ rejects the draft even if the average passes.
 | A model with no known price is refused (`failed_budget`) unless you pass `--allow-unpriced`, which leaves only the token limit. The committed models are priced via `config/prices.yaml`. Search and image calls are counted, not priced. | Add prices for any other model you use. |
 | Marketing variety is enforced by inputs, not by comparing finished posts: each angle has its own approved stats and opening, and the education angle takes a KB topic no thread uses that week. Nothing compares two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
 | Weaker writer models vary from run to run. On the free setup, while the checks and prompt changes went in one at a time, four runs shipped 4, 2, 6 and 6 of 6; the last two used the checks and prompts as of those runs; the claim-word list was narrowed after them. That is a small sample. | Run a week and read `run.log` whenever you change a writer model. |
-| The reviewer is an LLM and not fully consistent: in `output/claude-run-with-drop` it rejected "12 smart contract audits completed by a team of 3 auditors" as joining two stats into a new fact, yet the sample's `marketing_2` shipped the same wording. | Add a code check for joined stats, or have the writer state each stat in its own sentence. |
+| The reviewer is an LLM and not fully consistent: it rejected "12 smart contract audits completed by a team of 3 auditors" in one run and passed it in the next. That case is now a code check (`check_stat_claims`: a stat's number keeps its noun, and two stats may not share a sentence), but other judgement calls still vary run to run. | Turn a recurring reviewer disagreement into a code check when it can be stated as a rule. |
 | Knowledge base entries are not reviewed by the owner. | Owner review of `kb.json`. |
 | Exercised on Windows with Python 3.13 only; card fonts differ elsewhere. | Run the offline checks and a sample on macOS and Linux. |
 | Resume is not exactly-once for billing (see [Resume](docs/operations.md#resume)). | Accept it, or move to a durable executor for a daily service. |

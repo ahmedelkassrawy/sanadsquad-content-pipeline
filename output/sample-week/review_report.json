@@ -1,20 +1,45 @@
 [
   {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "0455ca35517d639a3db79cb5b1f14ef09bed765458499e207f676b16f8e75200",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "The opening restates STAT-04 verbatim. It is clear and specific to the service, but it reads as a plain fact rather than a sharp contrast or question."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
     "record_id": "thread_3/reviewer/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "c4aff13d273c9563c38a62840a2b52dfb50289bc45109f99c592e8dcd5e006dc",
+    "input_sha256": "77bafe7f27fab383c6dab062b4bfe486280d92003e40ded944ff8656473cd080",
     "review": {
       "slot_id": "thread_3",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
         "voice": 4.0,
-        "clarity": 4.0,
-        "cta": 5.0
+        "clarity": 3.0,
+        "cta": 4.0
       },
-      "reasons": [],
+      "reasons": [
+        "Tweet 4 largely repeats tweet 1, saying that one failing recipient in a loop blocks the whole operation. That makes the build repetitive, although the order of hook, mechanism, mitigation and check is otherwise sound."
+      ],
       "hard_fail": [],
       "accepted": true
     },
@@ -24,19 +49,40 @@
     "record_id": "thread_1/reviewer/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "864a7343f3a2353942664bc0216b8f030838941e4955bfeecba9aadd8dbb067d",
+    "input_sha256": "84526653a92149ef1c258099bcc2ed1e570dc8db42dd72cb8286eaeb86862375",
     "review": {
       "slot_id": "thread_1",
       "scores": {
         "hook": 4.0,
         "technical_accuracy": 5.0,
-        "grounding": 4.0,
-        "voice": 3.0,
-        "clarity": 5.0,
+        "grounding": 5.0,
+        "voice": 4.0,
+        "clarity": 4.0,
         "cta": 4.0
       },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "cc8971ec83713796b0bc4ba2b65a0eb473a86566d18e4d636db7b7d8dc4a29ca",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
       "reasons": [
-        "The tone is calm and precise. However, tweets carry section labels (\"The mechanism:\" in tweet 2 and \"Closing check for your own code:\" in tweet 9), which the rubric caps at 3."
+        "The opening states a specific fact, the 12 completed audits, but it reads as a plain credential statement rather than a contrast or angle. It is clear but generic."
       ],
       "hard_fail": [],
       "accepted": true
@@ -44,16 +90,16 @@
     "failure": null
   },
   {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
+    "record_id": "marketing_3/reviewer/1/1",
+    "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "f88c50be0809c20cd4c38f26ef716b27b46bb2f29fd13909824cd7cb931f2d83",
+    "input_sha256": "1d978fc904db20d22b962c17a81405fcfac09cba533cfc9610197122bb0d4a6f",
     "review": {
-      "slot_id": "marketing_1",
+      "slot_id": "marketing_3",
       "scores": {
-        "hook": 4.0,
+        "hook": 5.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "grounding": 4.0,
         "voice": 5.0,
         "clarity": 4.0,
         "cta": 5.0
@@ -68,7 +114,7 @@
     "record_id": "thread_2/reviewer/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "1c5d6362f8caae4ef8e1c471e6f8ae4b9df2adbfb229d69801470ede7d02055f",
+    "input_sha256": "901afc5b01e3e041dd5be8937fc6e78163fbbc3c18cf69f303c3c70cf8ef3682",
     "review": {
       "slot_id": "thread_2",
       "scores": {
@@ -80,7 +126,7 @@
         "cta": 4.0
       },
       "reasons": [
-        "The worked example in tweets 3 and 4 does not add up. A 1 wei deposit plus a donation of 100 tokens gives a balance of 100 tokens plus 1 wei, not 101 tokens. After the victim's 100-token deposit, the vault holds about 200 tokens, so the attacker cannot redeem a 'full 101 token balance, including the victim's deposit'. The rubric scores an inconsistent total 1 even when the source repeats it. Fix the numbers, for example a 1 wei deposit plus a 100-token donation, then a victim deposit of 100 tokens gets 0 shares and the attacker redeems about 200 tokens."
+        "The worked example in tweets 3 to 5 does not add up. A 1 wei deposit plus a 100-token donation gives 100 tokens + 1 wei, not '101 tokens backing one share' (tweet 4). The victim's math is therefore not '100 divided by 101'. After the victim deposits 100 tokens, the vault holds about 200 tokens, so the attacker cannot simply redeem 'the full 101-token balance' (tweet 5). The source repeats the same slip, but the rubric scores an inconsistent worked example 1 regardless. Fix: either have the attacker deposit 1 whole token, or state the balances in wei and report the victim's loss and the attacker's redemption consistently. Tweet 10 also says 'total supply can be 1 wei'. Total supply counts shares, and wei is an asset unit, so it should read 'total supply can be a single share'. The rest is accurate: the share formula in tweet 2, the MixBytes one-share variant in tweet 6, the OpenZeppelin v4.9 virtual offset caveat in tweet 7, and dead shares leaving a griefing opening in tweet 9."
       ],
       "hard_fail": [],
       "accepted": false
@@ -88,65 +134,23 @@
     "failure": null
   },
   {
-    "record_id": "marketing_2/reviewer/1/1",
-    "slot_id": "marketing_2",
-    "attempt": 1,
-    "input_sha256": "28815bf851f06e6ef3b434131028e26540ac7c172dcf7fccbd2d81d9e8772740",
-    "review": {
-      "slot_id": "marketing_2",
-      "scores": {
-        "hook": 3.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 5.0
-      },
-      "reasons": [
-        "The post opens with the concrete count \"12 smart contract audits completed\", which is specific. It reads as a plain credential line, though, not a contrast or angle, so it is clear but generic."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "marketing_3/reviewer/1/1",
-    "slot_id": "marketing_3",
-    "attempt": 1,
-    "input_sha256": "51174aa2107de1cd2e65c39cf67c4462bb3127d3866077333bde0618b2ff267e",
-    "review": {
-      "slot_id": "marketing_3",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
     "record_id": "thread_2/reviewer/2/1",
     "slot_id": "thread_2",
     "attempt": 2,
-    "input_sha256": "96a068d8f865d88335d37112e7a3a7d481f9e54ddfdfa690c73362cba3829139",
+    "input_sha256": "f9f75a95211454687bdb5955cc0f0c250ec6d841ff57db888eb06878e8aafcd6",
     "review": {
       "slot_id": "thread_2",
       "scores": {
         "hook": 5.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 3.0,
+        "clarity": 5.0,
         "cta": 4.0
       },
-      "reasons": [],
+      "reasons": [
+        "The tone is calm and precise, but the same authority is credited in two tweets: 'In the MixBytes example' in tweet 7 and 'MixBytes' example' in tweet 9. The rubric scores repeated crediting at 3; name the source once or drop the second attribution."
+      ],
       "hard_fail": [],
       "accepted": true
     },
