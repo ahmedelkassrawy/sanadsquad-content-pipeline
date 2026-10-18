@@ -5,9 +5,11 @@ The readable files and images of a live week on the committed models (Sonnet 5.5
 
 It shows the reviewer doing the job the brief asks for. In `run.log`:
 
-- `thread_2` (ERC-4626) was rejected twice for a worked example that does not add up: both drafts
-  copied the source's own "101-token balance", while the thread's numbers give about 201. After
-  its one retry it was dropped, not shipped.
+- `thread_2` (ERC-4626): the first draft failed a code citation check (it cited a mistyped
+  source id) and never reached the reviewer. The second draft was rejected by the reviewer
+  because its worked example does not add up: like the first, it copied the source's own
+  "101-token balance", while the thread's numbers give about 201. With its one retry used, the
+  slot was dropped, not shipped.
 - `thread_3` was rejected for crediting OWASP in several tweets and for one claim the evidence
   does not support; the retry shipped.
 - `marketing_2` was rejected for joining two stats into a new fact ("12 audits completed by a
