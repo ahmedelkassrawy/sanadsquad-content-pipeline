@@ -3,17 +3,17 @@
     "record_id": "marketing_1/visual/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "25e1e7d4dc0b82e794869a66729f592286769b7a135a751d4852c8999e80bc0a",
+    "input_sha256": "164b41292d2510e7f4c0f55c962ae22e79a78f1f8002fb34fcd0715a82da2d58",
     "spec": {
-      "concept": "A Sentinel Grove review reports each finding with its severity, root cause and a recommended fix, presented as a calm, structured brand card.",
-      "scene": "Solid deep navy background with a thin amber accent line and a simple geometric grove motif in the corner. The overlay text is set in white, centered, with generous spacing.",
+      "concept": "A Sentinel Grove review report that lists each finding with its severity, root cause and recommended fix, shown as a clean structured report card.",
+      "scene": "Flat brand card on a deep navy background. A simplified report sheet sits at center-right with three stacked rows, each with a small amber marker beside a short line, suggesting severity, root cause and fix. A thin amber rule runs beneath the overlay text on the left. No people, no code, no badges, no logos beyond a minimal grove-inspired mark.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "its severity, its root cause and a recommended fix",
-      "alt_text": "Navy brand card with an amber accent line and white text reading: its severity, its root cause and a recommended fix.",
+      "overlay_text": "each finding with its severity, its root cause and a recommended fix",
+      "alt_text": "Navy card with a simplified report sheet showing three rows, each with an amber marker, beside the text: each finding with its severity, its root cause and a recommended fix.",
       "severity": null
     },
     "result": {
@@ -28,48 +28,20 @@
     }
   },
   {
-    "record_id": "thread_1/visual/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "8eb8d5fe556f4fc0ebb7f601f63cf3e49a85bebe047b16b3d54fae6bc783e638",
-    "spec": {
-      "concept": "Reentrancy risk from external calls made before state is finalized, and the checks-effects-interactions fix",
-      "scene": "A clean technical card on a dark navy background: a simple flow diagram of three stacked steps labeled checks, effects, interactions, with an accent arrow looping back from the last step to the first to suggest a callback, and a small severity badge in the corner.",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "State updates after untrusted calls allow repeated execution",
-      "alt_text": "Technical card with a flow diagram of checks, effects and interactions steps and a looping arrow showing a callback reentering before state is updated.",
-      "severity": "high"
-    },
-    "result": {
-      "slot_id": "thread_1",
-      "path": "images/slot-thread_1.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "marketing_2/visual/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "608e7f504ec1a30706ca40782e8d0d538de85adfa9eaa7b379770f6da239a859",
+    "input_sha256": "1212b5e3ddbea7074717b14b61c74c58c38563754a10590feab456c7ba040b82",
     "spec": {
-      "concept": "Credibility through a track record of completed smart contract audits",
-      "scene": "Clean brand card with a deep navy background, a bold amber accent bar on the left edge, and the overlay text set large and centered in white with generous spacing. No other imagery.",
+      "concept": "Credibility through a simple, factual track record for a smart contract audit firm",
+      "scene": "Clean brand card with a deep navy background, a single amber accent line beneath the main text, and a subtle minimal grove-of-trees motif in white outline along the bottom edge. Calm, uncluttered, engineering feel.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "completed 12 smart contract audits",
-      "alt_text": "Brand card on a navy background with an amber accent bar and the white text: completed 12 smart contract audits.",
+      "overlay_text": "12 smart contract audits",
+      "alt_text": "Navy brand card with white text reading 12 smart contract audits and an amber accent line beneath it.",
       "severity": null
     },
     "result": {
@@ -84,49 +56,21 @@
     }
   },
   {
-    "record_id": "thread_3/visual/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "0b37c26b3b06e548f59a50c7666be2c05d63f065acffd662ca5af2d5b52ec57c",
-    "spec": {
-      "concept": "A single failing external call blocks a batch of payments, and pull-style withdrawals avoid it",
-      "scene": "Technical diagram on a dark navy background: a row of payment nodes connected in a loop, with one node highlighted in amber as the failing call that halts the chain, next to a simple withdraw arrow pulling funds from a contract",
-      "palette": [
-        "#14213d",
-        "#fca311",
-        "#ffffff"
-      ],
-      "overlay_text": "let users withdraw funds",
-      "alt_text": "Diagram of a chain of payment nodes where one amber node fails and stops the loop, beside an arrow showing users withdrawing funds from a contract.",
-      "severity": "medium"
-    },
-    "result": {
-      "slot_id": "thread_3",
-      "path": "images/slot-thread_3.png",
-      "backend": "pillow_card",
-      "fallback_reason": "cloudflare_failed",
-      "fallback_detail": [
-        "http_error",
-        "http_status:429"
-      ]
-    }
-  },
-  {
     "record_id": "thread_2/visual/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "27f7c9dd0800260fbbc89c8b2228ee250690ee558be9213ffd8d990490d11956",
+    "input_sha256": "4a2fd6bafcc9ac846713f6ffd4dcf273f76a76bcb6c261823dcd8ac01348d642",
     "spec": {
-      "concept": "Price oracle manipulation as a trust boundary: a contract trusting price inputs that attackers can move",
-      "scene": "A dark navy card with a simple technical diagram: a price feed line on the left crossing a dashed trust boundary into a contract block on the right, with an amber highlight on the point where the price line is bent by an outside force",
+      "concept": "ERC-4626 vault inflation attack: a donation inflates the share price so a victim's deposit rounds down to zero shares",
+      "scene": "Technical diagram on a deep navy background. On the left, a vault box holding a single share token. An amber arrow labeled as a direct transfer enters the vault from the side, bypassing the deposit door. On the right, a victim's deposit of 100 tokens approaches the vault and turns into an empty share slot showing zero. Clean thin line art, monospace labels, ample spacing, calm engineering feel.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "An oracle is a trust boundary",
-      "alt_text": "Diagram of a price feed crossing a dashed trust boundary into a smart contract, with the feed line bent by an outside influence, on a navy background with amber accents.",
-      "severity": "high"
+      "overlay_text": "rounds down to zero shares",
+      "alt_text": "Diagram of a vault holding one share while a direct token transfer inflates its balance and a victim's deposit converts to zero shares.",
+      "severity": null
     },
     "result": {
       "slot_id": "thread_2",
@@ -140,25 +84,81 @@
     }
   },
   {
-    "record_id": "marketing_3/visual/1/1",
-    "slot_id": "marketing_3",
+    "record_id": "thread_1/visual/1/1",
+    "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "748860c7caef2e95a9151784dae24647839c9bb39f446b473ad85647cfeff108",
+    "input_sha256": "4518a1e76785b996cc6d9f58f9ca29de58b21f02aa2083e0aa72c58c8ccc7045",
     "spec": {
-      "concept": "Missing caller checks on withdrawal functions let any account move Ether out of a contract",
-      "scene": "Minimal brand card on a deep navy background with a simple vault outline and an open door in amber, suggesting a withdrawal path without a gatekeeper. Large clean space for the overlay text.",
+      "concept": "Reentrancy: external calls can reenter before state is finalized",
+      "scene": "Technical diagram on a deep navy background: two contract boxes labeled A and B, with an arrow from A calling B and a return arrow looping back into A before A's balance field is cleared. The balance field is highlighted in amber to mark the unchanged state. Clean line work, ample empty space for the overlay text.",
       "palette": [
         "#14213d",
         "#fca311",
         "#ffffff"
       ],
-      "overlay_text": "A withdrawal function without a caller check",
-      "alt_text": "Navy card with an amber vault outline and an open door, with the text: A withdrawal function without a caller check",
+      "overlay_text": "checks-effects-interactions",
+      "alt_text": "Diagram of two contracts where contract A calls contract B and B calls back into A before A's balance is cleared, illustrating reentrancy.",
+      "severity": "high"
+    },
+    "result": {
+      "slot_id": "thread_1",
+      "path": "images/slot-thread_1.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "marketing_3/visual/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "2f7930fc7450b43bf213cba3cb20a4d4aa1f838b6436a51debd7a88c284c5ee9",
+    "spec": {
+      "concept": "Education card on unprotected Ether withdrawal: missing caller checks let any account move Ether out of a contract.",
+      "scene": "Dark navy background with a simple padlock outline in amber standing open beside a stylized contract block, with a thin amber line showing Ether leaving the block. Clean, calm, minimal engineering style with generous empty space for the overlay text.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "Limit withdrawals to authorized parties",
+      "alt_text": "Navy card with an open amber padlock beside a contract block and a line showing Ether leaving it, with the text: Limit withdrawals to authorized parties.",
       "severity": null
     },
     "result": {
       "slot_id": "marketing_3",
       "path": "images/slot-marketing_3.png",
+      "backend": "pillow_card",
+      "fallback_reason": "cloudflare_failed",
+      "fallback_detail": [
+        "http_error",
+        "http_status:429"
+      ]
+    }
+  },
+  {
+    "record_id": "thread_3/visual/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "5b72918267dd07f9129f930a8621c9db59c28ea5db721840437bd8d9a2688873",
+    "spec": {
+      "concept": "Weak randomness on Ethereum: public or influenceable block values used as secret entropy",
+      "scene": "Technical card on a deep navy background. A simple diagram shows three block fields (timestamp, blockhash, difficulty) as open boxes feeding into a winner-selection function, with an amber warning marker on the arrows. Clean line work, monospace labels, ample spacing.",
+      "palette": [
+        "#14213d",
+        "#fca311",
+        "#ffffff"
+      ],
+      "overlay_text": "Creating a strong source of randomness on Ethereum is challenging.",
+      "alt_text": "Diagram of block.timestamp, blockhash and block.difficulty feeding into a winner-selection function, with an amber warning marker showing these values are influenceable.",
+      "severity": "high"
+    },
+    "result": {
+      "slot_id": "thread_3",
+      "path": "images/slot-thread_3.png",
       "backend": "pillow_card",
       "fallback_reason": "cloudflare_failed",
       "fallback_detail": [

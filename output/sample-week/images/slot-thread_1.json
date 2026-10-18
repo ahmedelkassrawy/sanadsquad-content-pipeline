@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy risk from external calls made before state is finalized, and the checks-effects-interactions fix",
-  "scene": "A clean technical card on a dark navy background: a simple flow diagram of three stacked steps labeled checks, effects, interactions, with an accent arrow looping back from the last step to the first to suggest a callback, and a small severity badge in the corner.",
+  "concept": "Reentrancy: external calls can reenter before state is finalized",
+  "scene": "Technical diagram on a deep navy background: two contract boxes labeled A and B, with an arrow from A calling B and a return arrow looping back into A before A's balance field is cleared. The balance field is highlighted in amber to mark the unchanged state. Clean line work, ample empty space for the overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "State updates after untrusted calls allow repeated execution",
-  "alt_text": "Technical card with a flow diagram of checks, effects and interactions steps and a looping arrow showing a callback reentering before state is updated.",
+  "overlay_text": "checks-effects-interactions",
+  "alt_text": "Diagram of two contracts where contract A calls contract B and B calls back into A before A's balance is cleared, illustrating reentrancy.",
   "severity": "high"
 }

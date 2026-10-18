@@ -66,6 +66,20 @@
           },
           "title": "Claim Words",
           "type": "array"
+        },
+        "hook_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hook Styles",
+          "type": "array"
+        },
+        "closing_styles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Closing Styles",
+          "type": "array"
         }
       },
       "required": [

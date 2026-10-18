@@ -1,12 +1,12 @@
 {
-  "concept": "A single failing external call blocks a batch of payments, and pull-style withdrawals avoid it",
-  "scene": "Technical diagram on a dark navy background: a row of payment nodes connected in a loop, with one node highlighted in amber as the failing call that halts the chain, next to a simple withdraw arrow pulling funds from a contract",
+  "concept": "Weak randomness on Ethereum: public or influenceable block values used as secret entropy",
+  "scene": "Technical card on a deep navy background. A simple diagram shows three block fields (timestamp, blockhash, difficulty) as open boxes feeding into a winner-selection function, with an amber warning marker on the arrows. Clean line work, monospace labels, ample spacing.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "let users withdraw funds",
-  "alt_text": "Diagram of a chain of payment nodes where one amber node fails and stops the loop, beside an arrow showing users withdrawing funds from a contract.",
-  "severity": "medium"
+  "overlay_text": "Creating a strong source of randomness on Ethereum is challenging.",
+  "alt_text": "Diagram of block.timestamp, blockhash and block.difficulty feeding into a winner-selection function, with an amber warning marker showing these values are influenceable.",
+  "severity": "high"
 }

@@ -1,74 +1,35 @@
 [
   {
-    "record_id": "marketing_2/reviewer/1/1",
-    "slot_id": "marketing_2",
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "01eec94f5396c268615cf7d17d7d69c3df96d5c85740e011b8722279de9d8162",
+    "input_sha256": "168537fd01e07a264ee346692f8756fa815af12e48747ad6edac31f69e2704f1",
     "review": {
-      "slot_id": "marketing_2",
+      "slot_id": "marketing_1",
       "scores": {
         "hook": 5.0,
         "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "grounding": 1.0,
         "voice": 5.0,
         "clarity": 5.0,
-        "cta": 3.0
+        "cta": 5.0
       },
       "reasons": [
-        "Ends with a statement of readiness rather than a direct next step or engagement question, making the call to action weak/generic."
+        "The tweet changes 'recommended fix' to 'clear fix', adding specificity not present in the evidence, so the claim is not fully supported.",
+        "The phrase 'clear fix' adds an attribute not in the evidence, which only states 'recommended fix'."
       ],
-      "hard_fail": [],
-      "accepted": true
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
     },
     "failure": null
   },
   {
-    "record_id": "marketing_3/reviewer/2/1",
-    "slot_id": "marketing_3",
-    "attempt": 2,
-    "input_sha256": "b1ae3287a1cf1d713accee3a66058cd60948431b72a10edd55b661d91dae6e35",
-    "review": {
-      "slot_id": "marketing_3",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "07459bd4d3f4eb8f62e9e92c56fb80d665188e8446362559c6c6ed9b947c9522",
-    "review": {
-      "slot_id": "thread_2",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/2/1",
+    "record_id": "thread_1/reviewer/1/1",
     "slot_id": "thread_1",
-    "attempt": 2,
-    "input_sha256": "e779d320b1ab70d47afb84b67d91436812f20766f197e2734b1d753eb551d682",
+    "attempt": 1,
+    "input_sha256": "21c93789e5d6ac6d5a829b19e2a94198b7da94f960eb791f2d3e05d81332843f",
     "review": {
       "slot_id": "thread_1",
       "scores": {
@@ -86,36 +47,10 @@
     "failure": null
   },
   {
-    "record_id": "marketing_1/reviewer/1/1",
-    "slot_id": "marketing_1",
-    "attempt": 1,
-    "input_sha256": "c8fb10685e95adda609581cb5b3949aeecfd10f9a1e03f9f65476c30fc1f846e",
-    "review": {
-      "slot_id": "marketing_1",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 1.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 5.0
-      },
-      "reasons": [
-        "Claim that audits are 'detailed' adds specificity not present in evidence; only the reporting of findings is supported.",
-        "The adjective 'detailed' implies a level of thoroughness not supported by the supplied evidence."
-      ],
-      "hard_fail": [
-        "unsupported_claim"
-      ],
-      "accepted": false
-    },
-    "failure": null
-  },
-  {
     "record_id": "thread_3/reviewer/1/1",
     "slot_id": "thread_3",
     "attempt": 1,
-    "input_sha256": "40f3d8f78c73e6e79e9af3aa1f4a78b0dd5032e391642ddd8f81b27adb748c87",
+    "input_sha256": "670d7f84dfc64f1f102fd7ca3574eca16ff9aca17719bb1e3fd620338ec3f1ee",
     "review": {
       "slot_id": "thread_3",
       "scores": {
@@ -136,11 +71,32 @@
     "record_id": "marketing_1/reviewer/2/1",
     "slot_id": "marketing_1",
     "attempt": 2,
-    "input_sha256": "3e611ab40287297a5d0828357fe20acc761033226724103e7baa5407260aa192",
+    "input_sha256": "003a9196523c908102e5ee72c30a3caf0c0576650280a3abe7652af193211028",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
-        "hook": 3.0,
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "adaa5684de3fbddbf83b366fe879dfcddcf47c3f0b7425a6141405849c77b4e3",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 5.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
@@ -148,9 +104,50 @@
         "cta": 3.0
       },
       "reasons": [
-        "Opening statement is clear but generic; lacks a compelling contrast or question to hook the audience.",
-        "The 'Learn more' call-to-action is generic and not a direct next step tied to the offered review."
+        "Ends with a statement of capability ('Teams can request a review from Sentinel Grove') rather than a direct call to action; a stronger CTA would explicitly ask for a review."
       ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/reviewer/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "ceed5bed641cb9602ac60cedddcddc4c4d8c793e12c6733405ddb1fcfdc64086",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "b6de6763f04e9389102423404e9db4dbb85bf16cbda5b52eff6e0c980c3ce670",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },

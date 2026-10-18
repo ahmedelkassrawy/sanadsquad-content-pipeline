@@ -3,7 +3,7 @@
     "record_id": "marketing_1/reviewer/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "a4ea416b8e2345ace73163f18f179ba4f2a46f14f6ddfee35ff07b6ccddb26b3",
+    "input_sha256": "582842218215184197366d4acea319001e08a5986ff9caa11c0624193c208977",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
@@ -15,29 +15,8 @@
         "cta": 5.0
       },
       "reasons": [
-        "The opening restates STAT-04 verbatim. It is clear and specific, but it reads as a plain service description rather than a contrast or angle that draws the reader in."
+        "The opening restates the STAT-04 sentence verbatim. It is clear and on the service angle but generic, with no contrast or specific framing that pulls the reader in."
       ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "7173fcccf4d062f3b1ddea00115296cd92dbbe6942454e34a0a616e3d3579a0a",
-    "review": {
-      "slot_id": "thread_1",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 4.0,
-        "cta": 4.0
-      },
-      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
@@ -47,44 +26,21 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "788f4a0fa3b9e7135abaf27ba4c0e7031d08aee9c013a12818d74ce586c078ba",
+    "input_sha256": "bd176076c87c7551632e299d94be647d6d3149d4630d47c4647f9079fa2bee71",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
         "hook": 3.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
-        "voice": 5.0,
+        "voice": 4.0,
         "clarity": 3.0,
         "cta": 3.0
       },
       "reasons": [
-        "Opens with a plain factual statement ('Sentinel Grove has completed 12 smart contract audits.'). It is clear and specific but generic, and it sets up no contrast or angle.",
-        "Understandable, but it reads as three stacked facts rather than one finished thought. 'Sentinel Grove' appears twice in the brand name, which feels repetitive.",
-        "The closing sentence states that teams can request a review, which STAT-05 supports. It is phrased as a passive statement rather than a direct next step or question, so it is a weak ending."
-      ],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/reviewer/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "input_sha256": "35939ee06b1802c27f0f7d32643c49c2bbad4c733094412951c4cb3ffd76bb44",
-    "review": {
-      "slot_id": "thread_3",
-      "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 4.0,
-        "grounding": 4.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 4.0
-      },
-      "reasons": [
-        "The thread builds from hook to mechanism, mitigation and a closing check. However, tweet 5 largely repeats tweet 1, and the tweet 5 'example' adds no new information. Tweet 8 also restates the mitigation already covered in tweets 6 and 7."
+        "Opens with a plain specific fact ('has completed 12 smart contract audits') that matches the credibility angle, but it is a flat stat recital rather than a contrast or framing, so it is clear but generic.",
+        "Reads as three stacked facts rather than one connected thought, with the brand name and 'smart contract' repeated; understandable but list-like and cluttered.",
+        "Ending is supported by STAT-05 but phrased in third person as a statement ('Teams can request a review') rather than a direct next step or invitation, so it is weak."
       ],
       "hard_fail": [],
       "accepted": true
@@ -95,20 +51,39 @@
     "record_id": "thread_2/reviewer/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "86289d74220160e8f917965b835cc54d52c6ac8893a5ceabeeb5e0f430df9798",
+    "input_sha256": "336a9302375ec624e4bf89a3fadaf858cc5c18bfc9107e099caa6e081b098c4c",
     "review": {
       "slot_id": "thread_2",
       "scores": {
-        "hook": 4.0,
-        "technical_accuracy": 5.0,
+        "hook": 5.0,
+        "technical_accuracy": 4.0,
         "grounding": 5.0,
-        "voice": 4.0,
-        "clarity": 3.0,
+        "voice": 5.0,
+        "clarity": 5.0,
         "cta": 4.0
       },
-      "reasons": [
-        "Tweet 3 largely repeats tweet 1 ('trusts price inputs attackers can move' restates the attacker-influenced price definition). The thread also never gives a concrete worked example between the forms and the mitigations, so it reads as a list rather than building through an example. It is understandable but somewhat repetitive."
-      ],
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "1a42ff17cc893502b16ae819ab35751a752332e19ef2610317e23dd716446c2b",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [],
       "hard_fail": [],
       "accepted": true
     },
@@ -118,16 +93,37 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "86433df1b01065b7ec113d1ee899929cf0a2254022a6d59e6118f510dc1a12f3",
+    "input_sha256": "e615b8e39b3c0fea440556d31ec73e1ae56ebadabfad2037b90380313a8f26c6",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 4.0,
+        "hook": 4.0,
+        "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
         "clarity": 5.0,
         "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "input_sha256": "a1ff7103fe9e18660066f9f0f3e74c93c80cee9b3850310cf61ad63711738705",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 5.0
       },
       "reasons": [],
       "hard_fail": [],

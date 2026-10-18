@@ -1,12 +1,12 @@
 {
-  "concept": "A Sentinel Grove review reports each finding with its severity, root cause and a recommended fix, presented as a calm, structured brand card.",
-  "scene": "Solid deep navy background with a thin amber accent line and a simple geometric grove motif in the corner. The overlay text is set in white, centered, with generous spacing.",
+  "concept": "A Sentinel Grove review report that lists each finding with its severity, root cause and recommended fix, shown as a clean structured report card.",
+  "scene": "Flat brand card on a deep navy background. A simplified report sheet sits at center-right with three stacked rows, each with a small amber marker beside a short line, suggesting severity, root cause and fix. A thin amber rule runs beneath the overlay text on the left. No people, no code, no badges, no logos beyond a minimal grove-inspired mark.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "its severity, its root cause and a recommended fix",
-  "alt_text": "Navy brand card with an amber accent line and white text reading: its severity, its root cause and a recommended fix.",
+  "overlay_text": "each finding with its severity, its root cause and a recommended fix",
+  "alt_text": "Navy card with a simplified report sheet showing three rows, each with an amber marker, beside the text: each finding with its severity, its root cause and a recommended fix.",
   "severity": null
 }

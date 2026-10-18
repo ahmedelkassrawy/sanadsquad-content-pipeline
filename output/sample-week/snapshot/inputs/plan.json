@@ -10,7 +10,7 @@
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
-      "focus": "oracle manipulation",
+      "focus": "ERC-4626 vault inflation attack",
       "topic_id": null,
       "angle_source": null
     },
