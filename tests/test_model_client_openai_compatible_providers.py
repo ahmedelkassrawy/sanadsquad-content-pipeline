@@ -2,7 +2,7 @@
 
 import pytest
 
-from content_pipeline.model_client import LangChainTransport
+from content_pipeline.model_client import REQUEST_TIMEOUT_SECONDS, LangChainTransport
 from content_pipeline.models import Draft
 
 
@@ -56,6 +56,7 @@ def test_openai_compatible_provider_uses_own_key_and_base_url(
         "max_tokens": 1000,
         "max_retries": 0,
         "api_key": key,
+        "timeout": REQUEST_TIMEOUT_SECONDS,
     }
     if effort != "none":
         expected["reasoning_effort"] = effort

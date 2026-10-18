@@ -1,3 +1,3 @@
 # Run advice
 
-Advisor failed: failed_output
+Advisor not_enabled

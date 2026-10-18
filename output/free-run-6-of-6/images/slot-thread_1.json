@@ -1,0 +1,12 @@
+{
+  "concept": "Reentrancy in Smart Contracts",
+  "scene": "A minimalist illustration of a Solidity smart contract function with a highlighted 'checks-effects-interactions' pattern. The scene includes a visual representation of state updates occurring before external calls, with a warning overlay indicating the risk of reentrancy attacks.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "State updates after untrusted calls allow repeated execution.",
+  "alt_text": "Illustration showing the importance of updating state before making external calls to prevent reentrancy attacks in Solidity smart contracts.",
+  "severity": "high"
+}

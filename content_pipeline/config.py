@@ -17,7 +17,7 @@ class Settings(Contract):
     run_token_budget: int = Field(default=250000, ge=1)
     run_cost_budget_usd: float = Field(default=1.0, gt=0)
     allow_unpriced: bool = False
-    advisor_enabled: bool = True
+    advisor_enabled: bool = False
     max_concurrency: int | None = Field(default=None, ge=1)
 
     @classmethod

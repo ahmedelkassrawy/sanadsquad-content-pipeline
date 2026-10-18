@@ -1,12 +1,12 @@
 {
-  "concept": "Integer overflow and underflow",
-  "scene": "Integer overflow and underflow",
+  "concept": "Technical card on ERC-4626 vault inflation attack: a donation to the vault skews the share price so a depositor's shares round down to zero.",
+  "scene": "Dark navy background with a simple diagram of a vault box. A small token labeled 1 share sits inside, a large arrow labeled donation points into the vault, and a victim deposit arrow leads out to a zero. Amber accent lines highlight the rounding step, with clean white monospace text and ample spacing.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Integer overflow and underflow",
-  "alt_text": "Integer overflow and underflow",
-  "severity": "high"
+  "overlay_text": "rounds down to zero shares",
+  "alt_text": "Diagram of an ERC-4626 vault where a direct token donation inflates the share price, so a victim's deposit is rounded down to zero shares.",
+  "severity": null
 }

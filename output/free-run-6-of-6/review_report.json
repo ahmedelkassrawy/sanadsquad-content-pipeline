@@ -1,0 +1,159 @@
+[
+  {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "01eec94f5396c268615cf7d17d7d69c3df96d5c85740e011b8722279de9d8162",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 3.0
+      },
+      "reasons": [
+        "Ends with a statement of readiness rather than a direct next step or engagement question, making the call to action weak/generic."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/reviewer/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "b1ae3287a1cf1d713accee3a66058cd60948431b72a10edd55b661d91dae6e35",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "07459bd4d3f4eb8f62e9e92c56fb80d665188e8446362559c6c6ed9b947c9522",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "e779d320b1ab70d47afb84b67d91436812f20766f197e2734b1d753eb551d682",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "c8fb10685e95adda609581cb5b3949aeecfd10f9a1e03f9f65476c30fc1f846e",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 1.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Claim that audits are 'detailed' adds specificity not present in evidence; only the reporting of findings is supported.",
+        "The adjective 'detailed' implies a level of thoroughness not supported by the supplied evidence."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "40f3d8f78c73e6e79e9af3aa1f4a78b0dd5032e391642ddd8f81b27adb748c87",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "3e611ab40287297a5d0828357fe20acc761033226724103e7baa5407260aa192",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 3.0
+      },
+      "reasons": [
+        "Opening statement is clear but generic; lacks a compelling contrast or question to hook the audience.",
+        "The 'Learn more' call-to-action is generic and not a direct next step tied to the offered review."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  }
+]

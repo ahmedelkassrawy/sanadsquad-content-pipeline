@@ -1,0 +1,209 @@
+[
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "4e0ba2341403fc78e1f8fe9cdef2a3f02923c138a5fd3918207200a9294aae68",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "2995964df0af545219daa6651129ba3e62712d177ae71705270653597887e7c6",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 1.0,
+        "grounding": 1.0,
+        "voice": 1.0,
+        "clarity": 3.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Opening is a clear generic contrast but not tied to specific evidence and the post does not answer it.",
+        "Claims about risk reduction and general flaw consequences are not supported by evidence, making them misleading.",
+        "Factual clauses such as 'small flaws can have big consequences' and 'to help reduce risks' lack evidence in supplied sources.",
+        "Contains unsupported certainty about risk reduction, which reads as slightly salesy/hype.",
+        "Understandable but the message is somewhat generic and repeats the review idea without added detail.",
+        "Claims about risk reduction and general flaw consequences are not supported by the supplied evidence."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "e138e3985d6fc6274ed72ff32cf671ee364a81363b82fbea8deb0ccd5a9c4312",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "da849751fa1dcb8024d1947498b2fbef723fd364b36a28c66b58a96925f41659",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 1.0,
+        "voice": 3.0,
+        "clarity": 3.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Opening statement is a generic claim, not a specific question or contrast tied to evidence; the post does not answer an opening question.",
+        "Claims such as 'Smart contract security starts with a thorough review' and 'specialized auditors' are not supported by the supplied evidence; the evidence only states audit counts and that teams can request a review.",
+        "Tone is slightly promotional ('provides the expertise needed') rather than strictly calm, precise engineering voice.",
+        "Understandable but the second sentence is long and somewhat cluttered with multiple clauses.",
+        "The tweet contains unsupported factual clauses: 'Smart contract security starts with a thorough review' and the implication that auditors are 'specialized' are not backed by the supplied SourceRecords."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "0e17465239bf53cf26ed2bcc12b0830f39e4e6bd0939ef5c621994a5149bf5c8",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 3.0,
+        "grounding": 3.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Tweet 2 includes an incorrect formula for share calculation (`100 * 0 / (100 + 1)`) that does not match the evidence, though the conclusion about zero shares is correct.",
+        "Tweet 2's formula is not supported by the provided sources; the rest of the claims trace to evidence.",
+        "Tweet 2 states an incorrect share calculation formula (`100 * 0 / (100 + 1)`) that is not found in the source evidence, making the claim unsupported."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/reviewer/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "1963f40622b93bd62de8f62879a6405ce8b6b26b0b6000003563b3eb6eb5b0b4",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Opening is a clear statement but not a question or contrast; could be stronger as a question tied to the educational angle."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "bdf7dc1d5eaf981ba4913db93764b6666009beaa59106d1d2baa4fe0615e11af",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 2.0,
+        "grounding": 1.0,
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Opening statement 'Smart contracts require precision.' is a generic claim not phrased as a question or contrast, and the post does not answer it.",
+        "Contains unsupported technical claims: that smart contracts require precision and that the review ensures clarity and correctness, neither backed by the supplied evidence.",
+        "Claim 'ensure clarity and correctness' adds a fact not present in STAT-03, which only states the firm offers audits; thus grounding fails.",
+        "The tweet asserts that smart contracts require precision and that the review ensures clarity and correctness, both lacking support from STAT-01 or STAT-03."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "85e83f079b92395ad222a49398fcb315819d205faeb7b4eefb906a1781140a26",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 1.0,
+        "grounding": 1.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Opening is a generic statement about teams relying on rigorous reviews, not a specific question or contrast tied to the angle.",
+        "Claim that rigorous reviews catch critical flaws lacks evidence in the supplied sources; only audit count and review capability are supported.",
+        "Factual clause about rigorous reviews catching critical flaws is not traced to any cited evidence_text, making it unsupported.",
+        "The statement 'Teams building on smart contracts rely on rigorous reviews to catch critical flaws' is not supported by any source; the evidence only mentions audit count and ability to request a review."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  }
+]

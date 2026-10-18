@@ -97,6 +97,11 @@ def main(argv=None, *, piece=False, model_factory=None, search_factory=None, ren
         elif not args.resume:
             requested = args.plan or Path("inputs/plan.json")
             plan = requested if requested.is_absolute() else args.root / requested
+
+            # The brief's `--plan plan.json` names the file in inputs/.
+            if not plan.exists() and (args.root / "inputs" / requested).exists():
+                plan = args.root / "inputs" / requested
+
             slots = parse_sets(load_plan(args.root, plan), args.set)
 
         def warn(startup):

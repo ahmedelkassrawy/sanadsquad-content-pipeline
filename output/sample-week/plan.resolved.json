@@ -12,14 +12,14 @@
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
-      "focus": null,
-      "topic_id": "KB-02"
+      "focus": "ERC-4626 vault inflation attack",
+      "topic_id": "WEB-a0fdaa7b887ec446"
     },
     {
       "slot_id": "thread_3",
       "type": "tech-thread",
       "focus": null,
-      "topic_id": "KB-03"
+      "topic_id": "KB-20"
     },
     {
       "slot_id": "marketing_1",

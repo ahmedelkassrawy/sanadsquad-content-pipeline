@@ -131,6 +131,11 @@
           "title": "Image Calls",
           "type": "integer"
         },
+        "cloudflare_images": {
+          "default": 0,
+          "title": "Cloudflare Images",
+          "type": "integer"
+        },
         "cloudflare_neurons": {
           "default": 0,
           "title": "Cloudflare Neurons",
@@ -171,6 +176,21 @@
           ],
           "default": null,
           "title": "Fallback Reason"
+        },
+        "fallback_detail": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fallback Detail"
         }
       },
       "required": [

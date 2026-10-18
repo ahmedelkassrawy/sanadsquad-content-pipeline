@@ -1,12 +1,12 @@
 {
-  "concept": "Smart contract audit capability demonstration",
-  "scene": "A clean, minimalist workspace with a desk, a laptop displaying code, and subtle smart contract-related icons in the background. The overall tone is professional and trustworthy.",
+  "concept": "Credibility through completed audit work, presented as a calm, precise brand card for a smart contract audit firm.",
+  "scene": "Minimal brand card on a deep navy background with a thin amber accent line beneath a large white headline. A simple abstract grove of vertical lines suggests sentinel trees alongside a small shield outline made of clean geometric strokes. No people, no code snippets, no badges.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "12 fictional audits",
-  "alt_text": "Illustration representing Sentinel Grove's fictional audit capability with a demo label. The image includes a workspace with a laptop displaying code and smart contract elements, emphasizing professionalism and trust.",
+  "overlay_text": "completed 12 audits",
+  "alt_text": "Brand card with navy background and amber accent line reading 'completed 12 audits', with abstract grove lines and a shield outline.",
   "severity": null
 }

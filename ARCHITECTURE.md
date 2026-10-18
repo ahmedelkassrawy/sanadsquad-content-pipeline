@@ -80,10 +80,10 @@ The brief says rules belong in code and judgement in the model. The split:
 | Done by code | Where |
 | --- | --- |
 | Routing, parallel lanes, one content retry, drop after the second failure | `pipeline.py` |
-| Safe fixes: replace banned characters (em dash, U+2011), normalise whitespace, straight quotes, remove a trailing hashtag block. Every fix is logged. | `validation.py` `validate()` |
-| Tweet numbering (`1/7`) | `validation.py` |
-| Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text | `validation.py` |
-| Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, hard-fail flags. The model's own "accepted" is never trusted. One module builds the reviewer's wire schema and judges an assessment as accepted, rejected or malformed (malformed fails closed). | `review_scoring.py` `judge_review()`; `review_wire.py` only re-exports |
+| Safe fixes: replace banned characters (em dash, U+2011), normalise whitespace, straight quotes, remove a trailing hashtag block, turn markdown code fences into inline code and remove emphasis (`*word*`) outside code, since X would show both literally. Every fix is logged. | `validation.py` `validate()` |
+| Tweet numbering (`1/7`); a thread tweet over the length limit is split at a sentence boundary while the thread is below its maximum tweet count, keeping its citations | `validation.py` |
+| Hard checks: tweet count, weighted X length, banned words, hashtags, link allow-list, citation ids exist and have usable evidence, no source id leaked into the text, multi-digit numbers appear in the pack evidence, no tweet ends on a dangling colon, a post type's `claim_words` ("thorough", "expertise", "ensure") appear only when the evidence uses them; rules match text after NFKC folding. A retry is told to delete the flagged clause, not reword it. These checks hold whichever model writes or reviews. | `validation.py` |
+| Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, a per-criterion `min_score` floor (3), hard-fail flags. The model's own "accepted" is never trusted. One module builds the reviewer's wire schema and judges an assessment as accepted, rejected or malformed (malformed fails closed). | `review_scoring.py` `judge_review()`; `review_wire.py` only re-exports |
 | Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic fallback when the model's choice is missing or invalid | `research.py` `assign_topics()` |
 | What a post type means: its writer, rubric, prompts, topic pool (knowledge base or angles) and brand rules, each read once per run | `post_types.py` `PostTypes` |
 | The stable id `slot_id/node/attempt/call_n` of every record and model call: build, parse, next call number | `record_ids.py` |
@@ -93,7 +93,7 @@ The brief says rules belong in code and judgement in the model. The split:
 | Image backends: tries Cloudflare FLUX when both keys are set, otherwise or on any failure draws the Pillow card; records safe failure codes | `image_backends.py` |
 | Safe web fetching (public addresses only, redirects checked), CSV and JSON export, run folder trail | `research.py`, `trail.py` |
 
-Order inside `validate()`: safe fixes first, then numbering, then the hard checks. The
+Order inside `validate()`: safe fixes first, then length splits, then numbering, then the hard checks. The
 reviewer sees exactly the text that passed these checks, and that same text is exported.
 Nothing edits it after approval.
 
@@ -106,12 +106,14 @@ alone proves no claim, so the reviewer checks every factual clause, cited or not
 - `DEFAULT_MODEL` in `.env` (or `--default-model`) is used by every agent that does not
   set its own.
 - An agent's `agent.yaml` can set `model:` to override it. The committed config pins the
-  thread writer, marketing writer and reviewer to `anthropic:claude-sonnet-5-5`. The
-  earlier free sample pinned the reviewer and marketing writer to
-  `nvidia:nvidia/nemotron-3-super-120b-a12b` instead.
+  reviewer to `anthropic:claude-opus-5-5`, a larger model than the writers, and every other
+  agent to `anthropic:claude-sonnet-5-5`, all at reasoning effort low. genai-prices prices
+  both. Anthropic calls use native JSON-schema structured output, because Opus 5.5 rejects
+  forced tool calls. A free setup is in `docs/providers-and-cost.md`.
 - `MODEL_OVERRIDE` (or `--model-override`) replaces the model of every agent at once.
-- `REASONING_EFFORT_OVERRIDE` (or `--reasoning-effort-override`) replaces every agent's
-  effort. There is no per-agent effort override yet.
+- Each `agent.yaml` sets its own `reasoning_effort` (low in the committed config; Mistral models
+  need `none` because they reject the parameter). `REASONING_EFFORT_OVERRIDE` (or
+  `--reasoning-effort-override`) replaces every agent's effort at once.
 - Models are written `provider:model` and built with LangChain `init_chat_model`. The key
   comes from `<PROVIDER>_API_KEY`, except `google_genai` which uses `GEMINI_API_KEY`.
   OpenRouter, OpenCode and NVIDIA go through LangChain's OpenAI client with a base URL.
@@ -201,7 +203,7 @@ and final pieces. Code then checks every suggestion before it is kept. An edit m
 the current file text, must not touch the YAML front matter at the top of `brand-voice.md`
 or of a rubric file, and
 must not change any line that contains a number. The patch is size-capped. Code builds
-`advice.patch` itself and nothing is applied for you. If the advisor fails, the failure is
+`advice.patch` itself and nothing is applied for you. The advisor is off by default. If it fails, the failure is
 recorded and the posts are unaffected.
 
 SQLite holds run state for resume. The JSON files are the readable record. The committed
@@ -249,9 +251,9 @@ executor such as Temporal, and send advisor output to a human review queue.
 ## Limits
 
 The limits of this version, and what we would do next, are listed in the
-[README](README.md#known-limitations-and-what-we-would-do-next). In short: cost for free
-models is unpriced, the Cloudflare image backend is built but tested offline only (no real
-call yet), the knowledge base is not owner-reviewed, brand statistics are fictional demo fixtures, and there is no exactly-once
+[README](README.md#known-limitations-and-what-we-would-do-next). In short: cost for models
+missing from `genai-prices` and `config/prices.yaml` is unpriced (Mistral `ministral-14b` is priced there), the Cloudflare image backend is built but tested offline only (no real
+call yet), the knowledge base is not owner-reviewed, and there is no exactly-once
 billing on resume. No scheduler import format, publishing service or universal grounding
 accuracy is claimed. Optional LangSmith tracing needs real environment variables (the
 project does not load `.env` into the environment) and is not the source of truth; the run

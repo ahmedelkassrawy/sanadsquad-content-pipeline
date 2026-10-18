@@ -6,11 +6,19 @@ import hashlib
 import json
 from pathlib import Path
 from .agents import Reviewer, load_rubric
-from .config import Settings, load_brand, load_plan, load_type, local_file
+from .config import (
+    Settings,
+    load_agent,
+    load_brand,
+    load_plan,
+    load_type,
+    local_file,
+    resolve_model,
+)
 from .contracts import ReviewRequest
 from .durability import atomic_json
-from .ledger import Ledger
-from .model_client import Prices, configured_client
+from .ledger import BudgetExhausted, Ledger
+from .model_client import PRICES_FILE, Prices, configured_client, load_price_overrides
 from .models import Draft, ResearchPack, Tweet
 from .pipeline import run_pipeline, validate_inputs
 from .research import KnowledgeBase
@@ -84,7 +92,7 @@ async def reviewer_control(
     output.mkdir(parents=True, exist_ok=False)
 
     ledger = Ledger(output / "ledger.json", token_budget, cost_budget)
-    prices = Prices(update=False)
+    prices = Prices(update=False, overrides=load_price_overrides(root / PRICES_FILE))
     requests = []
     reviews = []
 
@@ -116,6 +124,8 @@ async def reviewer_control(
                 review = await agent(request)
 
                 reviews.append({"control": name, "review": review.model_dump(mode="json")})
+            except BudgetExhausted:
+                reviews.append({"control": name, "failure": "failed_budget"})
             except Exception as error:
                 reviews.append(
                     {"control": name, "failure": getattr(error, "outcome", "failed_api")}
@@ -132,7 +142,7 @@ async def reviewer_control(
 
         report = {
             "provenance": "live configured provider; no synthetic transport",
-            "model": model,
+            "model": resolve_model(settings, load_agent(root, "reviewer")),
             "reasoning_effort_override": settings.reasoning_effort_override,
             "verdict": "PASS" if passed else "FAIL",
             "totals": ledger.totals(),
@@ -200,7 +210,7 @@ async def execute(args):
                 "reasoning_effort_override": settings.reasoning_effort_override,
                 "complete_six": len(slots) == 6 and summary.shipped == 6,
                 "summary": summary.model_dump(mode="json"),
-                "note": "Brand statistics are fictional demo fixtures; KB owner approval remains pending.",
+                "note": "KB owner approval remains pending.",
             },
         )
 
@@ -219,12 +229,14 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output", type=Path)
     parser.add_argument("--mode", choices=["reviewer", "sample", "both"], default="both")
-    parser.add_argument("--model", default="google_genai:gemini-2.5-flash")
+    parser.add_argument(
+        "--model", help="Override every agent's model; omit to use each agent.yaml model."
+    )
     parser.add_argument("--reasoning-effort", choices=["none", "low", "medium", "high"])
     parser.add_argument("--token-budget", type=int, default=250000)
     parser.add_argument("--max-concurrency", type=int)
     parser.add_argument("--cost-budget", type=float, default=1.0)
-    parser.add_argument("--grounding-cost-budget", type=float, default=0.1)
+    parser.add_argument("--grounding-cost-budget", type=float, default=0.2)
 
     args = parser.parse_args(argv)
 
@@ -238,11 +250,11 @@ def main(argv=None):
     if (
         args.output is None
         or not 0 < args.cost_budget <= 1
-        or not 0 < args.grounding_cost_budget <= 0.1
+        or not 0 < args.grounding_cost_budget <= 0.25
         or args.token_budget < 1
     ):
         parser.error(
-            "live requires new output, positive token budget, sample USD cap <=1 and grounding cap <=0.1"
+            "live requires new output, positive token budget, sample USD cap <=1 and grounding cap <=0.25"
         )
 
     try:

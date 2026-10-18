@@ -1,0 +1,604 @@
+[
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "33325e91b0b75aa509d1934bce3d08a1c5768e25715996b4921fa84ee589879f",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "In Solidity, a selfdestruct call without proper access controls can let attackers permanently disable a contract. The impact depends on the EVM version.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Before EVM Cancun, selfdestruct deletes the contract\u2019s code and storage, sending remaining Ether to a target. Since Cancun, it only sends Ether and leaves the contract intact\u2014unless it\u2019s the creation transaction.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "The risk: malicious actors trigger selfdestruct without authorization. Solidity deprecated this function in 0.8.18 (EIP-6049) and discourages its use in new contracts.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "Even without direct selfdestruct calls, a contract can still execute it via delegatecall or callcode. The safer alternative? Change internal state to revert all functions instead.",
+            "source_ids": [
+              "KB-05"
+            ]
+          },
+          {
+            "text": "If selfdestruct is needed, restrict access with a multisig scheme. Otherwise, remove it entirely\u2014unless you\u2019re okay with losing control of the contract.",
+            "source_ids": [
+              "KB-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/5 In Solidity, a selfdestruct call without proper access controls can let attackers permanently disable a contract. The impact depends on the EVM version.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "2/5 Before EVM Cancun, selfdestruct deletes the contract's code and storage, sending remaining Ether to a target. Since Cancun, it only sends Ether and leaves the contract intact, unless it's the creation transaction.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "3/5 The risk: malicious actors trigger selfdestruct without authorization. Solidity deprecated this function in 0.8.18 (EIP-6049) and discourages its use in new contracts.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "4/5 Even without direct selfdestruct calls, a contract can still execute it via delegatecall or callcode. The safer alternative? Change internal state to revert all functions instead.",
+          "source_ids": [
+            "KB-05"
+          ]
+        },
+        {
+          "text": "5/5 If selfdestruct is needed, restrict access with a multisig scheme. Otherwise, remove it entirely, unless you're okay with losing control of the contract.",
+          "source_ids": [
+            "KB-05"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:banned_characters",
+        "tweet_2:curly_quotes",
+        "tweet_5:banned_characters",
+        "tweet_5:curly_quotes"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "d982039d05d82a24fdf1fd5e978efc0738bfa9685b389cd3d70daac124941d64",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "External calls in Solidity can allow reentrancy attacks by handing control to another contract, which may call back before the original call completes. This happens when state updates occur after untrusted calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "For example, a withdrawal function that sends Ether before clearing the caller\u2019s balance leaves the balance unchanged for a callback. The attacker\u2019s contract can call back and withdraw again using the same unmodified balance.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The root cause is that state updates are deferred until after external calls complete. This creates a window where an attacker can repeatedly execute logic against an unchanged state.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Mitigate reentrancy by following the checks-effects-interactions pattern: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether:\n`balances[msg.sender] = 0;`\n\nEnsure the call succeeds or the operation reverts.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Review all callable paths and contracts sharing the affected state. A callback might enter through another function or dependency, not just the obvious withdrawal path.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Check your contracts: Are external calls made after state updates? Could an attacker manipulate state by calling back before finalization?",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 External calls in Solidity can allow reentrancy attacks by handing control to another contract, which may call back before the original call completes. This happens when state updates occur after untrusted calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/6 For example, a withdrawal function that sends Ether before clearing the caller's balance leaves the balance unchanged for a callback. The attacker's contract can call back and withdraw again using the same unmodified balance.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/6 The root cause is that state updates are deferred until after external calls complete. This creates a window where an attacker can repeatedly execute logic against an unchanged state.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/6 Mitigate reentrancy by following the checks-effects-interactions pattern: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0;` Ensure the call succeeds or the operation reverts.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/6 Review all callable paths and contracts sharing the affected state. A callback might enter through another function or dependency, not just the obvious withdrawal path.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/6 Check your contracts: Are external calls made after state updates? Could an attacker manipulate state by calling back before finalization?",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:curly_quotes",
+        "tweet_4:whitespace"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "24f2fa019912806c9c131f103f6be29a940e6970a65d5c2c72bac624d32fc30e",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Smart contracts power critical systems\u2014but even small flaws can have big consequences. With 12 completed audits, Sentinel Grove reviews your code to help reduce risks. Ready to request a review?",
+            "source_ids": [
+              "STAT-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Smart contracts power critical systems, but even small flaws can have big consequences. With 12 completed audits, Sentinel Grove reviews your code to help reduce risks. Ready to request a review?",
+          "source_ids": [
+            "STAT-01",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:banned_characters"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "4c049f990bb36d8750e44685a146ce27651c6e1ff484ac8b61f672f15c76458e",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Smart contract security starts with a thorough review. With 12 completed audits and a team of 3 specialized auditors, Sentinel Grove provides the expertise needed to assess your code. Ready to request a review?",
+            "source_ids": [
+              "STAT-01",
+              "STAT-02",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Smart contract security starts with a thorough review. With 12 completed audits and a team of 3 specialized auditors, Sentinel Grove provides the expertise needed to assess your code. Ready to request a review?",
+          "source_ids": [
+            "STAT-01",
+            "STAT-02",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "71070b93f2997193746cdd413530c6b37e99aa2eb01e3dcf2e3a71dec2c11c80",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "ERC-4626 vaults issue shares for deposited assets, but a rounding flaw in share calculation creates a risk: inflation attacks. An attacker can manipulate the exchange rate by front-running deposits, leaving victims with zero shares despite their contribution.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "The attack works by exploiting how shares are calculated: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker donates tokens before a victim\u2019s deposit, inflating the denominator and forcing the victim\u2019s share calculation to round down to zero.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446",
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "For example, if an attacker donates 1 wei before a victim deposits 100 tokens, the victim\u2019s share calculation becomes `0 / 101`, resulting in zero shares. The attacker then withdraws the victim\u2019s 100 tokens by burning their own share.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "Mitigations include using a router to handle deposits, tracking assets internally to ignore direct transfers, or introducing virtual shares and assets to disrupt the attacker\u2019s manipulation. OpenZeppelin\u2019s solution uses both a decimals offset and virtual offsets to reduce rounding errors.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "To implement this defense, adjust the share calculation to include virtual shares and assets. For example, modify the `_convertToShares` function to account for offsets:\n`return assets.mulDiv(totalSupply() + 10**_decimalsOffset(), totalAssets() + 1, rounding);`",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-f3a368ef59ce00ce"
+            ]
+          },
+          {
+            "text": "Before deploying an ERC-4626 vault, verify that the share calculation accounts for virtual offsets and decimals. Test edge cases, such as deposits when the vault is empty or when an attacker manipulates the asset balance.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/6 ERC-4626 vaults issue shares for deposited assets, but a rounding flaw in share calculation creates a risk: inflation attacks. An attacker can manipulate the exchange rate by front-running deposits, leaving victims with zero shares despite their contribution.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "2/6 The attack works by exploiting how shares are calculated: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker donates tokens before a victim's deposit, inflating the denominator and forcing the victim's share calculation to round down to zero.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446",
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "3/6 For example, if an attacker donates 1 wei before a victim deposits 100 tokens, the victim's share calculation becomes `0 / 101`, resulting in zero shares. The attacker then withdraws the victim's 100 tokens by burning their own share.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "4/6 Mitigations include using a router to handle deposits, tracking assets internally to ignore direct transfers, or introducing virtual shares and assets to disrupt the attacker's manipulation. OpenZeppelin's solution uses both a decimals offset and virtual offsets to reduce rounding errors.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "5/6 To implement this defense, adjust the share calculation to include virtual shares and assets. For example, modify the `_convertToShares` function to account for offsets: `return assets.mulDiv(totalSupply() + 10**_decimalsOffset(), totalAssets() + 1, rounding);`",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-f3a368ef59ce00ce"
+          ]
+        },
+        {
+          "text": "6/6 Before deploying an ERC-4626 vault, verify that the share calculation accounts for virtual offsets and decimals. Test edge cases, such as deposits when the vault is empty or when an attacker manipulates the asset balance.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_2:curly_quotes",
+        "tweet_3:curly_quotes",
+        "tweet_4:curly_quotes",
+        "tweet_5:whitespace"
+      ],
+      "violations": [
+        "tweet_2:invalid_text",
+        "tweet_2:length",
+        "tweet_4:invalid_text",
+        "tweet_4:length"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "98e377c6f29a5ba608149385c9e143876a2abbfc94308da7acfbd16c6083d2f2",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "External calls in smart contracts can allow reentrancy attacks by enabling callbacks before state updates finalize. This happens when state changes occur after untrusted calls, letting a malicious contract withdraw funds again. Review your contract\u2019s callable paths and dependencies to mitigate this risk.",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "External calls in smart contracts can allow reentrancy attacks by enabling callbacks before state updates finalize. This happens when state changes occur after untrusted calls, letting a malicious contract withdraw funds again. Review your contract's callable paths and dependencies to mitigate this risk.",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:curly_quotes"
+      ],
+      "violations": [
+        "tweet_1:invalid_text",
+        "tweet_1:length"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "77d56eaf88e6af254c96a95d2b74978bb7e1ced94928cd3e001b3539ec33846f",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "External calls in smart contracts can enable reentrancy if state updates happen after untrusted interactions. A callback might exploit this to withdraw funds repeatedly. Validate inputs, update state first, then make external calls. Want a review of your contract\u2019s security?",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "External calls in smart contracts can enable reentrancy if state updates happen after untrusted interactions. A callback might exploit this to withdraw funds repeatedly. Validate inputs, update state first, then make external calls. Want a review of your contract's security?",
+          "source_ids": [
+            "KB-01"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:curly_quotes"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "94841810eea3221e0cfab9cbb8dc09eddfd23c3dccf543ae04d2d2819901437b",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "ERC-4626 vaults calculate shares by dividing total assets, but rounding in `totalAssets()` can enable inflation attacks. An attacker donates tokens before a victim\u2019s deposit, inflating the denominator and forcing the victim\u2019s share to round down to zero.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Example: An attacker deposits 1 wei before a victim deposits 100 tokens. The victim\u2019s share calculation becomes `100 * 0 / (100 + 1)`, resulting in zero shares. The attacker then withdraws the victim\u2019s 100 tokens by burning their own share.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "Mitigations include virtual shares and assets to disrupt the attacker\u2019s manipulation. OpenZeppelin\u2019s approach uses a decimals offset and virtual offsets in share calculations, reducing rounding errors and making attacks unprofitable.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c"
+            ]
+          },
+          {
+            "text": "To implement this defense, modify the `_convertToShares` function to include offsets:\n`return assets.mulDiv(totalSupply() + 10**_decimalsOffset(), totalAssets() + 1, rounding);` This ensures virtual shares and assets are accounted for in the calculation.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-f3a368ef59ce00ce"
+            ]
+          },
+          {
+            "text": "Before deploying an ERC-4626 vault, verify that share calculations account for virtual offsets and decimals. Test deposits when the vault is empty or when an attacker manipulates the asset balance to confirm the mitigation works.",
+            "source_ids": [
+              "WEB-312e8a0f354f7b8c",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/5 ERC-4626 vaults calculate shares by dividing total assets, but rounding in `totalAssets()` can enable inflation attacks. An attacker donates tokens before a victim's deposit, inflating the denominator and forcing the victim's share to round down to zero.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "2/5 Example: An attacker deposits 1 wei before a victim deposits 100 tokens. The victim's share calculation becomes `100 * 0 / (100 + 1)`, resulting in zero shares. The attacker then withdraws the victim's 100 tokens by burning their own share.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "3/5 Mitigations include virtual shares and assets to disrupt the attacker's manipulation. OpenZeppelin's approach uses a decimals offset and virtual offsets in share calculations, reducing rounding errors and making attacks unprofitable.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c"
+          ]
+        },
+        {
+          "text": "4/5 To implement this defense, modify the `_convertToShares` function to include offsets: `return assets.mulDiv(totalSupply() + 10**_decimalsOffset(), totalAssets() + 1, rounding);` This ensures virtual shares and assets are accounted for in the calculation.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-f3a368ef59ce00ce"
+          ]
+        },
+        {
+          "text": "5/5 Before deploying an ERC-4626 vault, verify that share calculations account for virtual offsets and decimals. Test deposits when the vault is empty or when an attacker manipulates the asset balance to confirm the mitigation works.",
+          "source_ids": [
+            "WEB-312e8a0f354f7b8c",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        }
+      ],
+      "fixes": [
+        "tweet_1:curly_quotes",
+        "tweet_2:curly_quotes",
+        "tweet_3:curly_quotes",
+        "tweet_4:whitespace"
+      ],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "23a73aac419a86afa92c2d9f81e49db86e5781c2cbae965ecbd9b0b2903af4ef",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "Smart contracts require precision. With 12 completed audits, Sentinel Grove reviews your code to ensure clarity and correctness. Request a review today.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Smart contracts require precision. With 12 completed audits, Sentinel Grove reviews your code to ensure clarity and correctness. Request a review today.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "8fa718e37ec9f68a6ef4f985fd08d91007035de22e764d95ad6e6e2c5e1a46de",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "Teams building on smart contracts rely on rigorous reviews to catch critical flaws. Sentinel Grove has completed 12 audits and can review your code. Request a review at example.com.",
+            "source_ids": [
+              "STAT-01",
+              "STAT-03"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Teams building on smart contracts rely on rigorous reviews to catch critical flaws. Sentinel Grove has completed 12 audits and can review your code. Request a review at example.com.",
+          "source_ids": [
+            "STAT-01",
+            "STAT-03"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  }
+]

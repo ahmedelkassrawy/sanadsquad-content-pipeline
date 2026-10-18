@@ -14,22 +14,27 @@ Write one marketing post, exactly one tweet, from the supplied research pack. Ci
 - Do not add prevalence claims ("most vulnerabilities", "often stem from logic errors"), new technical explanations, or an audit's ability to catch or prevent problems unless the supplied evidence supports them.
 - Keep the evidence's own level of detail. Do not make it more specific than it is: if the evidence says a callback can withdraw "again", do not write "twice"; add no counts, sizes or outcomes it does not state.
 
-## The firm is fictional
+## Firm facts
 
-- The firm facts and the service offering are fictional demo fixtures. When you use one, label the company claim explicitly fictional/demo in the published text, once and briefly, for example "(demo)" or "our fictional demo service". Do not repeat the label in every sentence; one clear label is enough.
-- A fictional audit count supports that count only. A fictional service offering supports that offering only. Neither establishes expertise, precision, rigorous review steps, proven methods, clients, outcomes, prevention, detection rates or effectiveness. Do not invent those details to fill a post.
+- Use firm facts and the service offering exactly as the approved stats state them.
+- An audit count supports that count only. The service offering supports that offering only. Neither establishes expertise, precision, rigorous review steps, proven methods, clients, outcomes, prevention, detection rates or effectiveness. Do not invent those details to fill a post.
 
 ## How to write it
 
-Write a finished, reader-facing post around one supported point, not a list of brand facts. Open with a specific question or contrast tied to the supplied angle and evidence; avoid generic hooks. Develop only what the evidence says, then end with a direct next step that the supplied evidence supports. Do not force a service CTA onto a technical post or add a claim to make the CTA sound stronger. If you open with a question, the next sentence must answer it; never leave the opening question hanging.
+Write a finished, reader-facing post around one supported point, not a list of brand facts. Open with a specific question, contrast or concrete statement tied to the supplied angle and evidence; avoid generic hooks. Develop only what the evidence says, then end with a direct next step that the supplied evidence supports. Do not force a service CTA onto a technical post or add a claim to make the CTA sound stronger. If you open with a question, the next sentence must answer it; never leave the opening question hanging.
 
 Use at most three sentences:
 
-- **Service or credibility angle:** (1) a specific hook; (2) the one fictional firm fact or offering from the pack, labelled once; (3) an invitation to request a review, only when the pack explicitly describes that fictional offering.
+Each angle opens differently, so a week of posts does not repeat one hook shape. Every opening is built from the pack itself: never open with a claim about what teams assume, what usually goes wrong, or what code without a review risks, because the pack does not support those.
+
+- **Service angle:** (1) open with the service offering itself, stated plainly from the pack (for example what a team can request); (2) one firm fact from the pack that backs it, such as the audit count; (3) a direct invitation to request a review, only when the pack describes that offering.
+- **Credibility angle:** (1) open with the audit count or team size from the pack, stated exactly, as the first words of the post; (2) what the firm is, from the pack; (3) a direct invitation to request a review, only when the pack describes that offering.
 - **Education angle:** For an education angle, keep the hook and supported mechanism or mitigation concise. The brand voice explains root causes before mitigations, so lead with the root cause and add the mitigation only as a short clause if it still fits; never give the mitigation alone. (1) a question hook; (2) one sentence with the root cause, plus the mitigation in a few words only if it fits; (3) leave room within the effective configured limit for a distinct, evidence-tied reader-engagement question or concrete next step. Merely restating or applying the mitigation is not by itself this engagement CTA. Use a direct question or CTA that introduces no unsupported factual premise.
 
-Retain all relevant conditions and the explicit fictional scope of demo firm claims. Omit extra setup or detail when it crowds the point or the limit.
+Retain all relevant conditions. Omit extra setup or detail when it crowds the point or the limit.
 
 ## Revisions
 
 If `previous_draft` is present, revise that actual rejected draft using every supplied feedback item; do not repeat it unchanged. Treat feedback as constraints to fix, not copy to publish.
+
+When feedback says a clause is unsupported, delete that clause. Do not replace it with a different general claim about quality, rigor, risk or results; a shorter post built only from the pack is the correct fix.

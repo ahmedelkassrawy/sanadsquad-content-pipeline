@@ -18,7 +18,7 @@ from content_pipeline.config import (
     load_prompt,
 )
 from content_pipeline.models import Draft, Tweet, SourceRecord, ResearchPack, Review
-from content_pipeline.validation import validate
+from content_pipeline.validation import colon_feedback, validate
 from content_pipeline.research import KnowledgeBase, WebSearch, public_url, assign_topics
 from content_pipeline.ledger import Ledger, BudgetExhausted
 from content_pipeline.model_client import ModelClient, ModelFailure, Prices
@@ -138,6 +138,9 @@ def test_normalization_keeps_original_and_numbers_before_review():
     [
         ("Guaranteed safety.", "banned_phrase:guaranteed"),
         ("Use #audit inside text.", "hashtag"),
+        ("Use ＃audit inside text.", "hashtag"),
+        ("Let's delve into reentrancy.", "banned_phrase:delve"),
+        ("Audited 40 contracts.", "unsourced_number:40"),
         ("https://sub.example.com/path", "link_domain:sub.example.com"),
         ("界" * 139, "length"),
         ("a" * 277, "length"),
@@ -147,6 +150,97 @@ def test_brand_and_weighted_length_rejections(text, error):
     result = validate_thread(draft(text))
     assert result.accepted is False
     assert "tweet_1:" + error in result.violations
+
+
+def test_dash_look_alikes_are_fixed_to_a_plain_hyphen():
+    result = validate_thread(draft("Checks–effects‒interactions order."))
+
+    assert result.normalized.tweets[0].text == "1/5 Checks-effects-interactions order."
+    assert "tweet_1:banned_characters" in result.fixes
+    assert result.accepted is True
+
+
+def test_numbers_must_come_from_the_pack_but_code_and_versions_may_vary():
+    research = pack()
+    research.sources[0].evidence_text += " Since Solidity 0.8.0, arithmetic reverts in 12 cases."
+
+    supported = validate_thread(
+        draft("Since Solidity 0.8, set `balances[msg.sender] = 0;` in 12 cases, step 2."), research
+    )
+    invented = validate_thread(draft("Reentrancy drained 30 protocols."), research)
+
+    assert supported.accepted is True
+    assert "tweet_1:unsourced_number:30" in invented.violations
+
+
+def numbers_result(text, evidence="", focus=None):
+    """The unsourced-number violations for one tweet, without the tweet prefix."""
+    research = pack()
+    research.sources[0].evidence_text += " " + evidence
+
+    result = validate(
+        draft(text),
+        research,
+        load_type(ROOT, "tech-thread"),
+        load_brand(ROOT / "inputs/brand-voice.md")[0],
+        focus=focus,
+    )
+
+    flagged = [v for v in result.violations if "unsourced_number" in v]
+
+    return sorted({v.split(":", 1)[1] for v in flagged})
+
+
+def test_numbers_in_code_spans_must_be_sourced():
+    assert numbers_result("Set `x = 40;` here.") == ["unsourced_number:40"]
+    assert numbers_result("Set `x = 0;` here.") == []
+
+
+def test_numbers_from_the_slot_focus_are_allowed():
+    assert numbers_result("Solidity 0.8.20 changed this.", focus="PUSH0 in 0.8.20") == []
+    assert numbers_result("Solidity 0.8.20 changed this.") == ["unsourced_number:0.8.20"]
+
+
+def test_numbers_in_urls_are_ignored():
+    assert numbers_result("Read https://scs.owasp.org/2024/05/x for more.") == []
+
+
+def test_numbers_are_folded_and_thousands_separators_normalised():
+    assert numbers_result("Lost ４２ tokens.") == ["unsourced_number:42"]
+    assert numbers_result("Lost 1,000,000 tokens.", evidence="About 1000000 tokens.") == []
+    assert numbers_result("Lost 1000000 tokens.", evidence="About 1,000,000 tokens.") == []
+
+
+def test_number_token_boundaries():
+    assert numbers_result("Works in 0.8.0-0.9.5 only.", evidence="Since 0.8.0.") == [
+        "unsourced_number:0.9.5"
+    ]
+    assert numbers_result("See KB-01 and SWC-107 with uint256.") == []
+    assert numbers_result("The max is 2**256 - 1.", evidence="Wraps at 256 bits.") == []
+
+
+def test_version_prefix_is_the_same_number_in_evidence_and_draft():
+    assert numbers_result("Solidity 0.8.0 reverts.", evidence="Solidity v0.8.0 reverts.") == []
+    assert numbers_result("Solidity v0.8.0 reverts.", evidence="Solidity 0.8.0 reverts.") == []
+    assert numbers_result("Solidity v9.99.99 reverts.") == ["unsourced_number:9.99.99"]
+    assert numbers_result("Use uint256 and SWC-107.") == []
+
+
+def test_a_tweet_ending_in_a_colon_is_a_violation_with_writer_feedback():
+    result = validate_thread(draft("Verify the caller first, then transfer:"))
+
+    assert "tweet_1:dangling_colon" in result.violations
+    assert result.accepted is False
+    assert colon_feedback(result)[0] == (
+        "tweet_1:dangling_colon:finish_the_sentence_or_put_the_code_inline_in_backticks_in_this_tweet"
+    )
+
+
+def test_a_colon_inside_a_tweet_or_after_a_safe_fix_is_fine():
+    assert "dangling_colon" not in " ".join(
+        validate_thread(draft("Use this: `balances[msg.sender] = 0;` before the call.")).violations
+    )
+    assert "dangling_colon" not in " ".join(validate_thread(draft("Fine.   ")).violations)
 
 
 def test_boundaries_and_url_weight_are_accepted():
@@ -590,3 +684,8 @@ async def test_concurrent_trail_and_csv_exact_roundtrip(tmp_path):
         ]
     export_posts(tmp_path, [])
     assert (tmp_path / "posts.csv").read_bytes() == b"Post Text,Image\r\n"
+
+
+def test_advisor_is_off_by_default_and_the_reviewer_has_room_to_reason():
+    assert Settings().advisor_enabled is False
+    assert load_agent(ROOT, "reviewer").max_output_tokens == 3000

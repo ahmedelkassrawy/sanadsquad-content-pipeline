@@ -3,55 +3,56 @@
     "record_id": "thread_1/validator/1/1",
     "slot_id": "thread_1",
     "attempt": 1,
+    "input_sha256": "ac6c050cdbffcd6957376b3b17f0a6fdf1b852fe2d3d713d88580de8b437bdcc",
     "audit": {
       "original": {
         "slot_id": "thread_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Your withdraw function sends Ether, then clears the caller's balance. What can the recipient do in the gap between those two steps? That gap is where reentrancy lives.",
+            "text": "A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The mechanism: calling another contract hands it control. It can call back into your contract before the first call returns, while your state is still half-updated.",
+            "text": "Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "A concrete case: a withdrawal sends Ether before clearing the stored balance. A callback can withdraw again against the still-unchanged balance.",
+            "text": "Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
+            "text": "Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "Root cause: state updates that happen after untrusted calls allow repeated execution. The problem is ordering, not any single line.",
+            "text": "Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "The mitigation is checks-effects-interactions. First validate inputs and permissions. Then update the relevant storage state. Only then make external calls.",
+            "text": "Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "In the withdrawal example: save the withdrawal amount and clear the stored balance before calling the recipient. Require the call to succeed so a failure reverts the operation.",
+            "text": "In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
             "source_ids": [
               "KB-01"
             ]
           },
           {
-            "text": "A check you can apply today: at each external call, is the affected state already final? Also review other callable paths and contracts sharing that state, since a callback may enter through another function or dependency.",
+            "text": "Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too.",
             "source_ids": [
               "KB-01"
             ]
@@ -60,49 +61,49 @@
       },
       "normalized": [
         {
-          "text": "1/8 Your withdraw function sends Ether, then clears the caller's balance. What can the recipient do in the gap between those two steps? That gap is where reentrancy lives.",
+          "text": "1/8 A withdrawal that sends Ether before clearing the caller's balance can be withdrawn against again. The bug is in the ordering of the steps, not in the transfer itself.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "2/8 The mechanism: calling another contract hands it control. It can call back into your contract before the first call returns, while your state is still half-updated.",
+          "text": "2/8 Why it happens: calling another contract hands it control. It can call back before the first call returns, while your state is still not finalized.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "3/8 A concrete case: a withdrawal sends Ether before clearing the stored balance. A callback can withdraw again against the still-unchanged balance.",
+          "text": "3/8 Root cause: state updates that come after untrusted calls allow repeated execution. The callback runs against storage that has not changed yet.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "4/8 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts too, and dependencies across multiple contracts also matter.",
+          "text": "4/8 Concrete case: a withdrawal sends Ether, then clears the balance. A callback can withdraw against the still-unchanged balance again.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "5/8 Root cause: state updates that happen after untrusted calls allow repeated execution. The problem is ordering, not any single line.",
+          "text": "5/8 Reentrancy is not only about Ether transfers. It can arise from calls to other contracts, and dependencies across multiple contracts also matter.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "6/8 The mitigation is checks-effects-interactions. First validate inputs and permissions. Then update the relevant storage state. Only then make external calls.",
+          "text": "6/8 Mitigation is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "7/8 In the withdrawal example: save the withdrawal amount and clear the stored balance before calling the recipient. Require the call to succeed so a failure reverts the operation.",
+          "text": "7/8 In the withdrawal example, save the amount and clear the balance first, e.g. `balances[msg.sender] = 0;`, then call the recipient and require the call to succeed so failure reverts.",
           "source_ids": [
             "KB-01"
           ]
         },
         {
-          "text": "8/8 A check you can apply today: at each external call, is the affected state already final? Also review other callable paths and contracts sharing that state, since a callback may enter through another function or dependency.",
+          "text": "8/8 Closing check: which other callable paths and contracts share the state your function touches? A callback may enter through another function or dependency, so review those too.",
           "source_ids": [
             "KB-01"
           ]
@@ -112,114 +113,128 @@
       "violations": [],
       "accepted": true
     },
-    "failure": null
+    "failure": null,
+    "failure_detail": null
   },
   {
-    "record_id": "thread_2/validator/1/1",
-    "slot_id": "thread_2",
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
     "attempt": 1,
+    "input_sha256": "b51764fb2882b959b3842c336f98dcb6ccc35c235d0b54aeb2c093a66fa4f101",
     "audit": {
       "original": {
-        "slot_id": "thread_2",
+        "slot_id": "thread_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "What happens when a uint256 holds 2 and the code subtracts 3? The answer depends on the Solidity version and on whether the line sits inside an unchecked block. A short thread on integer overflow and underflow.",
+            "text": "A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "Integer types have bounded ranges. Overflow or underflow occurs when an arithmetic result falls outside the range of its type. The root cause is that those bounds are not enforced in legacy wrapping arithmetic or in unchecked operations.",
+            "text": "OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. So check the compiler version first.",
+            "text": "The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "A concrete case: uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting. An unchecked block restores this wrapping for arithmetic inside it.",
+            "text": "Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "Two details about unchecked blocks. Functions called from an unchecked block do not inherit its unchecked mode. And division or modulo by zero still fails inside unchecked blocks.",
+            "text": "OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "Mitigation: use checked arithmetic or explicit range checks where wrapping is unintended. Unchecked blocks require reasoning that their inputs stay within the intended bounds.",
+            "text": "Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "Reverting is not automatically harmless. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+            "text": "OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
             ]
           },
           {
-            "text": "A closing check for your own code: Which compiler version applies? Where is each unchecked block? What keeps its inputs within the intended bounds? Is any wrapping unintended?",
+            "text": "For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
             "source_ids": [
-              "KB-02"
+              "KB-20"
+            ]
+          },
+          {
+            "text": "Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
+            "source_ids": [
+              "KB-20"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 What happens when a uint256 holds 2 and the code subtracts 3? The answer depends on the Solidity version and on whether the line sits inside an unchecked block. A short thread on integer overflow and underflow.",
+          "text": "1/9 A lending check that computes borrow capacity from the requested borrow amount, not the user's collateral balance, enforces no economic invariant. The code runs fine. The rules it encodes are the problem.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "2/8 Integer types have bounded ranges. Overflow or underflow occurs when an arithmetic result falls outside the range of its type. The root cause is that those bounds are not enforced in legacy wrapping arithmetic or in unchecked operations.",
+          "text": "2/9 OWASP describes business logic vulnerabilities as design flaws in how a system's rules, incentives, state transitions and invariants are modeled on-chain.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "3/8 Before Solidity 0.8.0, integer arithmetic wraps on overflow or underflow. Since Solidity 0.8.0, checked arithmetic reverts on overflow or underflow by default. So check the compiler version first.",
+          "text": "3/9 The key point: type safety, reentrancy guards and access control can all be correct, yet intended economic or functional behavior can still be subverted. The code does what it says, but what it says permits exploitable outcomes.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "4/8 A concrete case: uint256 subtraction of 3 from 2 wraps to 2**256 - 1 instead of reverting. An unchecked block restores this wrapping for arithmetic inside it.",
+          "text": "4/9 Root cause: the implementation omits or misapplies a required business invariant. Nothing low-level looks broken, so the gap is in the model, not the syntax.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "5/8 Two details about unchecked blocks. Functions called from an unchecked block do not inherit its unchecked mode. And division or modulo by zero still fails inside unchecked blocks.",
+          "text": "5/9 OWASP lists areas to focus on: invariant violations across modules, reward and fee logic, bypassable eligibility and limit checks, path-dependent state machines, and cross-module or cross-chain assumptions.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "6/8 Mitigation: use checked arithmetic or explicit range checks where wrapping is unintended. Unchecked blocks require reasoning that their inputs stay within the intended bounds.",
+          "text": "6/9 Mitigation starts with expressing core invariants in code and tests. One OWASP example: total value withdrawn must not exceed total deposits plus realized yield. e.g. `assert(totalWithdrawn <= totalDeposits + realizedYield);`",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "7/8 Reverting is not automatically harmless. Even checked arithmetic can halt progress if an operation inevitably overflows and reverts.",
+          "text": "7/9 OWASP also recommends modeling protocol economics explicitly with adversarial simulations, plus formal verification and property-based fuzzing for key accounting paths.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
           ]
         },
         {
-          "text": "8/8 A closing check for your own code: Which compiler version applies? Where is each unchecked block? What keeps its inputs within the intended bounds? Is any wrapping unintended?",
+          "text": "8/9 For rollout, OWASP suggests launching new strategies behind caps while monitoring metrics and on-chain invariants. It also says governance and operations teams should understand the invariants, not just auditors.",
           "source_ids": [
-            "KB-02"
+            "KB-20"
+          ]
+        },
+        {
+          "text": "9/9 Closing check: can you state each core invariant in one sentence, and does a test fail when it breaks? Details: https://scs.owasp.org/sctop10/SC02-BusinessLogicVulnerabilities/",
+          "source_ids": [
+            "KB-20"
           ]
         }
       ],
@@ -227,20 +242,24 @@
       "violations": [],
       "accepted": true
     },
-    "failure": null
+    "failure": null,
+    "failure_detail": null
   },
   {
     "record_id": "marketing_1/validator/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
+    "input_sha256": "4881ddd8253c728925fe7e614f37a79abaccfdf5e6047cbbfc5c73fe8e604c0b",
     "audit": {
       "original": {
         "slot_id": "marketing_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Shipping smart contract code and wondering who else should read it? Sentinel Grove, a fictional demo audit service, lets teams request a review of their contract code. Want to request one?",
+            "text": "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us.",
             "source_ids": [
+              "STAT-01",
+              "STAT-02",
               "STAT-03"
             ]
           }
@@ -248,8 +267,10 @@
       },
       "normalized": [
         {
-          "text": "Shipping smart contract code and wondering who else should read it? Sentinel Grove, a fictional demo audit service, lets teams request a review of their contract code. Want to request one?",
+          "text": "Who reads your smart contract code before it ships? Sentinel Grove is a smart contract audit firm with 3 auditors and 12 completed audits. Teams can request a review of their code with us.",
           "source_ids": [
+            "STAT-01",
+            "STAT-02",
             "STAT-03"
           ]
         }
@@ -258,122 +279,21 @@
       "violations": [],
       "accepted": true
     },
-    "failure": null
-  },
-  {
-    "record_id": "thread_3/validator/1/1",
-    "slot_id": "thread_3",
-    "attempt": 1,
-    "audit": {
-      "original": {
-        "slot_id": "thread_3",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "A low-level call in Solidity fails, yet your contract carries on as if it worked. How does that happen without any revert?",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "Low-level call, delegatecall and staticcall return a success boolean plus returned bytes. If the callee throws an exception, the boolean is false. The exception is not automatically propagated to the caller.",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "The root cause: the caller does not inspect the returned success flag or validate the result the application needs. If failure is ignored, the caller can continue as though the intended operation happened.",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "A true flag has its own limit. A low-level call to an address with no code can return true. So true alone does not show that the destination exists or that your intended action took place.",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "Mitigation, step one: capture the success boolean and handle failure explicitly. Use require(success) when a failed call must revert the whole operation.",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "Step two: if your logic depends on a returned value or on contract code being present, check those conditions too. A successful low-level call is not proof of an application-specific result.",
-            "source_ids": [
-              "KB-03"
-            ]
-          },
-          {
-            "text": "A check you can run on your own code. For each low-level call, ask: Is the boolean captured? What happens when it is false? Do I also need to validate returned data or that the target has code?",
-            "source_ids": [
-              "KB-03"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/7 A low-level call in Solidity fails, yet your contract carries on as if it worked. How does that happen without any revert?",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "2/7 Low-level call, delegatecall and staticcall return a success boolean plus returned bytes. If the callee throws an exception, the boolean is false. The exception is not automatically propagated to the caller.",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "3/7 The root cause: the caller does not inspect the returned success flag or validate the result the application needs. If failure is ignored, the caller can continue as though the intended operation happened.",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "4/7 A true flag has its own limit. A low-level call to an address with no code can return true. So true alone does not show that the destination exists or that your intended action took place.",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "5/7 Mitigation, step one: capture the success boolean and handle failure explicitly. Use require(success) when a failed call must revert the whole operation.",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "6/7 Step two: if your logic depends on a returned value or on contract code being present, check those conditions too. A successful low-level call is not proof of an application-specific result.",
-          "source_ids": [
-            "KB-03"
-          ]
-        },
-        {
-          "text": "7/7 A check you can run on your own code. For each low-level call, ask: Is the boolean captured? What happens when it is false? Do I also need to validate returned data or that the target has code?",
-          "source_ids": [
-            "KB-03"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null
+    "failure": null,
+    "failure_detail": null
   },
   {
     "record_id": "marketing_2/validator/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
+    "input_sha256": "994ed0ea141d21a9bc495e39859f0433632955a89ed1e0b7186ed028d15ad46e",
     "audit": {
       "original": {
         "slot_id": "marketing_2",
         "attempt": 1,
         "tweets": [
           {
-            "text": "What can an audit count tell you? Sentinel Grove, a fictional demo firm, completed 12 audits. In this demo offering, teams can request a review of their smart contract code.",
+            "text": "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code.",
             "source_ids": [
               "STAT-01",
               "STAT-03"
@@ -383,7 +303,7 @@
       },
       "normalized": [
         {
-          "text": "What can an audit count tell you? Sentinel Grove, a fictional demo firm, completed 12 audits. In this demo offering, teams can request a review of their smart contract code.",
+          "text": "Who has actually reviewed your smart contract code? Sentinel Grove is a smart contract audit firm that has completed 12 audits. If your team is ready, request a review of your code.",
           "source_ids": [
             "STAT-01",
             "STAT-03"
@@ -394,19 +314,21 @@
       "violations": [],
       "accepted": true
     },
-    "failure": null
+    "failure": null,
+    "failure_detail": null
   },
   {
     "record_id": "marketing_3/validator/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
+    "input_sha256": "932021aa8f9210b10e8580c33f301f61802b86642844336f577e2f2f47e377b6",
     "audit": {
       "original": {
         "slot_id": "marketing_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Why can one withdrawal pay out twice? State updated after an untrusted call lets a callback reuse the old balance; checks-effects-interactions fixes the order. Which of your functions call out before updating state?",
+            "text": "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?",
             "source_ids": [
               "KB-01"
             ]
@@ -415,7 +337,7 @@
       },
       "normalized": [
         {
-          "text": "Why can one withdrawal pay out twice? State updated after an untrusted call lets a callback reuse the old balance; checks-effects-interactions fixes the order. Which of your functions call out before updating state?",
+          "text": "Why can a withdrawal be drained by a callback? Ether is sent before the caller's balance is cleared, so the callback withdraws against the unchanged balance. Update state first, then call out. Which of your contracts call out before updating state?",
           "source_ids": [
             "KB-01"
           ]
@@ -425,6 +347,311 @@
       "violations": [],
       "accepted": true
     },
-    "failure": null
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "cec7755fbd8c28bd3738a5818cd62e1086c8b5663f2d623043f67a4a482ed011",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446",
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-f50d1927023d53fb"
+            ]
+          },
+          {
+            "text": "Concrete numbers: the attacker holds 1 share, then donates 20,000 USDT. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Reverting on zero shares is not enough. If the attacker donates 10,000 USDT instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. The attacker burns theirs for roughly half the pool, about a 25% profit on the victim's deposit.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-f352e6124ca0c40d",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446",
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-f50d1927023d53fb"
+          ]
+        },
+        {
+          "text": "4/10 Concrete numbers: the attacker holds 1 share, then donates 20,000 USDT. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "5/10 Reverting on zero shares is not enough. If the attacker donates 10,000 USDT instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. The attacker burns theirs for roughly half the pool, about a 25% profit on the victim's deposit.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-f352e6124ca0c40d",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_5:unsourced_number:10000"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "9df2faa3d62d7c10e7bde95bd870b8e3b8b187bde9f50c1a6e0aebc5a52f9953",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446",
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-f50d1927023d53fb"
+            ]
+          },
+          {
+            "text": "Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
+            "source_ids": [
+              "WEB-a0fdaa7b887ec446"
+            ]
+          },
+          {
+            "text": "Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
+            "source_ids": [
+              "WEB-f352e6124ca0c40d"
+            ]
+          },
+          {
+            "text": "This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4"
+            ]
+          },
+          {
+            "text": "Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+            "source_ids": [
+              "WEB-2daca0aeb740f7f4",
+              "WEB-f352e6124ca0c40d",
+              "WEB-a0fdaa7b887ec446"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/10 A freshly deployed ERC-4626 vault that prices shares from its raw token balance can take a first depositor's funds without any access control bug. The root cause is rounding.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "2/10 Share math: `shares = assets * totalSupply / totalAssets`. Solidity integer division rounds down. If totalAssets is read from `balanceOf(address(this))`, anyone can change the denominator by sending tokens straight to the vault.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446",
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "3/10 The attack: 1) attacker deposits 1 wei and gets 1 share. 2) attacker front-runs the victim and transfers tokens directly to the vault. 3) the victim's deposit rounds to zero shares. 4) attacker redeems the whole balance.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-f50d1927023d53fb"
+          ]
+        },
+        {
+          "text": "4/10 Concrete numbers: the attacker holds 1 share, then runs `asset.transfer(20_000e6)`. The victim deposits 20,000 USDT and gets 1 * 20_000e6 / (20_000e6 + 1) = 0 shares. The attacker burns their share and takes the money.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "5/10 Reverting on zero shares is not enough. If the attacker transfers `10_000e6` instead, the victim's 20,000 USDT deposit yields 1 share, equal to the attacker's. Burning theirs takes roughly half the pool, a profit of about 25% of the victim's deposit.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "6/10 Mitigation one: dead shares, as UniswapV2 does. Mint some shares to address(0) on first deposit, e.g. `_mint(address(0), NUMBER_OF_DEAD_SHARES);`. This stops theft in the article's example, but a griefing path remains where the victim still gets zero shares.",
+          "source_ids": [
+            "WEB-a0fdaa7b887ec446"
+          ]
+        },
+        {
+          "text": "7/10 Mitigation two: OpenZeppelin's virtual shares and assets with a decimal offset. The rate uses `totalAssets() + 1` and `totalSupply() + 10**offset`, so the donation needed to inflate the rate grows by orders of magnitude.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "8/10 Tradeoffs from the discussion: virtual assets and shares slightly change contract behavior, and EIP-4626 recommends mirroring the underlying token's decimals. Tracking assets internally instead of using balanceOf is another option, but it breaks donation use cases.",
+          "source_ids": [
+            "WEB-f352e6124ca0c40d"
+          ]
+        },
+        {
+          "text": "9/10 This is not only theory. A Venus Protocol market on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025, and Hundred Finance lost $7M in April 2023 to a donation-inflated exchange rate.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4"
+          ]
+        },
+        {
+          "text": "10/10 Check your vault: does totalAssets read the live token balance? Is there a seed deposit, dead shares, or virtual offset? Can a depositor set a minimum shares value to limit slippage? Test the donation scenario before launch.",
+          "source_ids": [
+            "WEB-2daca0aeb740f7f4",
+            "WEB-f352e6124ca0c40d",
+            "WEB-a0fdaa7b887ec446"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
   }
 ]

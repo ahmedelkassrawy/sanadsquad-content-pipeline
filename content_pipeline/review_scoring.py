@@ -146,16 +146,21 @@ def _scored_review(request: ReviewRequest, assessment: ReviewAssessment) -> Revi
     """Turn a contract-complete assessment into the review the pipeline records."""
     criteria = set(request.rubric.criteria)
     hard_fail = [key for key, value in assessment.hard_fail.items() if value]
+    config = request.post_type.review
     average = sum(assessment.scores.values()) / len(criteria)
-    accepted = average >= request.post_type.review.pass_avg and not hard_fail
+    below_floor = any(score < config.min_score for score in assessment.scores.values())
+    accepted = average >= config.pass_avg and not below_floor and not hard_fail
 
     reasons = [
         assessment.reasons[key]
         for key in request.rubric.criteria
-        if assessment.scores[key] < request.post_type.review.pass_avg
+        if assessment.scores[key] < config.pass_avg
     ]
 
     reasons.extend(assessment.reasons[key] for key in hard_fail)
+
+    # A criterion and a hard-fail flag often carry the same sentence.
+    reasons = list(dict.fromkeys(reasons))
 
     if not accepted and not reasons:
         reasons = [assessment.reasons[key] for key in request.rubric.criteria]

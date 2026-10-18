@@ -164,6 +164,18 @@
       ],
       "default": null,
       "title": "Failure"
+    },
+    "failure_detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failure Detail"
     }
   },
   "required": [

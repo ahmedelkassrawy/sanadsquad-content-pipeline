@@ -1,0 +1,71 @@
+== thread_1
+   research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
+   research   topic KB-01 (Reentrancy) from KB-01
+   draft 1    6 tweets, rules ok, fixed tweet_2:curly_quotes, tweet_4:whitespace
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=5
+   outcome    shipped after 1 attempt(s)
+== thread_2
+   research   search_kb 'ERC-4626 vault inflation attack' -> KB-16:ok, KB-07:ok, KB-01:ok, KB-02:ok, KB-03:ok
+   research   search_kb 'ERC-4626 vault inflation attack root cause mitigation' -> KB-16:ok, KB-11:ok, KB-07:ok, KB-01:ok, KB-02:ok
+   research   web_search 'ERC-4626 vault inflation attack root cause and mitigation examples' -> WEB-312e8a0f354f7b8c:ok, WEB-f3a368ef59ce00ce:ok, WEB-a0fdaa7b887ec446:ok, WEB-e51bdb7bc82993b5:ok, WEB-b31517d05ac93159:ok
+   research   topic WEB-312e8a0f354f7b8c (ERC-4626 vault inflation attack) from WEB-312e8a0f354f7b8c, WEB-f3a368ef59ce00ce, WEB-a0fdaa7b887ec446
+   draft 1    6 tweets, rules FAILED: tweet_2:invalid_text, tweet_2:length, tweet_4:invalid_text, tweet_4:length
+   draft 2    5 tweets, rules ok, fixed tweet_1:curly_quotes, tweet_2:curly_quotes, tweet_3:curly_quotes, tweet_4:whitespace
+   review 2   REJECTED  hook=5 technical_accuracy=3 grounding=3 voice=5 clarity=5 cta=5
+              hard fail: unsupported_claim
+              reason: Tweet 2 includes an incorrect formula for share calculation (`100 * 0 / (100 + 1)`) that does not match the evidence, though the conclusion about zero shares is correct.
+              reason: Tweet 2's formula is not supported by the provided sources; the rest of the claims trace to evidence.
+              reason: Tweet 2 states an incorrect share calculation formula (`100 * 0 / (100 + 1)`) that is not found in the source evidence, making the claim unsupported.
+   outcome    dropped_quality after 2 attempt(s), see review 2 reasons above
+== thread_3
+   research   topic KB-05 (Unprotected selfdestruct) from KB-05
+   draft 1    5 tweets, rules ok, fixed tweet_2:banned_characters, tweet_2:curly_quotes, tweet_5:banned_characters, tweet_5:curly_quotes
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=5
+   outcome    shipped after 1 attempt(s)
+== marketing_1
+   research   topic ANGLE-service (service) from STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules ok, fixed tweet_1:banned_characters
+   review 1   REJECTED  hook=3 technical_accuracy=1 grounding=1 voice=1 clarity=3 cta=5
+              hard fail: unsupported_claim
+              reason: Opening is a clear generic contrast but not tied to specific evidence and the post does not answer it.
+              reason: Claims about risk reduction and general flaw consequences are not supported by evidence, making them misleading.
+              reason: Factual clauses such as 'small flaws can have big consequences' and 'to help reduce risks' lack evidence in supplied sources.
+              reason: Contains unsupported certainty about risk reduction, which reads as slightly salesy/hype.
+              reason: Understandable but the message is somewhat generic and repeats the review idea without added detail.
+              reason: Claims about risk reduction and general flaw consequences are not supported by the supplied evidence.
+   draft 2    1 tweets, rules ok
+   review 2   REJECTED  hook=3 technical_accuracy=2 grounding=1 voice=5 clarity=5 cta=5
+              hard fail: unsupported_claim
+              reason: Opening statement 'Smart contracts require precision.' is a generic claim not phrased as a question or contrast, and the post does not answer it.
+              reason: Contains unsupported technical claims: that smart contracts require precision and that the review ensures clarity and correctness, neither backed by the supplied evidence.
+              reason: Claim 'ensure clarity and correctness' adds a fact not present in STAT-03, which only states the firm offers audits; thus grounding fails.
+              reason: The tweet asserts that smart contracts require precision and that the review ensures clarity and correctness, both lacking support from STAT-01 or STAT-03.
+   outcome    dropped_quality after 2 attempt(s), see review 2 reasons above
+== marketing_2
+   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules ok
+   review 1   REJECTED  hook=3 technical_accuracy=5 grounding=1 voice=3 clarity=3 cta=5
+              hard fail: unsupported_claim
+              reason: Opening statement is a generic claim, not a specific question or contrast tied to evidence; the post does not answer an opening question.
+              reason: Claims such as 'Smart contract security starts with a thorough review' and 'specialized auditors' are not supported by the supplied evidence; the evidence only states audit counts and that teams can request a review.
+              reason: Tone is slightly promotional ('provides the expertise needed') rather than strictly calm, precise engineering voice.
+              reason: Understandable but the second sentence is long and somewhat cluttered with multiple clauses.
+              reason: The tweet contains unsupported factual clauses: 'Smart contract security starts with a thorough review' and the implication that auditors are 'specialized' are not backed by the supplied SourceRecords.
+   draft 2    1 tweets, rules ok
+   review 2   REJECTED  hook=3 technical_accuracy=1 grounding=1 voice=4 clarity=4 cta=5
+              hard fail: unsupported_claim
+              reason: Opening is a generic statement about teams relying on rigorous reviews, not a specific question or contrast tied to the angle.
+              reason: Claim that rigorous reviews catch critical flaws lacks evidence in the supplied sources; only audit count and review capability are supported.
+              reason: Factual clause about rigorous reviews catching critical flaws is not traced to any cited evidence_text, making it unsupported.
+              reason: The statement 'Teams building on smart contracts rely on rigorous reviews to catch critical flaws' is not supported by any source; the evidence only mentions audit count and ability to request a review.
+   outcome    dropped_quality after 2 attempt(s), see review 2 reasons above
+== marketing_3
+   research   topic ANGLE-education (education-to-cta) from KB-01, STAT-01, STAT-02, STAT-03
+   draft 1    1 tweets, rules FAILED: tweet_1:invalid_text, tweet_1:length
+   draft 2    1 tweets, rules ok, fixed tweet_1:curly_quotes
+   review 2   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
+   outcome    shipped after 2 attempt(s)
+
+shipped 3, dropped or failed 3
+tokens 129723, LLM cost $0.0154
+advisor not_enabled

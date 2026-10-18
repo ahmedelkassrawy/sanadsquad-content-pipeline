@@ -19,7 +19,7 @@ def test_live_harness_without_flag_makes_no_client_or_output(tmp_path, monkeypat
 
 @pytest.mark.parametrize(
     "flag,value",
-    [("--cost-budget", "1.01"), ("--grounding-cost-budget", "0.11"), ("--token-budget", "0")],
+    [("--cost-budget", "1.01"), ("--grounding-cost-budget", "0.26"), ("--token-budget", "0")],
 )
 def test_live_harness_rejects_invalid_spend_caps_before_initialization(
     tmp_path, monkeypatch, flag, value

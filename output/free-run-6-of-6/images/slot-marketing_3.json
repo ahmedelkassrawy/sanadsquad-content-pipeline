@@ -1,0 +1,12 @@
+{
+  "concept": "Reentrancy Risk in Smart Contracts",
+  "scene": "A minimalist abstract representation of a smart contract execution flow, showing a critical path where external calls interact with state updates. The visual emphasizes the gap between state validation and external interactions.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "State updates after untrusted calls",
+  "alt_text": "Illustration of reentrancy risk in smart contracts, highlighting the danger of external calls executing before state is finalized.",
+  "severity": null
+}

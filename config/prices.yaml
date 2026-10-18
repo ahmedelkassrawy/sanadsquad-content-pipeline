@@ -1,0 +1,18 @@
+# USD per million tokens for models genai-prices does not price, keyed provider:model.
+# Checked before genai-prices, so the run summary's cost covers every call.
+# Source: Mistral list price for Ministral 3 14B (mistral.ai/pricing/api), October 2026.
+# A free-tier key is billed nothing; this is the price the same calls cost on a paid plan.
+mistralai:ministral-14b-latest:
+  input: 0.20
+  output: 0.20
+
+# NVIDIA's hosted endpoint for this model is free (build.nvidia.com), so it is priced at 0
+# rather than left unpriced; that keeps the run summary's cost complete.
+nvidia:nvidia/nemotron-3-super-120b-a12b:
+  input: 0
+  output: 0
+
+# Also free on NVIDIA's hosted endpoint.
+nvidia:z-ai/glm-5.3-flash:
+  input: 0
+  output: 0

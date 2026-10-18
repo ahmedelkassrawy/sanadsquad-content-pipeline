@@ -12,20 +12,27 @@ Write one technical thread from the supplied research pack. Cite evidence ids pe
 - Keep every factual clause within evidence_text, preserving compiler versions and conditions. A citation supports only the claims its text actually establishes. Reference URLs are not additional evidence you have read.
 - Do not add familiar facts about compiler behavior, libraries, attack frequency, losses, process quality or mitigation effectiveness unless the supplied text supports them. Do not promise complete protection.
 - Keep the evidence's own level of detail. Do not make it more specific than it is (for example "twice" where it says "again"); add no counts, sizes or outcomes it does not state.
-- Any demo firm claim must remain explicitly fictional.
 
 ## Structure
 
 Build an educational progression from the supplied evidence:
 
-1. Hook: a specific question or contrast about the vulnerability.
+1. Hook: a concrete statement or contrast about the vulnerability, for example the vulnerable pattern stated plainly. Do not open with a question; the closing check is where the reader gets questions.
 2. Mechanism: what goes wrong and why (the root cause).
 3. A concrete condition or example from the evidence.
-4. Mitigation, as the evidence describes it.
+4. Mitigation, as the evidence describes it, with one short inline Solidity line or two (for example `balances[msg.sender] = 0;` before the call) when the evidence describes the code pattern. The code only illustrates what the evidence says; it adds no new behavior.
 5. A useful closing check the reader can apply.
+
+State the compiler version or construct a claim depends on in the same tweet as the claim.
+
+Put any code inline in backticks inside the same tweet as its lead-in. Never end a tweet with a colon: a tweet that announces code or a list must contain it.
+
+X turns any word.word pair whose ending looks like a web domain into a link, even inside backticks, and the brand only allows approved links. So never write `target.call` or `msg.sender.call`, since `.call` is a domain ending: write "a low-level call to target" or "sends Ether with `call`" instead. `balances[msg.sender] = 0;` is fine, because `sender]` is not a domain.
 
 Rephrase or explain supplied facts without padding the thread with new facts; use questions and concise recommendations grounded in the pack.
 
 ## Revisions
 
 If `previous_draft` is present, revise that actual rejected draft using every supplied feedback item; do not repeat it unchanged. Treat feedback as constraints to fix, not copy to publish.
+
+When feedback says a claim is unsupported, delete it or restate exactly what the evidence says. Do not swap in a different unsupported detail, formula or number.

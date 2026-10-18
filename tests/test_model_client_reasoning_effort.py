@@ -26,7 +26,7 @@ def no_dotenv(monkeypatch):
     monkeypatch.setattr("dotenv.dotenv_values", lambda *args, **kwargs: {})
 
 
-@pytest.mark.parametrize("role,configured", [("reviewer", "medium"), ("thread_writer", "low")])
+@pytest.mark.parametrize("role,configured", [("reviewer", "low"), ("thread_writer", "low")])
 @pytest.mark.parametrize("effort", ["none", "low", "medium", "high", None])
 def test_configured_client_uses_agent_effort_unless_overridden(tmp_path, role, configured, effort):
     assert load_agent(ROOT, role).reasoning_effort == configured

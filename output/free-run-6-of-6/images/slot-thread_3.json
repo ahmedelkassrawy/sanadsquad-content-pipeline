@@ -1,0 +1,12 @@
+{
+  "concept": "Unprotected selfdestruct",
+  "scene": "Unprotected selfdestruct",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Unprotected selfdestruct",
+  "alt_text": "Unprotected selfdestruct",
+  "severity": "high"
+}

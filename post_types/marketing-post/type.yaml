@@ -11,9 +11,45 @@ research:
   angles: angles.yaml
 review:
   pass_avg: 3.5
+  min_score: 3
   hard_fail:
   - unsupported_claim
   - off_brand
 visual:
   template: brand
   severity_badge: never
+# Quality and outcome words a firm post may use only when the slot's evidence uses them. Code
+# rejects the draft before review and tells the writer to delete the clause, not reword it.
+claim_words:
+- thorough
+- thoroughly
+- rigorous
+- rigor
+- specialized
+- specialist
+- expert
+- experts
+- expertise
+- comprehensive
+- proven
+- ensure
+- ensures
+- precision
+- trusted
+- leading
+- world-class
+- battle-tested
+- catch
+- catches
+- prevent
+- prevents
+- protect
+- protects
+- reduce
+- reduces
+- critical
+- meticulous
+- experienced
+- peace of mind
+- dedicated
+- precise

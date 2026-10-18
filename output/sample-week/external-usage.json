@@ -1,11 +1,12 @@
 {
-  "search_calls": 0,
-  "tavily_calls": 0,
+  "search_calls": 1,
+  "tavily_calls": 1,
   "ddgs_calls": 0,
   "fetch_calls": 0,
-  "tavily_credits": 0.0,
+  "tavily_credits": 1.0,
   "tavily_credits_estimated": false,
   "image_calls": 6,
+  "cloudflare_images": 6,
   "cloudflare_neurons": 0,
   "pillow_cards": 6
 }

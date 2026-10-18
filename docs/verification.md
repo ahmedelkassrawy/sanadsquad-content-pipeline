@@ -41,22 +41,27 @@ model will make sound editorial or grounding judgments.
 
 ## Live sample evidence
 
-`output/sample-week/` is a complete six-piece run made with real Mistral and Anthropic calls.
-Start with `posts.csv`, `run_summary.json`, `research_log.json` and `review_report.json`.
+`output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5
+reviewer, Sonnet 5.5 for every other agent), one Tavily search and six Cloudflare images.
+Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. The sample shipped 6 of 6 pieces and its posts were manually checked against the saved
-research evidence. The advisor failed safely and did not affect the exported posts.
+cost. It shipped 6 of 6; `thread_2` shows a code-rule rejection and a retry. It excludes the
+SQLite checkpoint, lock and identity files and therefore cannot be resumed.
 
-The sample predates later image-spec repair improvements, so it demonstrates the recorded run,
-not the best expected fallback rate of the current code. It also excludes the SQLite checkpoint,
-lock and identity files and therefore cannot be resumed.
+`output/sample-week/` predates the claim-word check, length split, link note, markdown fix and
+STAT-04, so it should be rerun on the current commit before it is cited as current behaviour.
+
+`output/free-run-with-drops/` holds the readable files of a free run (Ministral writers,
+Nemotron reviewer) on the older code that shows reviewer rejections and drops: 3 of 6 shipped.
+`output/free-run-6-of-6/` is the same setup on the current code: 6 of 6 shipped, with two code
+rejections and one reviewer rejection each fixed on the retry.
 
 ## Boundaries not claimed
 
-- The Cloudflare image backend is covered with mocked HTTP responses; no real Cloudflare image
-  call is claimed.
+- The Cloudflare image backend is unit-tested with mocked HTTP responses; the sample's six real
+  FLUX images are its only live check.
 - Provider availability, quotas and free-tier pricing can change independently of this code.
-- The sample firm and its statistics are fictional, and the knowledge base remains pending owner
+- The knowledge base remains pending owner
   review before real publication.
 - Resume is not exactly-once billing if a process dies after a provider charges a call but before
   its result is persisted.

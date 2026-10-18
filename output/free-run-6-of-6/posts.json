@@ -1,0 +1,89 @@
+[
+  {
+    "record_id": "thread_1/export/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "type": "tech-thread",
+    "topic_id": "KB-01",
+    "topic_name": "Reentrancy",
+    "tweets": [
+      "1/6 External calls in Solidity can hand control to another contract, allowing it to call back before the original call returns. This creates a window for repeated execution against unchanged state.",
+      "2/6 The root cause is that state updates are deferred until after external calls. For example, a withdrawal function that sends Ether before clearing the caller's balance leaves the balance intact for a callback to exploit again.",
+      "3/6 Reentrancy isn't limited to Ether transfers. Any external call, including those to dependent contracts, can serve as an entry point for callbacks that bypass intended state changes, even through indirect paths.",
+      "4/6 Mitigate reentrancy by following checks-effects-interactions: validate inputs, update storage state, then make external calls. For withdrawals, clear the balance before sending Ether: `balances[msg.sender] = 0; recipient.transfer(amount);`",
+      "5/6 Ensure external calls succeed or revert. If the call fails, the operation rolls back, maintaining state consistency. Review all callable functions and contracts sharing the affected state, reentrancy risks extend beyond direct paths.",
+      "6/6 A closing check: Are external calls made only after updating state? Could a callback re-enter through another function or dependency? Apply checks-effects-interactions consistently."
+    ],
+    "image": "images/slot-thread_1.png"
+  },
+  {
+    "record_id": "thread_2/export/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "type": "tech-thread",
+    "topic_id": "WEB-074564991fed74d2",
+    "topic_name": "ERC-4626 vault inflation attack",
+    "tweets": [
+      "1/6 ERC-4626 vaults can be manipulated to inflate share value, causing depositors to lose funds due to rounding. This attack exploits the exchange rate calculation, where an attacker front-runs a deposit to dilute the value of shares for legitimate users.",
+      "2/6 The root cause lies in how shares are minted: `sharesAmount = totalShares * assetAmount / asset.balanceOf(address(this))`. An attacker can inflate the denominator (`asset.balanceOf`) before a user deposits, causing the user's share calculation to round down to zero.",
+      "3/6 Example: An attacker deposits 1 wei, then transfers 20,000 USDT before a victim deposits 20,000 USDT. The victim's share calculation becomes `1 * 20,000 / (20,000 + 1)`, rounding down to 0 shares. The attacker then withdraws all funds.",
+      "4/6 Mitigation: Track total assets internally to exclude direct transfers from the balance used in share calculations. This removes the inflation risk but requires careful handling of re-basing tokens and potential gas overhead.",
+      "5/6 Alternative: Use virtual shares and assets to offset rounding errors. For example, adding a virtual asset offset of 1 and a share supply offset of 1e8 reduces the impact of inflation attacks by making them unprofitable.",
+      "6/6 Check your vault: Does it rely on `asset.balanceOf(address(this))` for share calculations? If so, consider internal asset tracking or virtual offsets to mitigate inflation risks."
+    ],
+    "image": "images/slot-thread_2.png"
+  },
+  {
+    "record_id": "thread_3/export/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "type": "tech-thread",
+    "topic_id": "KB-05",
+    "topic_name": "Unprotected selfdestruct",
+    "tweets": [
+      "1/6 A contract's `selfdestruct` can be triggered without checks, letting attackers delete it and steal funds. The impact depends on the EVM version, before Cancun, it wipes storage too.",
+      "2/6 Root cause: No access control gates the `selfdestruct` call. Even if the contract's code lacks it, an attacker can invoke it via `delegatecall` or `callcode`.",
+      "3/6 Before EVM Cancun (Shanghai and earlier), `selfdestruct` sends remaining Ether to a target and deletes the contract's code and storage. From Cancun onward, only Ether is sent, storage and code persist unless called in the creation transaction.",
+      "4/6 Solidity deprecated `selfdestruct` in 0.8.18 (EIP-6049) and warns against it in new contracts. If needed, use a multisig scheme to restrict who can trigger it. Otherwise, remove it entirely.",
+      "5/6 To deactivate a contract safely, change its internal state so all functions revert. This avoids relying on `selfdestruct`, which can still be exploited.",
+      "6/6 Check: Does your contract use `selfdestruct`? If so, verify it's protected by strict access controls, or replace it with state-based deactivation."
+    ],
+    "image": "images/slot-thread_3.png"
+  },
+  {
+    "record_id": "marketing_1/export/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-service",
+    "topic_name": "service",
+    "tweets": [
+      "Teams can request a review of their smart contract code. Each review includes findings with severity, root cause, and a recommended fix. Learn more."
+    ],
+    "image": "images/slot-marketing_1.png"
+  },
+  {
+    "record_id": "marketing_2/export/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-credibility",
+    "topic_name": "credibility",
+    "tweets": [
+      "Sentinel Grove has completed 12 smart contract audits with 3 auditors. We're a smart contract audit firm ready to review your code."
+    ],
+    "image": "images/slot-marketing_2.png"
+  },
+  {
+    "record_id": "marketing_3/export/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-education",
+    "topic_name": "education-to-cta",
+    "tweets": [
+      "External calls can reenter before state updates finish, allowing repeated execution. How does your contract handle callbacks that withdraw again? Request a review to assess the risk."
+    ],
+    "image": "images/slot-marketing_3.png"
+  }
+]

@@ -36,7 +36,7 @@ def check(text, rules: BrandRules, post_type="marketing-post"):
                 source_id="KB-01",
                 kind="kb",
                 title="Reentrancy",
-                evidence_text="External calls can reenter before state is finalized.",
+                evidence_text="External calls can reenter before state is finalized. Version v1.2 applies.",
             )
         ],
     )

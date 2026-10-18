@@ -32,7 +32,7 @@ __all__ = ["load_rubric"]
 
 def identity(slot_id, attempt, output):
     if output.slot_id != slot_id or output.attempt != attempt:
-        raise ModelFailure("failed_output")
+        raise ModelFailure("failed_output", "identity_mismatch")
 
 
 class Agent:
@@ -208,13 +208,15 @@ class Writer(Agent):
 
     async def __call__(self, request: WriteRequest) -> Draft:
         if request.research.slot_id != request.slot_id:
-            raise ModelFailure("failed_output")
+            raise ModelFailure("failed_output", "research_slot_mismatch")
 
         output = await self.invoke(Draft, request, request.slot_id, request.attempt, node="writer")
 
-        identity(request.slot_id, request.attempt, output)
+        if output.slot_id != request.slot_id:
+            raise ModelFailure("failed_output", "slot_id_mismatch")
 
-        return output
+        # Draft.attempt defaults to 1, so a retry that omits or copies it is not a bad draft.
+        return output.model_copy(update={"attempt": request.attempt})
 
 
 class Reviewer(Agent):

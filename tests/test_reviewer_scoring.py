@@ -9,7 +9,7 @@ from content_pipeline.agents import load_rubric
 from content_pipeline.config import load_type
 from content_pipeline.contracts import ReviewAssessment, ReviewRequest
 from content_pipeline.model_client import ModelFailure
-from content_pipeline.models import Draft, ResearchPack, Tweet
+from content_pipeline.models import Draft, ResearchPack, ReviewConfig, Tweet
 from content_pipeline.research import KnowledgeBase
 from content_pipeline.review_scoring import (
     canonical_review,
@@ -137,8 +137,26 @@ def test_public_judgement_rejects_scores_below_the_pass_average_with_their_reaso
     assert judgement.errors == []
     assert judgement.review.accepted is False
     assert judgement.review.hard_fail == []
-    assert judgement.review.reasons == [reasons[key] for key in request.rubric.criteria]
+    assert judgement.review.reasons == ["This criterion is too weak."]
     assert score_review(request, weak) == judgement.review
+
+
+def test_a_reason_shared_by_a_criterion_and_a_hard_fail_is_listed_once():
+    request = review_request()
+    shared = "The claim is absent from the supplied evidence."
+    flagged = "unsupported_claim"
+    reasons = {**criterion_reasons(request), "grounding": shared, flagged: shared}
+    scores = {**passing_scores(request), "grounding": 1.0}
+    assessment = canonical_assessment(
+        request,
+        scores=scores,
+        hard_fail={key: key == flagged for key in request.post_type.review.hard_fail},
+        reasons=reasons,
+    )
+
+    review = judge_review(request, assessment).review
+
+    assert review.reasons == [shared]
 
 
 def test_public_judgement_rejects_a_hard_fail_flag_with_its_reason():
@@ -173,6 +191,23 @@ def test_accepted_review_keeps_the_reason_of_a_below_average_criterion():
     assert judgement.verdict == "accepted"
     assert judgement.review.accepted is True
     assert judgement.review.reasons == ["Plain but acceptable."]
+
+
+def test_one_criterion_below_the_floor_rejects_despite_a_passing_average():
+    request = review_request()
+    weak = request.rubric.criteria[-1]
+    lopsided = canonical_assessment(
+        request,
+        scores={**passing_scores(request, 5.0), weak: 2.0},
+        reasons={**criterion_reasons(request), weak: "No next step for the reader."},
+    )
+
+    judgement = judge_review(request, lopsided)
+
+    assert request.post_type.review.min_score == 3
+    assert judgement.verdict == "rejected"
+    assert judgement.review.accepted is False
+    assert judgement.review.reasons == ["No next step for the reader."]
 
 
 @pytest.mark.parametrize("missing", ["scores", "hard_fail"])
@@ -363,3 +398,10 @@ def test_legacy_import_names_still_reach_the_scoring_module():
 
     assert agents.review_contract_errors(request, complete) == []
     assert agents.score_review(request, complete).accepted is True
+
+
+def test_review_floor_cannot_exceed_pass_average():
+    with pytest.raises(ValidationError, match="min_score"):
+        ReviewConfig(pass_avg=3.5, min_score=4, hard_fail=[])
+
+    assert ReviewConfig(pass_avg=3.5, min_score=3, hard_fail=[]).min_score == 3
