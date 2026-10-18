@@ -97,7 +97,7 @@ def test_public_packager_copies_exact_six_slot_artifacts(six_slot_source, tmp_pa
             spec = ImageSpec.model_validate_json(path.read_bytes())
             assert spec.palette == ["#14213d", "#fca311", "#ffffff"]
     assert {path.name for path in (target / "images").iterdir()} == images
-    assert len(list((target / "schemas").glob("*.json"))) == 56
+    assert len(list((target / "schemas").glob("*.json"))) == 57
     assert not any(
         (target / name).exists()
         for name in [

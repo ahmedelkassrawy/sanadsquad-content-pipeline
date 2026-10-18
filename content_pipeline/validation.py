@@ -3,7 +3,7 @@ import unicodedata
 from functools import partial
 from twitter_text import parse_tweet
 from skills import brand_rules
-from .models import BrandRules, Draft, PostType, ResearchPack, ValidationResult
+from .models import BrandRules, Draft, PostType, ResearchPack, SourceRecord, ValidationResult
 from .x_format import (
     CODE_SPAN,
     NUMBERING_PREFIX,
@@ -35,7 +35,8 @@ CLAIM_NOTE_MARKER = ":delete the clause containing"
 LINK_NOTE_MARKER = ":X turns"
 STAT_NOTE_MARKER = ":state"
 CREDIT_NOTE_MARKER = ":name this source"
-LABEL_NOTE_MARKER = ":drop"
+# A violation id never starts with this, so it marks a note for the writer and nothing else.
+WRITER_NOTE_PREFIX = "writer_note:"
 
 
 def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
@@ -172,11 +173,20 @@ _CREDIT_VERBS = (
     # Not "calls", "names" or "notes": "External calls", "Function names" are not credits.
     "says|say|lists|list|recommends|suggests|describes|warns|adds|defines|docs|documentation"
 )
+# Nouns that stand for a source's text: "OWASP's guidance says", "The SWC registry says".
+_CREDIT_NOUNS = (
+    "guidance|registry|guide|checklist|advisory|report|spec|specification|page|entry|catalog"
+)
+# The lead-in words may open a sentence ("Per OWASP"); only the credited name must be capitalized.
 _CREDIT_AFTER = re.compile(
-    r"\b(?:per|according to|listed by|cited by|as described by)\s+(?:the\s+)?"
+    r"\b(?i:per|according to|listed by|cited by|as described by)\s+(?i:the\s+)?"
     r"([A-Z][A-Za-z0-9.-]+)"
 )
-_CREDIT_BEFORE = re.compile(r"\b([A-Z][A-Za-z0-9.-]+)(?:['’]s)?\s+(?:" + _CREDIT_VERBS + r")\b")
+_CREDIT_BEFORE = re.compile(
+    r"\b([A-Z][A-Za-z0-9.-]+)(?:['’]s)?"
+    r"(?:\s+(?:" + _CREDIT_NOUNS + r"))?"
+    r"\s+(?:" + _CREDIT_VERBS + r")\b"
+)
 # Capitalized words that are not a source's name.
 _NOT_A_SOURCE = frozenset(
     "the this that it its a an code each every one some any no step check".split()
@@ -214,43 +224,64 @@ def check_repeated_credits(texts: list[str]) -> list[str]:
     ]
 
 
-# A tweet that opens with a short label and a colon ("Closing check:", "The root cause:").
-_SECTION_LABEL = re.compile(r"^((?:[A-Za-z]+\s){0,2}[A-Za-z]+):\s")
-_SECTION_LABELS = frozenset(
-    [
-        "closing check",
-        "a closing check",
-        "root cause",
-        "the root cause",
-        "the root issue",
-        "mitigation",
-        "mitigation one",
-        "mitigation two",
-        "other mitigations",
-        "example",
-        "concrete case",
-        "concrete numbers",
-        "the mechanism",
-        "why it happens",
-        "the key point",
-        "tradeoff",
-        "the attack",
-        "alternative",
-        "the risk",
-    ]
+# A tweet that opens with a short lead-in and a colon ("Closing check:", "Root cause in one
+# line:", "Mitigation 1:"). A word is plain text, so a backtick or a URL scheme never matches.
+_LABEL_WORD = r"[A-Za-z0-9][A-Za-z0-9'’-]*"
+LABEL_MAX_WORDS = 5
+_SECTION_LABEL = re.compile(
+    r"^((?:"
+    + _LABEL_WORD
+    + r"\s+){0,"
+    + str(LABEL_MAX_WORDS - 1)
+    + r"}"
+    + _LABEL_WORD
+    + r"):(?!//)"
+)
+# A lead-in that starts with a verb is an instruction ("Check each function: ..."), not an outline.
+_IMPERATIVE_STARTS = frozenset(
+    "add ask avoid check compare confirm consider do don't ensure grep keep look make mitigate "
+    "never prefer put read remember remove replace review run search set test to try update use "
+    "verify watch write".split()
+)
+# A lead-in with a verb is a sentence that happens to use a colon ("The fix is X: do Y"), not a
+# label such as "Root cause in one line".
+_LEAD_IN_VERBS = frozenset(
+    "is are was were be been has have had does did can could will would should must may might "
+    "also follows starts fixes lists recommends recommend suggests describes appear appears "
+    "means lets allows needs requires shows uses trusts".split()
 )
 
 
+def _section_label(text: str) -> str | None:
+    """The outline label a tweet opens with, or None when its first words are the point."""
+    body = NUMBERING_PREFIX.sub("", text)
+    match = _SECTION_LABEL.match(body)
+
+    if not match:
+        return None
+
+    label = match.group(1).casefold()
+    words = label.split()
+
+    # Inline code right after the colon is the point itself: "Fix: `x = 0;`".
+    if body[match.end() :].lstrip().startswith("`"):
+        return None
+
+    if words[0] in _IMPERATIVE_STARTS or _LEAD_IN_VERBS.intersection(words):
+        return None
+
+    return label
+
+
 def check_section_labels(texts: list[str]) -> list[str]:
-    """Report tweets that open with a section label instead of their point."""
+    """Report tweets that open with an outline label instead of their point."""
     violations = []
 
     for index, text in enumerate(texts, 1):
-        match = _SECTION_LABEL.match(NUMBERING_PREFIX.sub("", text))
+        label = _section_label(text)
 
-        # Only outline labels count; an imperative lead-in ("Check each function: ...") does not.
-        if match and match.group(1).casefold() in _SECTION_LABELS:
-            violations.append(f"tweet_{index}:section_label:{match.group(1).casefold()}")
+        if label:
+            violations.append(f"tweet_{index}:section_label:{label}")
 
     return violations
 
@@ -304,31 +335,103 @@ _NUMBER_WORDS = {
 }
 
 
+# Words that end in "s" without being a plural noun, so they cannot be what a number counts.
+_NOT_PLURAL = frozenset("this does always across thus plus less various perhaps towards".split())
+
+
 def _singular(word: str) -> str:
     return word[:-1] if len(word) > 3 and word.endswith("s") and not word.endswith("ss") else word
 
 
+def _is_plural_noun(word: str) -> bool:
+    return _singular(word) != word and word not in _NOT_PLURAL
+
+
+def _sentence_words(sentence: str) -> tuple[list[str], set[int]]:
+    """Folded words of a sentence, and the indexes of words glued to a number by a hyphen.
+
+    "A 3-auditor team" gives the words a, 3, auditor, team and the glued index {2}.
+    """
+    words = []
+    glued = set()
+    previous_end = -1
+
+    for match in _WORDS.finditer(sentence.casefold()):
+        word = _NUMBER_WORDS.get(match.group(), match.group())
+
+        if words and words[-1].isdigit() and match.start() == previous_end + 1:
+            if sentence[previous_end] == "-":
+                glued.add(len(words))
+
+        words.append(word)
+
+        previous_end = match.end()
+
+    return words, glued
+
+
+def _counted_noun(words: list[str], index: int, glued: set[int]) -> str | None:
+    """The noun the number at words[index] counts, skipping adjectives and compound modifiers.
+
+    "12 smart contract audits" counts audits, not "smart" or "contract"; "12 auditors review every
+    audit" counts auditors, not the later audit; "a 3-auditor team" counts the auditor. None when
+    no plural noun follows within the window, so the caller cannot tell.
+    """
+    if index + 1 in glued:
+        return _singular(words[index + 1])
+
+    for word in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]:
+        if _is_plural_noun(word):
+            return _singular(word)
+
+    return None
+
+
 def _stat_head_noun(stat_text: str, number: str) -> str | None:
-    """The noun a stat attaches to its number: the last word of the phrase after it.
+    """The noun a stat attaches to its number.
 
     "has completed 12 smart contract audits." gives "audit"; "has 3 auditors." gives "auditor".
     """
     for clause in re.split(r"[.,;:]", stat_text.casefold()):
-        words = [_NUMBER_WORDS.get(w, w) for w in _WORDS.findall(clause)]
+        words, glued = _sentence_words(clause)
 
-        if number in words:
-            phrase = words[words.index(number) + 1 : words.index(number) + 1 + _STAT_NOUN_WINDOW]
+        if number not in words:
+            continue
 
-            return _singular(phrase[-1]) if phrase else None
+        index = words.index(number)
+        counted = _counted_noun(words, index, glued)
+
+        if counted:
+            return counted
+
+        phrase = words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]
+
+        return _singular(phrase[-1]) if phrase else None
 
     return None
+
+
+def _binds_stat(
+    stat: SourceRecord, number: str, words: list[str], index: int, glued: set[int]
+) -> bool:
+    """Whether the number at words[index] sits on the noun that the stat gives that number."""
+    head = _stat_head_noun(stat.evidence_text, number)
+    counted = _counted_noun(words, index, glued)
+
+    if counted:
+        return counted == head
+
+    # No plural noun to bind to ("12 audit" in a clause with no plural): accept the stat's noun
+    # anywhere in the window, as the check always did.
+    return head in {_singular(w) for w in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]}
 
 
 def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     """Keep approved firm stats as the separate facts they are.
 
-    A number taken from a stat must keep that stat's noun within a few words ("12 smart contract
-    auditors" or "12 auditors" fails, "12 completed audits" passes), and numbers from two
+    A number taken from a stat must count the noun the stat gives it ("12 smart contract
+    auditors" or "12 auditors" fails, "12 completed audits" passes; "12 auditors review every
+    audit" fails, whatever noun comes later in the sentence), and numbers from two
     different stats may not share a sentence ("our three auditors completed 12 audits" claims the
     three did all twelve). Spelled-out numbers count; numbers in code spans and links do not.
     """
@@ -342,7 +445,7 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
     prose = " ".join(" " if is_url_token(token) else token for token in prose.split())
 
     for sentence in _SENTENCE.split(prose):
-        words = [_NUMBER_WORDS.get(w, w) for w in _WORDS.findall(sentence.casefold())]
+        words, glued = _sentence_words(sentence)
         used = set()
 
         for index, word in enumerate(words):
@@ -354,8 +457,7 @@ def check_stat_claims(text: str, pack: ResearchPack) -> list[str]:
             if not owners:
                 continue
 
-            window = {_singular(w) for w in words[index + 1 : index + 1 + _STAT_NOUN_WINDOW]}
-            bound = [s for s in owners if _stat_head_noun(s.evidence_text, word) in window]
+            bound = [s for s in owners if _binds_stat(s, word, words, index, glued)]
 
             if bound:
                 used.add(bound[0].source_id)
@@ -557,7 +659,7 @@ def credit_feedback(result: ValidationResult) -> list[str]:
 def label_feedback(result: ValidationResult) -> list[str]:
     """Writer-only note for a tweet that opens with an outline label."""
     return [
-        f"{violation}{LABEL_NOTE_MARKER} the label and open the tweet with its point (for "
+        f"{WRITER_NOTE_PREFIX}{violation}: drop the label and open the tweet with its point (for "
         "example, write the root cause as a sentence in your own words)"
         for violation in result.violations
         if ":section_label:" in violation
@@ -568,7 +670,7 @@ def is_writer_note(reason: str) -> bool:
     """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
     return (
         (reason.startswith("tweet_") and ":weighted_length:" in reason)
-        or LABEL_NOTE_MARKER in reason
+        or reason.startswith(WRITER_NOTE_PREFIX)
         or CLAIM_NOTE_MARKER in reason
         or LINK_NOTE_MARKER in reason
         or CREDIT_NOTE_MARKER in reason

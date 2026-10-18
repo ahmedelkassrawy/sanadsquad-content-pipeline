@@ -90,6 +90,13 @@ class TopicChoices(Contract):
     assignments: dict[str, str]
 
 
+class WriteStyle(Contract):
+    """The hook and closing style code assigned to one slot; None leaves that part to the writer."""
+
+    hook: str | None = None
+    closing: str | None = None
+
+
 class WriteRequest(Contract):
     slot_id: str
     attempt: int = Field(ge=1, le=2)
@@ -98,6 +105,8 @@ class WriteRequest(Contract):
     feedback: list[str]
     max_tweet_chars: int = Field(default=280, ge=1, le=280)
     previous_draft: Draft | None = None
+    # The slot's assigned hook and closing, so threads of one week are written differently.
+    style: WriteStyle | None = None
 
 
 class Rubric(Contract):

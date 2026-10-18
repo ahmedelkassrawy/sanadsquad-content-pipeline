@@ -17,11 +17,11 @@ Write one technical thread from the supplied research pack. Cite evidence ids pe
 
 Build an educational progression from the supplied evidence:
 
-1. Hook: a concrete statement or contrast about the vulnerability, for example the vulnerable pattern stated plainly. Do not open with a question; the closing check is where the reader gets questions.
+1. Hook: follow `style.hook` from the request. Do not open with a question; the closing check is where the reader gets questions. Use `style.hook` only: the style lists inside `post_type` are for other threads of the week.
 2. Mechanism: what goes wrong and why (the root cause).
 3. A concrete condition or example from the evidence.
 4. Mitigation, as the evidence describes it, with one short inline Solidity line or two (for example `balances[msg.sender] = 0;` before the call) when the evidence describes the code pattern. The code only illustrates what the evidence says; it adds no new behavior.
-5. A closing check specific to this vulnerability: name its exact condition ("does any storage write come after an external call?"). Do not end with a generic question about "your own code" or "your contracts"; every thread in a week otherwise ends the same way.
+5. A closing check specific to this vulnerability, in the form of `style.closing` from the request: name its exact condition in your own words. Do not end with a generic question about "your own code" or "your contracts". Each thread of a week is given a different hook and closing style so the week does not read the same; when the request has no `style`, choose any form.
 
 State the compiler version or construct a claim depends on in the same tweet as the claim.
 

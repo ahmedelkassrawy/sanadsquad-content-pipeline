@@ -222,6 +222,18 @@ class PostType(Contract):
     visual: VisualConfig
     # Words that make a quality or outcome claim; allowed only when the slot's evidence uses them.
     claim_words: list[str] = Field(default_factory=list)
+    # Hook and closing styles handed out to the slots of this type in plan order (the first slot
+    # gets the first style, and so on, wrapping around), so a week's threads do not all open and
+    # end the same way. Empty means the writer is free.
+    hook_styles: list[str] = Field(default_factory=list)
+    closing_styles: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def styles_not_blank(self):
+        if any(not style.strip() for style in self.hook_styles + self.closing_styles):
+            raise ValueError("hook and closing styles cannot be blank")
+
+        return self
 
 
 class BrandRules(Contract):

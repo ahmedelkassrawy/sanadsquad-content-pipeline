@@ -18,6 +18,16 @@ review:
 visual:
   template: technical
   severity_badge: auto
+# Code gives each thread of a week the next hook and closing style (the first thread the first
+# style, and so on, wrapping around), so the threads do not all open and end the same way.
+hook_styles:
+- state the vulnerable pattern as a plain fact about what goes wrong
+- "open with a concrete scenario: what an attacker does, step by step in one sentence"
+- open with a contrast between what the code assumes and what actually happens
+closing_styles:
+- a yes/no question naming the exact condition to look for
+- one concrete thing to test or grep for, stated as an instruction
+- a short checklist of two items in one sentence
 # Counts more specific than the evidence: allowed only when the slot's evidence uses the word
 # (KB-01 says a callback can withdraw "again", which is not "twice").
 claim_words:

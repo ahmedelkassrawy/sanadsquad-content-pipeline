@@ -16,6 +16,7 @@ It shows the reviewer doing the job the brief asks for. In `run.log`:
   team of 3 auditors"); the retry shipped.
 
 This run used commit 5dd7f4a. After it, a writer rule was added (on an arithmetic rejection,
-recompute rather than restate the source's figure), and the following runs shipped 6 of 6; the
-committed `output/sample-week` is a later run on the same models. Only these files were copied, so this folder
-cannot be resumed.
+recompute rather than restate the source's figure). Later runs on the same models shipped between
+4 and 6 of 6 (for example 4 of 6 and 5 of 6); their drops were real reviewer rejections. The
+committed `output/sample-week` is a later run that shipped 6 of 6. Only these files were copied, so
+this folder cannot be resumed.

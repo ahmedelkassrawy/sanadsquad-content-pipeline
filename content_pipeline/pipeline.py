@@ -877,6 +877,7 @@ class Pipeline:
             feedback=state.feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
+            style=self.types.writing_style(state.slot, self.plan),
         )
 
         saved = self.replay.reuse(
