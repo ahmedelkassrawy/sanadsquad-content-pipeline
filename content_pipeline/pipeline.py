@@ -53,6 +53,7 @@ from .tools import configured_web_search
 from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
+    credit_feedback,
     link_feedback,
     stat_feedback,
     colon_feedback,
@@ -945,6 +946,7 @@ class Pipeline:
             + claim_feedback(result)
             + link_feedback(result)
             + stat_feedback(result)
+            + credit_feedback(result)
         )
 
         if saved is not None:

@@ -1,4 +1,5 @@
 import asyncio
+import re
 from pathlib import Path
 from pydantic import ValidationError
 from . import record_ids
@@ -28,6 +29,41 @@ from .review_scoring import (
 
 
 __all__ = ["load_rubric"]
+
+
+# Words too general to tie a focus to a knowledge-base entry.
+_FOCUS_STOPWORDS = frozenset(
+    "the and for with from that this into over attack attacks exploit exploits vulnerability "
+    "vulnerabilities bug bugs smart contract contracts issue issues".split()
+)
+
+
+def _focus_words(text: str) -> set[str]:
+    words = re.findall(r"[a-z0-9]+", text.casefold())
+
+    return {
+        word[:-1] if len(word) > 3 and word.endswith("s") else word
+        for word in words
+        if len(word) >= 3 and word not in _FOCUS_STOPWORDS
+    }
+
+
+def focus_matches(focus: str, kb, topic_id: str) -> bool:
+    """Whether a KB entry's name, aliases or category share a word with the requested focus.
+
+    A focus with no meaningful words (a single letter) matches anything. Only the entry's label
+    counts, not its description, so "re-pricing" cannot match a flash-loan entry that mentions
+    pricing in passing.
+    """
+    wanted = _focus_words(focus)
+
+    if not wanted:
+        return True
+
+    entry = next(e for e in kb.entries if e["id"] == topic_id)
+    label = " ".join([entry["name"], entry.get("category", ""), *entry.get("aliases", [])])
+
+    return bool(wanted & _focus_words(label))
 
 
 def identity(slot_id, attempt, output):
@@ -158,6 +194,15 @@ class ResearchAgent(Agent):
 
                 if action.topic_id and action.topic_id not in action.source_ids:
                     raise ModelFailure("failed_research", "topic_not_among_cited_sources")
+
+                if (
+                    slot.focus
+                    and topic.startswith("KB-")
+                    and not focus_matches(slot.focus, self.kb, topic)
+                ):
+                    # The operator asked for one topic; shipping the nearest other one is a
+                    # substitution, so the slot fails instead.
+                    raise ModelFailure("failed_research", "topic_does_not_match_focus")
 
                 title = (
                     self.kb.source(topic).title

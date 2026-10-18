@@ -34,6 +34,7 @@ _TOKEN = re.compile(r"\S+")
 CLAIM_NOTE_MARKER = ":delete the clause containing"
 LINK_NOTE_MARKER = ":X turns"
 STAT_NOTE_MARKER = ":state"
+CREDIT_NOTE_MARKER = ":name this source"
 
 
 def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
@@ -162,6 +163,47 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
         for i, t in enumerate(draft.tweets, 1)
         for source_id in t.source_ids
         if source_id not in citable
+    ]
+
+
+# A credit names a source: "OWASP lists", "per OWASP", "listed by OWASP", "the Solidity docs say".
+_CREDIT_VERBS = (
+    "says|say|lists|list|names|recommends|suggests|calls|describes|notes|warns|adds|defines|"
+    "docs|documentation"
+)
+_CREDIT_AFTER = re.compile(
+    r"\b(?:per|according to|listed by|cited by|as described by|from)\s+(?:the\s+)?"
+    r"([A-Z][A-Za-z0-9.-]+)"
+)
+_CREDIT_BEFORE = re.compile(r"\b([A-Z][A-Za-z0-9.-]+)(?:['’]s)?\s+(?:" + _CREDIT_VERBS + r")\b")
+# Capitalized words that are not a source's name.
+_NOT_A_SOURCE = frozenset(
+    "the this that it its a an code each every one some any no step check".split()
+)
+
+
+def check_repeated_credits(texts: list[str]) -> list[str]:
+    """Report a source credited in more than one tweet of a thread ("OWASP says" again and again).
+
+    Name a source once; after that, state its facts directly.
+    """
+    tweets_by_name = {}
+
+    for index, text in enumerate(texts):
+        prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
+        names = {
+            match.group(1).rstrip(".").casefold()
+            for pattern in (_CREDIT_AFTER, _CREDIT_BEFORE)
+            for match in pattern.finditer(prose)
+        } - _NOT_A_SOURCE
+
+        for name in names:
+            tweets_by_name.setdefault(name, set()).add(index)
+
+    return [
+        f"repeated_credit:{name}"
+        for name, tweets in sorted(tweets_by_name.items())
+        if len(tweets) > 1
     ]
 
 
@@ -372,7 +414,9 @@ def validate(
     errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
 
     if len(fixed.tweets) > 1:
-        errors.extend(check_repeated_openings([tweet.text for tweet in fixed.tweets]))
+        texts = [tweet.text for tweet in fixed.tweets]
+        errors.extend(check_repeated_openings(texts))
+        errors.extend(check_repeated_credits(texts))
 
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
         errors.append("tweet_count")
@@ -451,12 +495,23 @@ def stat_feedback(result: ValidationResult) -> list[str]:
     return notes
 
 
+def credit_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for a source credited in more than one tweet."""
+    return [
+        f"{violation}{CREDIT_NOTE_MARKER} once in the thread; in other tweets state its facts "
+        "directly, without naming it again"
+        for violation in result.violations
+        if violation.startswith("repeated_credit:")
+    ]
+
+
 def is_writer_note(reason: str) -> bool:
     """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
     return (
         (reason.startswith("tweet_") and ":weighted_length:" in reason)
         or CLAIM_NOTE_MARKER in reason
         or LINK_NOTE_MARKER in reason
+        or CREDIT_NOTE_MARKER in reason
         or STAT_NOTE_MARKER + " each approved stat" in reason
     )
 

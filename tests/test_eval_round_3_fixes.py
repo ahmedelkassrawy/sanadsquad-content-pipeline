@@ -180,3 +180,51 @@ def test_a_possessive_opening_counts_as_the_same_word():
     texts = ["OWASP calls this a flaw.", "OWASP's example shows it.", "OWASP lists areas."]
 
     assert check_repeated_openings(texts) == ["repeated_opening:owasp"]
+
+
+def test_a_source_credited_in_two_tweets_is_rejected_with_a_note():
+    from content_pipeline.validation import check_repeated_credits, credit_feedback
+
+    texts = [
+        "1/5 Price oracle manipulation, listed by OWASP as SC03.",
+        "2/5 An oracle is a trust boundary.",
+        "3/5 OWASP lists several ways in.",
+        "4/5 Aggregate sources and reject outliers.",
+        "5/5 Can one pool set the price?",
+    ]
+
+    assert check_repeated_credits(texts) == ["repeated_credit:owasp"]
+    assert check_repeated_credits(texts[:2] + texts[3:]) == []
+    assert check_repeated_credits(
+        ["The Solidity documentation says x.", "Per the Solidity docs, y."]
+    ) == ["repeated_credit:solidity"]
+
+    draft = Draft(
+        slot_id="thread_1", tweets=[Tweet(text=t[4:], source_ids=["KB-01"]) for t in texts]
+    )
+    pack = ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-01",
+        topic_name="x",
+        sources=[
+            SourceRecord(source_id="KB-01", kind="kb", title="x", evidence_text="SC03 OWASP.")
+        ],
+    )
+    result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
+    notes = credit_feedback(result)
+
+    assert "repeated_credit:owasp" in result.violations
+    assert len(notes) == 1 and is_writer_note(notes[0])
+
+
+def test_focus_matches_the_kb_label_not_its_description():
+    from content_pipeline.agents import focus_matches
+
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+
+    assert focus_matches("oracle manipulation", kb, "KB-18")
+    assert focus_matches("recursive call", kb, "KB-01")
+    assert focus_matches("flash loans", kb, "KB-19")
+    # KB-19's description mentions pricing, but its label is about flash loans.
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "KB-19")
+    assert focus_matches("x", kb, "KB-19")

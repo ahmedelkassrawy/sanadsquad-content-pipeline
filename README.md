@@ -108,7 +108,7 @@ rejects the draft even if the average passes.
 
 | Limitation | Next step |
 | --- | --- |
-| The committed Claude sample shipped 6 of 6, so it shows a reviewer rejection and a retry but no drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, the code as of that run: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
+| Every piece in the committed Claude sample shipped on its first attempt, so it shows no rejection, retry or drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, the code as of that run: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
 | The number check skips bare single digits ("3 steps") and does not see numbers written as words ("three steps"). Both are left to the reviewer. | Extend the check once false positives are measured. |
 | The reviewer (Opus) is a different model from the writers, which reduces shared blind spots but is still an LLM judgement. Tests use scripted models, so they prove routing and rules, not real judgement quality. | Run `live_proof --live` and hand-check a sample after every model change. |
 | The advisor is off by default (`ADVISOR_ENABLED=false`) and did not run in the sample. It is optional and outside the brief. | Set `ADVISOR_ENABLED=true` to try it. |
