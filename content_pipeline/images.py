@@ -15,7 +15,7 @@ class CardStyle:
     """What code, not the visual model, adds to a card: all of it comes from the approved post.
 
     template is the post type's visual template ("technical" draws a code panel, "brand" draws
-    the brand layout), label names the topic, and code is the post's own first inline code span.
+    the brand layout), label names the topic, and code is the longest inline code span in the post.
     """
 
     template: str = "brand"
@@ -30,13 +30,13 @@ def card_style(request, brand_name: str) -> CardStyle:
     code = None
 
     if template == "technical":
-        for tweet in request.draft.tweets:
-            match = _CODE_SPAN.search(tweet.text)
-
-            if match:
-                code = match.group(1).strip()
-
-                break
+        # The longest span is the most complete line of code; short fragments read as noise.
+        spans = [
+            match.group(1).strip()
+            for tweet in request.draft.tweets
+            for match in _CODE_SPAN.finditer(tweet.text)
+        ]
+        code = max(spans, key=len) if spans else None
 
     label = request.research.topic_name if template == "technical" else ""
 

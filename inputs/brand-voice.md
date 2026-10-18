@@ -24,6 +24,7 @@ banned_words:
 - the evidence
 - the research pack
 - according to the source
+- the tested example
 banned_characters:
 - —
 - ‑

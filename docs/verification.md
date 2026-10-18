@@ -59,8 +59,9 @@ rejections and one reviewer rejection each fixed on the retry.
 
 ## Boundaries not claimed
 
-- The Cloudflare image backend is unit-tested with mocked HTTP responses; the sample's six real
-  FLUX images are its only live check.
+- The Cloudflare image backend is unit-tested with mocked HTTP responses. Every live call so far
+  returned HTTP 429, so no generated background has been checked live; the sample's cards are
+  Pillow-drawn.
 - Provider availability, quotas and free-tier pricing can change independently of this code.
 - The knowledge base remains pending owner
   review before real publication.

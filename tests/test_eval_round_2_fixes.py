@@ -274,3 +274,21 @@ async def test_the_style_reaches_renderers_that_accept_it_only(tmp_path):
         )
 
     assert calls == [("plain", None), ("styled", style)]
+
+
+def test_card_code_is_the_longest_span_in_the_post():
+    request = visual_request(
+        "tech-thread",
+        [
+            "Rate uses `totalAssets() + 1` here.",
+            "Full: `totalAssets() + 1` over `totalSupply() + 10**offset`.",
+        ],
+    )
+
+    assert card_style(request, "B").code == "totalSupply() + 10**offset"
+
+
+def test_pointing_at_the_tested_example_is_banned():
+    text = "In the tested example the attacker can no longer steal funds."
+
+    assert "banned_phrase:the tested example" in brand_rules.check_brand(text, RULES)
