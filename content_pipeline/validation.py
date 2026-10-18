@@ -173,7 +173,8 @@ def check_claim_words(text: str, pack: ResearchPack, claim_words: list[str]) -> 
         return []
 
     # Code spans are code, not claims: `try/catch` is not a promise to catch anything.
-    prose = " ".join(part for index, part in enumerate(text.split("`")) if index % 2 == 0)
+    # Only paired spans count, so a stray backtick cannot hide the claims after it.
+    prose = _CODE_SPAN.sub(" ", text)
     folded = unicodedata.normalize("NFKC", prose)
 
     evidence = unicodedata.normalize(
@@ -279,14 +280,17 @@ def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[
         fixes.append(f"tweet_{index + 1}:split_for_length")
 
 
+# A paired backtick code span. An unpaired backtick is not a span.
+_CODE_SPAN = re.compile(r"`[^`]*`")
 # Paired * or ** around a word or phrase. X shows the asterisks literally, so the words stay and
 # the markers go. Code spans are skipped, so `a * b` keeps its operator.
 _EMPHASIS = re.compile(r"(?<![\w*])(\*{1,2})(?=\S)([^*`]+?)(?<=\S)\1(?![\w*])")
-# A fenced block ("```solidity x ```") becomes one inline code span ("`x`"). Only a known
-# language tag is dropped, so "```require(x);```" keeps its first word.
+# A fenced block becomes one inline code span. Only a known language tag followed by space and
+# then code (not an operator) is dropped, so "```require(x);```" and "```text = f()```" keep
+# their first word. Newlines are already flattened by the whitespace fix, so none is required.
 _FENCE = re.compile(
     r"```(?:(?:solidity|sol|javascript|js|typescript|ts|python|py|bash|sh|json|yaml|text)"
-    r"(?=\s))?\s*(.+?)\s*```",
+    r"(?=\s)(?!\s*[=(.\[:]))?\s*(.+?)\s*```",
     re.S | re.I,
 )
 

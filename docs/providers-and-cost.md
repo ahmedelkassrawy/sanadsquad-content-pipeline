@@ -102,4 +102,4 @@ backgrounds composed into a Pillow card. The full per-slot story is in
 The free run copied to `output/free-run-with-drops` (Ministral writers, Nemotron reviewer, about 3 minutes)
 shows the drop path: 3 of 6 shipped, and the reviewer dropped two marketing posts and one
 thread after a retry for claims the evidence does not support. `output/free-run-6-of-6` is the
-same setup on the current code: 6 of 6 shipped, three of them after a rejection and a retry.
+same setup on the code as of that run: 6 of 6 shipped, three of them after a rejection and a retry.

@@ -234,3 +234,18 @@ def test_code_fences_become_inline_code():
     fenced = "Restrict it: ```solidity require(msg.sender == owner); ``` today."
 
     assert strip_markdown(fenced) == "Restrict it: `require(msg.sender == owner);` today."
+
+
+def test_a_stray_backtick_does_not_hide_claim_words():
+    research = pack("marketing_1", "Sentinel Grove has 3 auditors.")
+
+    assert check_claim_words("It`s an expert team.", research, ["expert"]) == [
+        "unsupported_claim_word:expert"
+    ]
+
+
+def test_a_tag_word_used_as_code_is_kept():
+    from content_pipeline.validation import strip_markdown
+
+    assert strip_markdown("Do ```text = load()``` now.") == "Do `text = load()` now."
+    assert strip_markdown("Do ```json.parse(x)``` now.") == "Do `json.parse(x)` now."

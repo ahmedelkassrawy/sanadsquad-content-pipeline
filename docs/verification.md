@@ -53,7 +53,7 @@ STAT-04, so it should be rerun on the current commit before it is cited as curre
 
 `output/free-run-with-drops/` holds the readable files of a free run (Ministral writers,
 Nemotron reviewer) on the older code that shows reviewer rejections and drops: 3 of 6 shipped.
-`output/free-run-6-of-6/` is the same setup on the current code: 6 of 6 shipped, with two code
+`output/free-run-6-of-6/` is the same setup on the code as of that run: 6 of 6 shipped, with two code
 rejections and one reviewer rejection each fixed on the retry.
 
 ## Boundaries not claimed
