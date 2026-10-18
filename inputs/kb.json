@@ -11,6 +11,7 @@
       "root_cause": "State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency.",
       "aliases": [
         "recursive call",
+        "re-entrancy",
         "SWC-107"
       ],
       "references": [
@@ -133,6 +134,8 @@
       "root_cause": "Shared state transitions rely on ordering that block producers can influence; the SWC text describes this in terms of miners and gas price. For reward-for-information cases, SWC suggests a commit-reveal hash scheme: the sender submits hash(salt, address, answer), the contract stores the hash and the sender's address, and later the sender submits the salt and answer so the contract can recompute hash(salt, msg.sender, answer) and release the reward on a match. For the ERC20 case, the best fix is to add the expected current allowance to approve and revert on a mismatch, but then the contract no longer conforms to ERC20. A safe approve function is an alternative, and users can set approvals to zero before changing them.",
       "aliases": [
         "front running",
+        "front-running",
+        "frontrunning",
         "SWC-114"
       ],
       "references": [
@@ -183,6 +186,8 @@
       "root_cause": "Progress depends on every external transfer or call succeeding. Isolate each external call into its own transaction that can be initiated by the recipient of the call. This matters especially for payments: let users withdraw funds rather than pushing funds to them automatically, which also reduces the chance of problems with the gas limit. Avoid combining multiple calls in a single transaction, especially inside a loop, always assume external calls can fail, and implement the contract logic to handle failed calls.",
       "aliases": [
         "revert griefing",
+        "DoS",
+        "denial of service",
         "SWC-113"
       ],
       "references": [
@@ -200,6 +205,8 @@
       "root_cause": "Required operations iterate over unbounded state, as in the growing-array case. Be cautious when large arrays are expected to grow over time, and avoid actions that require looping across the entire data structure. If a loop over an array of unknown size is absolutely necessary, plan for it to take multiple blocks and therefore multiple transactions.",
       "aliases": [
         "unbounded loop",
+        "DoS",
+        "denial of service",
         "SWC-128"
       ],
       "references": [

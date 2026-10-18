@@ -35,6 +35,7 @@ CLAIM_NOTE_MARKER = ":delete the clause containing"
 LINK_NOTE_MARKER = ":X turns"
 STAT_NOTE_MARKER = ":state"
 CREDIT_NOTE_MARKER = ":name this source"
+LABEL_NOTE_MARKER = ":drop"
 
 
 def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
@@ -168,11 +169,11 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
 
 # A credit names a source: "OWASP lists", "per OWASP", "listed by OWASP", "the Solidity docs say".
 _CREDIT_VERBS = (
-    "says|say|lists|list|names|recommends|suggests|calls|describes|notes|warns|adds|defines|"
-    "docs|documentation"
+    # Not "calls", "names" or "notes": "External calls", "Function names" are not credits.
+    "says|say|lists|list|recommends|suggests|describes|warns|adds|defines|docs|documentation"
 )
 _CREDIT_AFTER = re.compile(
-    r"\b(?:per|according to|listed by|cited by|as described by|from)\s+(?:the\s+)?"
+    r"\b(?:per|according to|listed by|cited by|as described by)\s+(?:the\s+)?"
     r"([A-Z][A-Za-z0-9.-]+)"
 )
 _CREDIT_BEFORE = re.compile(r"\b([A-Z][A-Za-z0-9.-]+)(?:['’]s)?\s+(?:" + _CREDIT_VERBS + r")\b")
@@ -185,17 +186,23 @@ _NOT_A_SOURCE = frozenset(
 def check_repeated_credits(texts: list[str]) -> list[str]:
     """Report a source credited in more than one tweet of a thread ("OWASP says" again and again).
 
-    Name a source once; after that, state its facts directly.
+    Name a source once; after that, state its facts directly. A capitalized word the thread also
+    uses in lowercase ("External calls" beside "external calls") is ordinary prose, not a name.
     """
+    prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
+    lowercase_words = set(re.findall(r"\b[a-z][a-z0-9.-]*\b", " ".join(prose)))
     tweets_by_name = {}
 
-    for index, text in enumerate(texts):
-        prose = CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text))
-        names = {
-            match.group(1).rstrip(".").casefold()
-            for pattern in (_CREDIT_AFTER, _CREDIT_BEFORE)
-            for match in pattern.finditer(prose)
-        } - _NOT_A_SOURCE
+    for index, text in enumerate(prose):
+        names = (
+            {
+                match.group(1).rstrip(".").casefold()
+                for pattern in (_CREDIT_AFTER, _CREDIT_BEFORE)
+                for match in pattern.finditer(text)
+            }
+            - _NOT_A_SOURCE
+            - lowercase_words
+        )
 
         for name in names:
             tweets_by_name.setdefault(name, set()).add(index)
@@ -205,6 +212,47 @@ def check_repeated_credits(texts: list[str]) -> list[str]:
         for name, tweets in sorted(tweets_by_name.items())
         if len(tweets) > 1
     ]
+
+
+# A tweet that opens with a short label and a colon ("Closing check:", "The root cause:").
+_SECTION_LABEL = re.compile(r"^((?:[A-Za-z]+\s){0,2}[A-Za-z]+):\s")
+_SECTION_LABELS = frozenset(
+    [
+        "closing check",
+        "a closing check",
+        "root cause",
+        "the root cause",
+        "the root issue",
+        "mitigation",
+        "mitigation one",
+        "mitigation two",
+        "other mitigations",
+        "example",
+        "concrete case",
+        "concrete numbers",
+        "the mechanism",
+        "why it happens",
+        "the key point",
+        "tradeoff",
+        "the attack",
+        "alternative",
+        "the risk",
+    ]
+)
+
+
+def check_section_labels(texts: list[str]) -> list[str]:
+    """Report tweets that open with a section label instead of their point."""
+    violations = []
+
+    for index, text in enumerate(texts, 1):
+        match = _SECTION_LABEL.match(NUMBERING_PREFIX.sub("", text))
+
+        # Only outline labels count; an imperative lead-in ("Check each function: ...") does not.
+        if match and match.group(1).casefold() in _SECTION_LABELS:
+            violations.append(f"tweet_{index}:section_label:{match.group(1).casefold()}")
+
+    return violations
 
 
 # Opening words common enough that three tweets may share them.
@@ -417,6 +465,7 @@ def validate(
         texts = [tweet.text for tweet in fixed.tweets]
         errors.extend(check_repeated_openings(texts))
         errors.extend(check_repeated_credits(texts))
+        errors.extend(check_section_labels(texts))
 
     if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
         errors.append("tweet_count")
@@ -505,10 +554,21 @@ def credit_feedback(result: ValidationResult) -> list[str]:
     ]
 
 
+def label_feedback(result: ValidationResult) -> list[str]:
+    """Writer-only note for a tweet that opens with an outline label."""
+    return [
+        f"{violation}{LABEL_NOTE_MARKER} the label and open the tweet with its point (for "
+        "example, write the root cause as a sentence in your own words)"
+        for violation in result.violations
+        if ":section_label:" in violation
+    ]
+
+
 def is_writer_note(reason: str) -> bool:
     """Whether a feedback line is a writer-only instruction rather than a reason to publish."""
     return (
         (reason.startswith("tweet_") and ":weighted_length:" in reason)
+        or LABEL_NOTE_MARKER in reason
         or CLAIM_NOTE_MARKER in reason
         or LINK_NOTE_MARKER in reason
         or CREDIT_NOTE_MARKER in reason

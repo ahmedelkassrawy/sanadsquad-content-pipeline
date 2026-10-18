@@ -228,3 +228,72 @@ def test_focus_matches_the_kb_label_not_its_description():
     # KB-19's description mentions pricing, but its label is about flash loans.
     assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "KB-19")
     assert focus_matches("x", kb, "KB-19")
+
+
+def test_ordinary_capitalized_prose_is_not_a_credit():
+    from content_pipeline.validation import check_repeated_credits
+
+    assert check_repeated_credits(["External calls can fail.", "External calls again."]) == []
+    assert (
+        check_repeated_credits(
+            ["Funds come from Uniswap pools.", "Swaps from Uniswap set the price."]
+        )
+        == []
+    )
+    assert check_repeated_credits(["Function names collide.", "Function names collide."]) == []
+
+
+def _label_result(last_tweet):
+    texts = [
+        "Price oracle manipulation lets one pool set the price.",
+        "An oracle is a trust boundary.",
+        "A single pool can be moved inside one transaction.",
+        "Aggregate sources and reject outliers.",
+        last_tweet,
+    ]
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    pack = ResearchPack(
+        slot_id="thread_1",
+        topic_id="KB-01",
+        topic_name="x",
+        sources=[SourceRecord(source_id="KB-01", kind="kb", title="x", evidence_text="oracle.")],
+    )
+
+    return validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
+
+
+def test_a_tweet_opening_with_an_outline_label_is_rejected_with_a_writer_note():
+    from content_pipeline.validation import label_feedback
+
+    result = _label_result("Closing check: does one pool set the price?")
+    notes = label_feedback(result)
+
+    assert "tweet_5:section_label:closing check" in result.violations
+    assert len(notes) == 1 and is_writer_note(notes[0])
+    assert not is_writer_note("tweet_5:section_label:closing check")
+
+
+def test_an_imperative_lead_in_is_not_a_section_label():
+    from content_pipeline.validation import check_section_labels
+
+    assert check_section_labels(["Check each function: does it call out before updating?"]) == []
+    assert not any(
+        ":section_label:" in v
+        for v in _label_result("Check each function: does one pool set the price?").violations
+    )
+
+
+def test_hyphenated_focus_words_join_and_aliases_cover_common_spellings():
+    from content_pipeline.agents import focus_matches
+
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+
+    assert focus_matches("re-entrancy", kb, "KB-01")
+    assert focus_matches("front-running", kb, "KB-08")
+    assert focus_matches("frontrunning", kb, "KB-08")
+    assert focus_matches("DoS", kb, "KB-11")
+    assert focus_matches("DoS", kb, "KB-12")
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "KB-19")
+
+    for entry in kb.entries:
+        assert focus_matches(entry["name"], kb, entry["id"])

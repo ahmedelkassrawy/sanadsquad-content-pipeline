@@ -39,7 +39,10 @@ _FOCUS_STOPWORDS = frozenset(
 
 
 def _focus_words(text: str) -> set[str]:
-    words = re.findall(r"[a-z0-9]+", text.casefold())
+    lowered = text.casefold()
+    # "re-entrancy" and "front-running" also count as one word ("reentrancy", "frontrunning").
+    joined = re.sub(r"(?<=[a-z0-9])-(?=[a-z0-9])", "", lowered)
+    words = re.findall(r"[a-z0-9]+", lowered) + re.findall(r"[a-z0-9]+", joined)
 
     return {
         word[:-1] if len(word) > 3 and word.endswith("s") else word
