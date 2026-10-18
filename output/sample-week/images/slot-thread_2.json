@@ -1,12 +1,12 @@
 {
-  "concept": "ERC-4626 vault inflation attack: a donation inflates the share price so a victim's deposit rounds down to zero shares",
-  "scene": "Technical diagram on a deep navy background. On the left, a vault box holding a single share token. An amber arrow labeled as a direct transfer enters the vault from the side, bypassing the deposit door. On the right, a victim's deposit of 100 tokens approaches the vault and turns into an empty share slot showing zero. Clean thin line art, monospace labels, ample spacing, calm engineering feel.",
+  "concept": "An oracle is a trust boundary: price inputs that attackers can move",
+  "scene": "Technical diagram style card on a deep navy background. A simple price feed line enters a contract box through a dashed boundary line, with one spike in the line highlighted in amber. Clean geometric shapes, generous empty space for the overlay text, no extra words in the artwork.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "rounds down to zero shares",
-  "alt_text": "Diagram of a vault holding one share while a direct token transfer inflates its balance and a victim's deposit converts to zero shares.",
-  "severity": null
+  "overlay_text": "An oracle is a trust boundary",
+  "alt_text": "Diagram of a price feed line with one amber spike crossing a dashed trust boundary into a contract box, on a navy background.",
+  "severity": "high"
 }

@@ -1,12 +1,12 @@
 {
-  "concept": "Weak randomness on Ethereum: public or influenceable block values used as secret entropy",
-  "scene": "Technical card on a deep navy background. A simple diagram shows three block fields (timestamp, blockhash, difficulty) as open boxes feeding into a winner-selection function, with an amber warning marker on the arrows. Clean line work, monospace labels, ample spacing.",
+  "concept": "Two variables share one name: shadowed state variables in inherited Solidity contracts lead to ambiguity about which one is read.",
+  "scene": "Two stacked contract blocks labeled A and B on a deep navy background, each holding a box named x. Thin amber lines connect each box to a separate code reader, showing one name resolving to two separate variables. Minimal, calm, technical layout with generous space for overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "Creating a strong source of randomness on Ethereum is challenging.",
-  "alt_text": "Diagram of block.timestamp, blockhash and block.difficulty feeding into a winner-selection function, with an amber warning marker showing these values are influenceable.",
-  "severity": "high"
+  "overlay_text": "two separate versions of x",
+  "alt_text": "Diagram of two contract blocks, A and B, each containing its own variable named x, with separate amber lines showing that each contract reads a different copy.",
+  "severity": "medium"
 }

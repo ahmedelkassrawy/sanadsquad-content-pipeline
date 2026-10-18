@@ -1,21 +1,22 @@
 == thread_1
    research   search_kb 'reentrancy' -> KB-01:ok, KB-20:ok, KB-02:ok, KB-03:ok, KB-04:ok
    research   topic KB-01 (Reentrancy) from KB-01
-   draft 1    9 tweets, rules ok
-   review 1   accepted  hook=5 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
-   outcome    shipped after 1 attempt(s)
-== thread_2
-   research   search_kb 'ERC-4626 vault inflation attack' -> KB-16:ok, KB-07:ok, KB-01:ok, KB-02:ok, KB-03:ok
-   research   web_search 'ERC-4626 vault inflation attack donation first depositor share price rounding virtual shares decimals offset OpenZeppelin' -> WEB-2daca0aeb740f7f4:ok, WEB-6e022746c54737c4:ok, WEB-584322e81b0c7db3:ok, WEB-f3a368ef59ce00ce:ok, WEB-0c2e2d6a0a421e12:ok
-   research   topic WEB-2daca0aeb740f7f4 (ERC-4626 vault inflation attack) from WEB-2daca0aeb740f7f4, WEB-584322e81b0c7db3, WEB-0c2e2d6a0a421e12, WEB-f3a368ef59ce00ce
-   draft 1    8 tweets, rules ok
-   review 1   accepted  hook=5 technical_accuracy=4 grounding=5 voice=5 clarity=5 cta=4
-   outcome    shipped after 1 attempt(s)
-== thread_3
-   research   topic KB-10 (Weak randomness) from KB-10
-   draft 1    8 tweets, rules FAILED: tweet_8:section_label:two things to check
+   draft 1    8 tweets, rules FAILED: tweet_3:section_label:root cause
    draft 2    8 tweets, rules ok
-   review 2   accepted  hook=4 technical_accuracy=5 grounding=5 voice=4 clarity=4 cta=5
+   review 2   accepted  hook=5 technical_accuracy=4 grounding=4 voice=5 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== thread_2
+   research   search_kb 'oracle manipulation' -> KB-18:ok, KB-19:ok, KB-01:ok, KB-02:ok, KB-03:ok
+   research   topic KB-18 (Price oracle manipulation) from KB-18
+   draft 1    8 tweets, rules FAILED: tweet_5:section_label:two more forms
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=4 voice=5 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== thread_3
+   research   topic KB-15 (Shadowing state variables) from KB-15
+   draft 1    8 tweets, rules FAILED: tweet_8:section_label:closing check
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=5
    outcome    shipped after 2 attempt(s)
 == marketing_1
    research   topic ANGLE-service (service) from STAT-04, STAT-05
@@ -23,16 +24,16 @@
    review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=5
    outcome    shipped after 1 attempt(s)
 == marketing_2
-   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-02, STAT-03, STAT-05
+   research   topic ANGLE-credibility (credibility) from STAT-01, STAT-05
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=4 clarity=3 cta=3
+   review 1   accepted  hook=3 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=4
    outcome    shipped after 1 attempt(s)
 == marketing_3
    research   topic ANGLE-education (education-to-cta) from KB-04
    draft 1    1 tweets, rules ok
-   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=5 cta=4
+   review 1   accepted  hook=4 technical_accuracy=5 grounding=5 voice=5 clarity=4 cta=4
    outcome    shipped after 1 attempt(s)
 
 shipped 6, dropped or failed 0
-tokens 198214, LLM cost $0.6036
+tokens 112702, LLM cost $0.4171
 advisor not_enabled

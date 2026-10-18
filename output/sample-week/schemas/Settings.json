@@ -44,7 +44,7 @@
       "type": "integer"
     },
     "run_token_budget": {
-      "default": 250000,
+      "default": 400000,
       "minimum": 1,
       "title": "Run Token Budget",
       "type": "integer"

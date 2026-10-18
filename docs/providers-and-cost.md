@@ -77,7 +77,7 @@ export. It is a guard, not a hard cap: estimates can be wrong and providers can 
 `--estimate` prints a worst-case ceiling as JSON and exits. It starts no model or search
 client, makes no network call and writes no run folder. The ceiling assumes every retry
 happens, so it is far above a real run (about 11 million tokens for the committed config,
-against 198,214 used by the sample). A model with no known price is refused unless you pass
+against 112,702 used by the sample). A model with no known price is refused unless you pass
 `--allow-unpriced`; then only the token limit applies. Prices come from `genai-prices`
 and the overrides in `config/prices.yaml`. USD covers model calls only. Search
 and image calls are counted in `external-usage.json` but not priced.
@@ -89,14 +89,15 @@ config (Opus 5.5 reviewer, Sonnet 5.5 for every other agent, all at reasoning ef
 `MODEL_OVERRIDE` empty and the advisor off:
 
 ```
-python run_week.py --plan plan.json --output <run> --set thread_2="ERC-4626 vault inflation attack" --max-concurrency 3
+python run_week.py --plan plan.json --output <run> --set thread_2="oracle manipulation" --max-concurrency 3
 ```
 
-Result: 6 of 6 pieces shipped in 72 seconds, 198,214 tokens, 0.6036 USD confirmed, every call
-priced. The knowledge base has no ERC-4626 entry, so research ran one Tavily web search for
-thread_2. thread_3's first draft was rejected by code for the outline label "Two things to
-check:" and the retry shipped; the other five shipped on the first attempt. Each thread got its
-own hook and closing style from `post_types/tech-thread/type.yaml`. Cloudflare returned HTTP 429 for every image, so all six are Pillow
+Result: 6 of 6 pieces shipped, 112,702 tokens, 0.4171 USD confirmed, every call priced. The
+`--set` is the brief's own example; the knowledge base covers it (KB-18), so research made no web
+search. All three threads were first rejected by code for an outline label ("Root cause:", "Two
+more forms:", "Closing check:") and shipped on the retry; the three marketing posts shipped on the
+first attempt. Each thread got its own hook and closing style from
+`post_types/tech-thread/type.yaml`. Cloudflare returned HTTP 429 for every image, so all six are Pillow
 cards (brand header, title, the thread's own code line). Reviewer rejections, retries and a drop
 on the same models are in `output/claude-run-with-drop`; web search runs in
 `output/free-run-6-of-6` and `output/failed-source-example`. The full per-slot story is in
@@ -105,4 +106,4 @@ on the same models are in `output/claude-run-with-drop`; web search runs in
 The free run copied to `output/free-run-with-drops` (Ministral writers, Nemotron reviewer, about 3 minutes)
 shows the drop path: 3 of 6 shipped, and the reviewer dropped two marketing posts and one
 thread after a retry for claims the evidence does not support. `output/free-run-6-of-6` is the
-same setup on the same code as the sample: 6 of 6 shipped, three of them after a rejection and a retry.
+same free setup on the round-4 code: 6 of 6 shipped, three of them after a rejection and a retry.

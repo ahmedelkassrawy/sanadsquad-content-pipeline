@@ -3,7 +3,7 @@
     "record_id": "marketing_1/reviewer/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "582842218215184197366d4acea319001e08a5986ff9caa11c0624193c208977",
+    "input_sha256": "4d99f7eb043561a3be3b9860c4acf8142a178405c12f7867b190022962695502",
     "review": {
       "slot_id": "marketing_1",
       "scores": {
@@ -15,7 +15,7 @@
         "cta": 5.0
       },
       "reasons": [
-        "The opening restates the STAT-04 sentence verbatim. It is clear and on the service angle but generic, with no contrast or specific framing that pulls the reader in."
+        "The opening states the STAT-04 deliverable plainly. It is clear and specific to the service angle, but it is a near-verbatim restatement with no contrast or framing to draw the reader in."
       ],
       "hard_fail": [],
       "accepted": true
@@ -26,21 +26,19 @@
     "record_id": "marketing_2/reviewer/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "bd176076c87c7551632e299d94be647d6d3149d4630d47c4647f9079fa2bee71",
+    "input_sha256": "adba10c1b0bfd97f74f7a650aa5defe455315e46d8bc58de874e9cf56b422dec",
     "review": {
       "slot_id": "marketing_2",
       "scores": {
         "hook": 3.0,
         "technical_accuracy": 5.0,
         "grounding": 5.0,
-        "voice": 4.0,
-        "clarity": 3.0,
-        "cta": 3.0
+        "voice": 5.0,
+        "clarity": 5.0,
+        "cta": 4.0
       },
       "reasons": [
-        "Opens with a plain specific fact ('has completed 12 smart contract audits') that matches the credibility angle, but it is a flat stat recital rather than a contrast or framing, so it is clear but generic.",
-        "Reads as three stacked facts rather than one connected thought, with the brand name and 'smart contract' repeated; understandable but list-like and cluttered.",
-        "Ending is supported by STAT-05 but phrased in third person as a statement ('Teams can request a review') rather than a direct next step or invitation, so it is weak."
+        "The opening 'Sentinel Grove has completed 12 smart contract audits.' is specific and supported. It is still a plain credential statement rather than a contrast or question, so it is clear but somewhat generic."
       ],
       "hard_fail": [],
       "accepted": true
@@ -48,40 +46,19 @@
     "failure": null
   },
   {
-    "record_id": "thread_2/reviewer/1/1",
-    "slot_id": "thread_2",
-    "attempt": 1,
-    "input_sha256": "336a9302375ec624e4bf89a3fadaf858cc5c18bfc9107e099caa6e081b098c4c",
-    "review": {
-      "slot_id": "thread_2",
-      "scores": {
-        "hook": 5.0,
-        "technical_accuracy": 4.0,
-        "grounding": 5.0,
-        "voice": 5.0,
-        "clarity": 5.0,
-        "cta": 4.0
-      },
-      "reasons": [],
-      "hard_fail": [],
-      "accepted": true
-    },
-    "failure": null
-  },
-  {
-    "record_id": "thread_1/reviewer/1/1",
+    "record_id": "thread_1/reviewer/2/1",
     "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "1a42ff17cc893502b16ae819ab35751a752332e19ef2610317e23dd716446c2b",
+    "attempt": 2,
+    "input_sha256": "352038f24c75d348bcf8e128025aaa0916ca1f6aaf7c1320288ba8ccdb077ecc",
     "review": {
       "slot_id": "thread_1",
       "scores": {
         "hook": 5.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
         "voice": 5.0,
         "clarity": 4.0,
-        "cta": 5.0
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],
@@ -93,7 +70,7 @@
     "record_id": "marketing_3/reviewer/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "e615b8e39b3c0fea440556d31ec73e1ae56ebadabfad2037b90380313a8f26c6",
+    "input_sha256": "ec15f5d17395ed57622e998c06aaad281bb29b79acda986a84d5956658d5a717",
     "review": {
       "slot_id": "marketing_3",
       "scores": {
@@ -101,7 +78,7 @@
         "technical_accuracy": 5.0,
         "grounding": 5.0,
         "voice": 5.0,
-        "clarity": 5.0,
+        "clarity": 4.0,
         "cta": 4.0
       },
       "reasons": [],
@@ -114,16 +91,37 @@
     "record_id": "thread_3/reviewer/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "a1ff7103fe9e18660066f9f0f3e74c93c80cee9b3850310cf61ad63711738705",
+    "input_sha256": "082afd4b8f6a82afdf5dafbd56889b43387ac60b627666aa01efb34d9676d92b",
     "review": {
       "slot_id": "thread_3",
       "scores": {
         "hook": 4.0,
-        "technical_accuracy": 5.0,
-        "grounding": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
         "voice": 4.0,
         "clarity": 4.0,
         "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "b06bfaad1e6f2527719ddc4273876ed2fe0596f23e185211440be6e6bc648daf",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 5.0,
+        "clarity": 4.0,
+        "cta": 4.0
       },
       "reasons": [],
       "hard_fail": [],

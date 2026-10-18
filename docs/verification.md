@@ -42,12 +42,12 @@ model will make sound editorial or grounding judgments.
 ## Live sample evidence
 
 `output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5
-reviewer, Sonnet 5.5 for every other agent), with `--set thread_2="ERC-4626 vault inflation attack"`;
-the knowledge base has no entry for it, so research ran one web search. Cloudflare returned HTTP 429,
+reviewer, Sonnet 5.5 for every other agent), with the brief's `--set thread_2="oracle manipulation"`;
+the knowledge base covers it, so no web search ran. Cloudflare returned HTTP 429,
 so the six images are Pillow cards.
 Start with `run.log`, then `posts.csv`, `research_log.json` and `review_report.json`.
 `sample-provenance.json` records the command, models, commit, token count and measured model
-cost. It shipped 6 of 6; thread_3 shipped after a code rejection (an outline label) and its retry. `output/claude-run-with-drop/` is an
+cost. It shipped 6 of 6; all three threads shipped after a code rejection (an outline label) and their retry. `output/claude-run-with-drop/` is an
 earlier run on the same models that shows rejections, retries and a drop:
 `thread_2`'s first draft failed a code citation check, the second was rejected by the reviewer
 for the source's wrong "101" total, and the slot was dropped. It excludes the
@@ -58,7 +58,7 @@ nothing that supports it and the slot ends `failed_research`, with the error in 
 
 `output/free-run-with-drops/` holds the readable files of a free run (Ministral writers,
 Nemotron reviewer) on the older code that shows reviewer rejections and drops: 3 of 6 shipped.
-`output/free-run-6-of-6/` is the same setup on the same code as the sample: 6 of 6 shipped, with two
+`output/free-run-6-of-6/` is the same free setup on the round-4 code: 6 of 6 shipped, with two
 code rejections and one reviewer rejection each fixed on the retry.
 
 ## Boundaries not claimed

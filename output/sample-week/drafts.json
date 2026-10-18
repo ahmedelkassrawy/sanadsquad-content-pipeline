@@ -1,117 +1,236 @@
 [
   {
-    "record_id": "thread_3/validator/1/1",
-    "slot_id": "thread_3",
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
     "attempt": 1,
-    "input_sha256": "5d842311949fd775f08e01947cd582aea16c2cbdde2ddaf39cbc54436424f55f",
+    "input_sha256": "ebbffff4d4fa55ef7f989700a8b6d78c432b92a053a92014c473ed4dcf1c9036",
     "audit": {
       "original": {
-        "slot_id": "thread_3",
+        "slot_id": "thread_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "The contract assumes a random number is unpredictable. On Ethereum, values like block.timestamp and blockhash are public or influenceable, so a gambling app that picks a winner with them is not as fair as it looks.",
+            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "Creating a strong source of randomness on Ethereum is challenging. The pattern goes wrong when public or influenceable values are treated as secret, unbiased entropy.",
+            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "A miner can choose any timestamp within a few seconds and still get the block accepted. So block.timestamp gives the miner room to steer an outcome.",
+            "text": "Root cause: state updates placed after an untrusted call allow repeated execution. The callee re-enters while the old values are still in storage.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "SWC also treats blockhash, block.difficulty and other block fields as miner-controlled. Solidity docs say not to rely on block.timestamp or blockhash for randomness, since miners can influence both to some degree.",
+            "text": "This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "When stakes are high, a miner can mine many blocks in a short time on rented hardware, keep the block whose hash lets them win, and drop the others.",
+            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "One alternative is an external oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Bitcoin block hashes are also listed, as they are more expensive to mine.",
+            "text": "For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. Also, block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+            "text": "Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           },
           {
-            "text": "Two things to check: does any winner selection read block.timestamp, blockhash or block.difficulty, and does any oracle result get verified on-chain before it is used?",
+            "text": "Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
             "source_ids": [
-              "KB-10"
+              "KB-01"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 The contract assumes a random number is unpredictable. On Ethereum, values like block.timestamp and blockhash are public or influenceable, so a gambling app that picks a winner with them is not as fair as it looks.",
+          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "2/8 Creating a strong source of randomness on Ethereum is challenging. The pattern goes wrong when public or influenceable values are treated as secret, unbiased entropy.",
+          "text": "2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "3/8 A miner can choose any timestamp within a few seconds and still get the block accepted. So block.timestamp gives the miner room to steer an outcome.",
+          "text": "3/8 Root cause: state updates placed after an untrusted call allow repeated execution. The callee re-enters while the old values are still in storage.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "4/8 SWC also treats blockhash, block.difficulty and other block fields as miner-controlled. Solidity docs say not to rely on block.timestamp or blockhash for randomness, since miners can influence both to some degree.",
+          "text": "4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "5/8 When stakes are high, a miner can mine many blocks in a short time on rented hardware, keep the block whose hash lets them win, and drop the others.",
+          "text": "5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "6/8 One alternative is an external oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Bitcoin block hashes are also listed, as they are more expensive to mine.",
+          "text": "6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "7/8 Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. Also, block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+          "text": "7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         },
         {
-          "text": "8/8 Two things to check: does any winner selection read block.timestamp, blockhash or block.difficulty, and does any oracle result get verified on-chain before it is used?",
+          "text": "8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
           "source_ids": [
-            "KB-10"
+            "KB-01"
           ]
         }
       ],
       "fixes": [],
       "violations": [
-        "tweet_8:section_label:two things to check"
+        "tweet_3:section_label:root cause"
+      ],
+      "accepted": false
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "e9e2162fb1555ab3ad9e9faa023b9e7c9329bff0ed7a19f8fae16b6cd5993584",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning that an outer variable is shadowed.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "The Solidity scoping documentation shows such a case: the first assignment to x assigns the outer variable rather than the inner one. The code reads as if one thing is set, and another is.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
+            "source_ids": [
+              "KB-15"
+            ]
+          },
+          {
+            "text": "Closing check: does any contract compiled before Solidity 0.6.0 redeclare a state variable name that a base contract already has, and do any compiler warnings report a shadowed variable?",
+            "source_ids": [
+              "KB-15"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning that an outer variable is shadowed.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "5/8 The Solidity scoping documentation shows such a case: the first assignment to x assigns the outer variable rather than the inner one. The code reads as if one thing is set, and another is.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
+          "source_ids": [
+            "KB-15"
+          ]
+        },
+        {
+          "text": "8/8 Closing check: does any contract compiled before Solidity 0.6.0 redeclare a state variable name that a base contract already has, and do any compiler warnings report a shadowed variable?",
+          "source_ids": [
+            "KB-15"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_8:section_label:closing check"
       ],
       "accepted": false
     },
@@ -122,14 +241,14 @@
     "record_id": "marketing_1/validator/1/1",
     "slot_id": "marketing_1",
     "attempt": 1,
-    "input_sha256": "4c486fda30861be8e26f775ca889fee3ef0e74be402a1d994ce25b84a173ecbf",
+    "input_sha256": "7862bf6d8a545cab636389b48e649499143101943553c73ed56b67067e1985a2",
     "audit": {
       "original": {
         "slot_id": "marketing_1",
         "attempt": 1,
         "tweets": [
           {
-            "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your contracts.",
+            "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
             "source_ids": [
               "STAT-04",
               "STAT-05"
@@ -139,7 +258,7 @@
       },
       "normalized": [
         {
-          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your contracts.",
+          "text": "A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",
           "source_ids": [
             "STAT-04",
             "STAT-05"
@@ -157,121 +276,117 @@
     "record_id": "thread_2/validator/1/1",
     "slot_id": "thread_2",
     "attempt": 1,
-    "input_sha256": "7a6a1ed2ea7daa0c08f3db2b4afb491baa8283d0cd9f8aa72d4188e5e7abfa52",
+    "input_sha256": "485f2d0b854ff8ffbc4aa2008c24eac9be8d7367080b8c1b2f6b0bee8310d466",
     "audit": {
       "original": {
         "slot_id": "thread_2",
         "attempt": 1,
         "tweets": [
           {
-            "text": "An attacker front-runs the first deposit into a fresh vault with 1 wei, gets one share, then sends tokens straight to the vault address. The victim's deposit lands next and rounds down to zero shares. The attacker redeems everything.",
+            "text": "An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-18"
             ]
           },
           {
-            "text": "The vault prices shares from the token balance it holds, not from an internal ledger of deposits. A plain transfer that never calls `deposit()` or `mint()` raises the balance, so one share suddenly sits behind a huge amount of assets.",
+            "text": "A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-0c2e2d6a0a421e12"
+              "KB-18"
             ]
           },
           {
-            "text": "Shares owed equal the deposit times total shares outstanding, divided by total assets held. With 1 share outstanding and 101 tokens held, a 100 token deposit gives 100 * 1 / 101, which Solidity integer division rounds down to 0.",
+            "text": "That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-18"
             ]
           },
           {
-            "text": "No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a depositor's full deposit.",
+            "text": "OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-18"
             ]
           },
           {
-            "text": "This has hit live protocols: Hundred Finance lost $7M in April 2023, and Venus Protocol on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025.",
+            "text": "Two more forms: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4"
+              "KB-18"
             ]
           },
           {
-            "text": "OpenZeppelin's ERC4626 adds virtual shares and assets: `assets.mulDiv(totalSupply() + 10 ** _decimalsOffset(), totalAssets() + 1, rounding)`. A larger offset makes the attack orders of magnitude more expensive than profitable.",
+            "text": "For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
             "source_ids": [
-              "WEB-584322e81b0c7db3",
-              "WEB-f3a368ef59ce00ce"
+              "KB-18"
             ]
           },
           {
-            "text": "A second layer is dead shares: the deployer makes an initial deposit and burns the resulting shares, so later rounding errors matter far less. The cost is that the deployer forfeits that small amount of assets.",
+            "text": "Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
             "source_ids": [
-              "WEB-0c2e2d6a0a421e12"
+              "KB-18"
             ]
           },
           {
-            "text": "Grep your vault for `totalAssets()` and check whether it returns the raw token balance. If it does, write a test that donates tokens, then deposits, and assert the depositor receives nonzero shares.",
+            "text": "Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
             "source_ids": [
-              "WEB-2daca0aeb740f7f4",
-              "WEB-0c2e2d6a0a421e12"
+              "KB-18"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 An attacker front-runs the first deposit into a fresh vault with 1 wei, gets one share, then sends tokens straight to the vault address. The victim's deposit lands next and rounds down to zero shares. The attacker redeems everything.",
+          "text": "1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "2/8 The vault prices shares from the token balance it holds, not from an internal ledger of deposits. A plain transfer that never calls `deposit()` or `mint()` raises the balance, so one share suddenly sits behind a huge amount of assets.",
+          "text": "2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-0c2e2d6a0a421e12"
+            "KB-18"
           ]
         },
         {
-          "text": "3/8 Shares owed equal the deposit times total shares outstanding, divided by total assets held. With 1 share outstanding and 101 tokens held, a 100 token deposit gives 100 * 1 / 101, which Solidity integer division rounds down to 0.",
+          "text": "3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "4/8 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a depositor's full deposit.",
+          "text": "4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "5/8 This has hit live protocols: Hundred Finance lost $7M in April 2023, and Venus Protocol on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025.",
+          "text": "5/8 Two more forms: stale or stuck data when freshness is not enforced, and aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4"
+            "KB-18"
           ]
         },
         {
-          "text": "6/8 OpenZeppelin's ERC4626 adds virtual shares and assets: `assets.mulDiv(totalSupply() + 10 ** _decimalsOffset(), totalAssets() + 1, rounding)`. A larger offset makes the attack orders of magnitude more expensive than profitable.",
+          "text": "6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
           "source_ids": [
-            "WEB-584322e81b0c7db3",
-            "WEB-f3a368ef59ce00ce"
+            "KB-18"
           ]
         },
         {
-          "text": "7/8 A second layer is dead shares: the deployer makes an initial deposit and burns the resulting shares, so later rounding errors matter far less. The cost is that the deployer forfeits that small amount of assets.",
+          "text": "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
           "source_ids": [
-            "WEB-0c2e2d6a0a421e12"
+            "KB-18"
           ]
         },
         {
-          "text": "8/8 Grep your vault for `totalAssets()` and check whether it returns the raw token balance. If it does, write a test that donates tokens, then deposits, and assert the depositor receives nonzero shares.",
+          "text": "8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
           "source_ids": [
-            "WEB-2daca0aeb740f7f4",
-            "WEB-0c2e2d6a0a421e12"
+            "KB-18"
           ]
         }
       ],
       "fixes": [],
-      "violations": [],
-      "accepted": true
+      "violations": [
+        "tweet_5:section_label:two more forms"
+      ],
+      "accepted": false
     },
     "failure": null,
     "failure_detail": null
@@ -280,17 +395,16 @@
     "record_id": "marketing_2/validator/1/1",
     "slot_id": "marketing_2",
     "attempt": 1,
-    "input_sha256": "1d1f01d3ab7d358519b2afc7875bb1b07c1e68c257634cc8d57fcdd4963b91f2",
+    "input_sha256": "f73244b68f56c25d8a7ae96b6d13cc27edf6aa8671168ea6a1a66f077488e82d",
     "audit": {
       "original": {
         "slot_id": "marketing_2",
         "attempt": 1,
         "tweets": [
           {
-            "text": "Sentinel Grove has completed 12 smart contract audits. Our team has 3 auditors. Teams can request a review of their smart contract code from Sentinel Grove.",
+            "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",
             "source_ids": [
               "STAT-01",
-              "STAT-02",
               "STAT-05"
             ]
           }
@@ -298,140 +412,10 @@
       },
       "normalized": [
         {
-          "text": "Sentinel Grove has completed 12 smart contract audits. Our team has 3 auditors. Teams can request a review of their smart contract code from Sentinel Grove.",
+          "text": "Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",
           "source_ids": [
             "STAT-01",
-            "STAT-02",
             "STAT-05"
-          ]
-        }
-      ],
-      "fixes": [],
-      "violations": [],
-      "accepted": true
-    },
-    "failure": null,
-    "failure_detail": null
-  },
-  {
-    "record_id": "thread_1/validator/1/1",
-    "slot_id": "thread_1",
-    "attempt": 1,
-    "input_sha256": "adeef1239675e07778b20017d34b63b3ca83869889243d3bb15ec6e27850cb75",
-    "audit": {
-      "original": {
-        "slot_id": "thread_1",
-        "attempt": 1,
-        "tweets": [
-          {
-            "text": "A withdrawal that sends Ether before it clears the caller's balance can be exploited: a callback can withdraw against the still-unchanged balance again.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, while your state is not yet finalized.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "State updates that happen after an untrusted call are what allow repeated execution. The callback runs against values that were never updated.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts, and dependencies across multiple contracts matter too.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "The pattern to follow is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "In the withdrawal case, save the amount and clear the balance before calling the recipient: `uint amount = balances[msg.sender]; balances[msg.sender] = 0;`",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Then require the call to succeed, so that a failure reverts the operation.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "A callback may enter through another function or a dependency. Review the other callable paths and the contracts that share the affected state.",
-            "source_ids": [
-              "KB-01"
-            ]
-          },
-          {
-            "text": "Is there any path where an external call runs before the balance it depends on has been cleared?",
-            "source_ids": [
-              "KB-01"
-            ]
-          }
-        ]
-      },
-      "normalized": [
-        {
-          "text": "1/9 A withdrawal that sends Ether before it clears the caller's balance can be exploited: a callback can withdraw against the still-unchanged balance again.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "2/9 Calling another contract hands it control. It can call back into yours before the first call returns, while your state is not yet finalized.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "3/9 State updates that happen after an untrusted call are what allow repeated execution. The callback runs against values that were never updated.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "4/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts, and dependencies across multiple contracts matter too.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "5/9 The pattern to follow is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "6/9 In the withdrawal case, save the amount and clear the balance before calling the recipient: `uint amount = balances[msg.sender]; balances[msg.sender] = 0;`",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "7/9 Then require the call to succeed, so that a failure reverts the operation.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "8/9 A callback may enter through another function or a dependency. Review the other callable paths and the contracts that share the affected state.",
-          "source_ids": [
-            "KB-01"
-          ]
-        },
-        {
-          "text": "9/9 Is there any path where an external call runs before the balance it depends on has been cleared?",
-          "source_ids": [
-            "KB-01"
           ]
         }
       ],
@@ -446,14 +430,14 @@
     "record_id": "marketing_3/validator/1/1",
     "slot_id": "marketing_3",
     "attempt": 1,
-    "input_sha256": "3337b4e54f1aa472199e7529846c03029cc780033679d41b59d09c7cc6935629",
+    "input_sha256": "93f72195f687150a6a023babba87c8849f453bd4ef86a6b0df03d043b4fac006",
     "audit": {
       "original": {
         "slot_id": "marketing_3",
         "attempt": 1,
         "tweets": [
           {
-            "text": "How can a contract let anyone withdraw its Ether? A withdrawal function without a caller check lets any account trigger the transfer. Limit withdrawals to authorized parties. Which of your functions can move Ether out?",
+            "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?",
             "source_ids": [
               "KB-04"
             ]
@@ -462,9 +446,126 @@
       },
       "normalized": [
         {
-          "text": "How can a contract let anyone withdraw its Ether? A withdrawal function without a caller check lets any account trigger the transfer. Limit withdrawals to authorized parties. Which of your functions can move Ether out?",
+          "text": "How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?",
           "source_ids": [
             "KB-04"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "df084858bcc92f8be41df5c1209a7bcf1c94722ff1c69c082f49a02b82708b0c",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
+            "source_ids": [
+              "KB-01"
+            ]
+          },
+          {
+            "text": "Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
+            "source_ids": [
+              "KB-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "3/8 Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.",
+          "source_ids": [
+            "KB-01"
+          ]
+        },
+        {
+          "text": "8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",
+          "source_ids": [
+            "KB-01"
           ]
         }
       ],
@@ -479,109 +580,226 @@
     "record_id": "thread_3/validator/2/1",
     "slot_id": "thread_3",
     "attempt": 2,
-    "input_sha256": "c169af691b712e73756531bb2fa4f6b742e943cd41e584ca2e65dd5400a410d8",
+    "input_sha256": "94567d964fab21e7a50b6105adcc3d2247afa6c61c342689a726690603e5ba81",
     "audit": {
       "original": {
         "slot_id": "thread_3",
         "attempt": 2,
         "tweets": [
           {
-            "text": "The contract assumes a random number is unpredictable. On Ethereum, values like block.timestamp and blockhash are public or influenceable, so a gambling app that picks a winner with them is not as fair as it looks.",
+            "text": "A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "Creating a strong source of randomness on Ethereum is challenging. The pattern goes wrong when public or influenceable values are treated as secret, unbiased entropy.",
+            "text": "Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "A miner can choose any timestamp within a few seconds and still get the block accepted. So block.timestamp gives the miner room to steer an outcome.",
+            "text": "Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "SWC also treats blockhash, block.difficulty and other block fields as miner-controlled. Solidity docs say not to rely on block.timestamp or blockhash for randomness, since miners can influence both to some degree.",
+            "text": "Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "When stakes are high, a miner can mine many blocks in a short time on rented hardware, keep the block whose hash lets them win, and drop the others.",
+            "text": "The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "One alternative is an external oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Bitcoin block hashes are also listed, as they are more expensive to mine.",
+            "text": "Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. Also, block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+            "text": "For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           },
           {
-            "text": "Check two things: does any winner selection read block.timestamp, blockhash or block.difficulty, and does any oracle result get verified on-chain before it is used?",
+            "text": "Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",
             "source_ids": [
-              "KB-10"
+              "KB-15"
             ]
           }
         ]
       },
       "normalized": [
         {
-          "text": "1/8 The contract assumes a random number is unpredictable. On Ethereum, values like block.timestamp and blockhash are public or influenceable, so a gambling app that picks a winner with them is not as fair as it looks.",
+          "text": "1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "2/8 Creating a strong source of randomness on Ethereum is challenging. The pattern goes wrong when public or influenceable values are treated as secret, unbiased entropy.",
+          "text": "2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "3/8 A miner can choose any timestamp within a few seconds and still get the block accepted. So block.timestamp gives the miner room to steer an outcome.",
+          "text": "3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "4/8 SWC also treats blockhash, block.difficulty and other block fields as miner-controlled. Solidity docs say not to rely on block.timestamp or blockhash for randomness, since miners can influence both to some degree.",
+          "text": "4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "5/8 When stakes are high, a miner can mine many blocks in a short time on rented hardware, keep the block whose hash lets them win, and drop the others.",
+          "text": "5/8 The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "6/8 One alternative is an external oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Bitcoin block hashes are also listed, as they are more expensive to mine.",
+          "text": "6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "7/8 Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. Also, block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.",
+          "text": "7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
           ]
         },
         {
-          "text": "8/8 Check two things: does any winner selection read block.timestamp, blockhash or block.difficulty, and does any oracle result get verified on-chain before it is used?",
+          "text": "8/8 Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",
           "source_ids": [
-            "KB-10"
+            "KB-15"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "30ebb2d55d0cd80490d9177162cd63ff5e4f9893d7836ded94464c7afcbae654",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+            "source_ids": [
+              "KB-18"
+            ]
+          },
+          {
+            "text": "Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
+            "source_ids": [
+              "KB-18"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "5/8 Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.",
+          "source_ids": [
+            "KB-18"
+          ]
+        },
+        {
+          "text": "8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",
+          "source_ids": [
+            "KB-18"
           ]
         }
       ],

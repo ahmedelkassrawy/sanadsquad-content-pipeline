@@ -1,12 +1,12 @@
 {
-  "concept": "Reentrancy: external calls can reenter before state is finalized",
-  "scene": "Technical diagram on a deep navy background: two contract boxes labeled A and B, with an arrow from A calling B and a return arrow looping back into A before A's balance field is cleared. The balance field is highlighted in amber to mark the unchanged state. Clean line work, ample empty space for the overlay text.",
+  "concept": "Reentrancy: external calls can reenter before state is finalized, so state must be updated before the call.",
+  "scene": "Dark navy background with a simple diagram: a contract box handing control to a second box via an arrow, with a looping amber arrow returning to the first box before a storage cell is cleared. Clean, calm, technical layout with generous space for the overlay text.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "checks-effects-interactions",
-  "alt_text": "Diagram of two contracts where contract A calls contract B and B calls back into A before A's balance is cleared, illustrating reentrancy.",
+  "overlay_text": "State updates after untrusted calls allow repeated execution",
+  "alt_text": "Diagram of one contract calling another, with an arrow looping back to the first contract before its stored balance is cleared, illustrating reentrancy.",
   "severity": "high"
 }

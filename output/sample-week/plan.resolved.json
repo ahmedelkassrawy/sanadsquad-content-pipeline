@@ -13,15 +13,15 @@
     {
       "slot_id": "thread_2",
       "type": "tech-thread",
-      "focus": "ERC-4626 vault inflation attack",
-      "topic_id": "WEB-2daca0aeb740f7f4",
+      "focus": "oracle manipulation",
+      "topic_id": "KB-18",
       "angle_source": null
     },
     {
       "slot_id": "thread_3",
       "type": "tech-thread",
       "focus": null,
-      "topic_id": "KB-10",
+      "topic_id": "KB-15",
       "angle_source": null
     },
     {

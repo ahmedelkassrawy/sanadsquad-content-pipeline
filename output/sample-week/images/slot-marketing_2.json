@@ -1,12 +1,12 @@
 {
-  "concept": "Credibility through a simple, factual track record for a smart contract audit firm",
-  "scene": "Clean brand card with a deep navy background, a single amber accent line beneath the main text, and a subtle minimal grove-of-trees motif in white outline along the bottom edge. Calm, uncluttered, engineering feel.",
+  "concept": "Credibility through completed work: a calm brand card noting Sentinel Grove's audit count and an invitation to request a review.",
+  "scene": "Minimal navy background with a thin amber line under the headline text, ample whitespace, and a simple abstract shield-and-grove motif in white outline at the lower right.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
-  "overlay_text": "12 smart contract audits",
-  "alt_text": "Navy brand card with white text reading 12 smart contract audits and an amber accent line beneath it.",
+  "overlay_text": "completed 12 smart contract audits",
+  "alt_text": "Navy brand card with white text reading completed 12 smart contract audits, underlined by a thin amber line.",
   "severity": null
 }

@@ -1,29 +1,28 @@
 Post Text,Image
-"1/9 A withdrawal that sends Ether before it clears the caller's balance can be exploited: a callback can withdraw against the still-unchanged balance again.
-2/9 Calling another contract hands it control. It can call back into yours before the first call returns, while your state is not yet finalized.
-3/9 State updates that happen after an untrusted call are what allow repeated execution. The callback runs against values that were never updated.
-4/9 Ether transfers are not the only trigger. Reentrancy can arise from calls to other contracts, and dependencies across multiple contracts matter too.
-5/9 The pattern to follow is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.
-6/9 In the withdrawal case, save the amount and clear the balance before calling the recipient: `uint amount = balances[msg.sender]; balances[msg.sender] = 0;`
-7/9 Then require the call to succeed, so that a failure reverts the operation.
-8/9 A callback may enter through another function or a dependency. Review the other callable paths and the contracts that share the affected state.
-9/9 Is there any path where an external call runs before the balance it depends on has been cleared?",images/slot-thread_1.png
-"1/8 An attacker front-runs the first deposit into a fresh vault with 1 wei, gets one share, then sends tokens straight to the vault address. The victim's deposit lands next and rounds down to zero shares. The attacker redeems everything.
-2/8 The vault prices shares from the token balance it holds, not from an internal ledger of deposits. A plain transfer that never calls `deposit()` or `mint()` raises the balance, so one share suddenly sits behind a huge amount of assets.
-3/8 Shares owed equal the deposit times total shares outstanding, divided by total assets held. With 1 share outstanding and 101 tokens held, a 100 token deposit gives 100 * 1 / 101, which Solidity integer division rounds down to 0.
-4/8 No access control bug or overflow is needed. Ordinary rounding down is enough, so a vault can pass those checks and still lose a depositor's full deposit.
-5/8 This has hit live protocols: Hundred Finance lost $7M in April 2023, and Venus Protocol on ZKsync lost 86.72 WETH to a wUSDM donation attack in February 2025.
-6/8 OpenZeppelin's ERC4626 adds virtual shares and assets: `assets.mulDiv(totalSupply() + 10 ** _decimalsOffset(), totalAssets() + 1, rounding)`. A larger offset makes the attack orders of magnitude more expensive than profitable.
-7/8 A second layer is dead shares: the deployer makes an initial deposit and burns the resulting shares, so later rounding errors matter far less. The cost is that the deployer forfeits that small amount of assets.
-8/8 Grep your vault for `totalAssets()` and check whether it returns the raw token balance. If it does, write a test that donates tokens, then deposits, and assert the depositor receives nonzero shares.",images/slot-thread_2.png
-"1/8 The contract assumes a random number is unpredictable. On Ethereum, values like block.timestamp and blockhash are public or influenceable, so a gambling app that picks a winner with them is not as fair as it looks.
-2/8 Creating a strong source of randomness on Ethereum is challenging. The pattern goes wrong when public or influenceable values are treated as secret, unbiased entropy.
-3/8 A miner can choose any timestamp within a few seconds and still get the block accepted. So block.timestamp gives the miner room to steer an outcome.
-4/8 SWC also treats blockhash, block.difficulty and other block fields as miner-controlled. Solidity docs say not to rely on block.timestamp or blockhash for randomness, since miners can influence both to some degree.
-5/8 When stakes are high, a miner can mine many blocks in a short time on rented hardware, keep the block whose hash lets them win, and drop the others.
-6/8 One alternative is an external oracle whose result is cryptographically checked on-chain, so a falsely generated number is rejected. Another is a commitment scheme. Bitcoin block hashes are also listed, as they are more expensive to mine.
-7/8 Oracle sources used without that on-chain check require trusting the oracle, so using multiple oracles may be reasonable. Also, block.difficulty applies to EVM versions before Paris and is a deprecated alias for block.prevrandao on other versions.
-8/8 Check two things: does any winner selection read block.timestamp, blockhash or block.difficulty, and does any oracle result get verified on-chain before it is used?",images/slot-thread_3.png
-"A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your contracts.",images/slot-marketing_1.png
-Sentinel Grove has completed 12 smart contract audits. Our team has 3 auditors. Teams can request a review of their smart contract code from Sentinel Grove.,images/slot-marketing_2.png
-How can a contract let anyone withdraw its Ether? A withdrawal function without a caller check lets any account trigger the transfer. Limit withdrawals to authorized parties. Which of your functions can move Ether out?,images/slot-marketing_3.png
+"1/8 A withdrawal that sends Ether before clearing the caller balance can be withdrawn against again. The callback runs while the stored balance is still unchanged.
+2/8 Calling another contract hands it control. It can call back into yours before the first call returns, so your state must be final before that handoff happens.
+3/8 Repeated execution becomes possible when state updates sit after an untrusted call. The callee re-enters while the old values are still in storage.
+4/8 This is not limited to Ether transfers. Reentrancy can arise from calls to other contracts in general, and dependencies across multiple contracts also matter.
+5/8 The fix is checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls.
+6/8 For a withdrawal, save the amount and clear the stored balance before calling the recipient, for example `balances[msg.sender] = 0;`. Then require the call to succeed so failure reverts the operation.
+7/8 Also review other callable paths that share the affected state. A callback may enter through another function or a dependency rather than the one you guarded.
+8/8 Does any function make an external call before it clears or updates the storage that the call's recipient could read or act on?",images/slot-thread_1.png
+"1/8 An attacker moves a price with a large trade or a flash loan, then calls a protocol that reads that price, and the protocol acts on a value the market never really held.
+2/8 A contract that reads price or valuation data an attacker can influence, directly or indirectly, makes decisions on incorrect values. The oracle is a trust boundary: the contract assumes the price reflects market conditions.
+3/8 That trust can break through manipulation, staleness or misconfiguration. The protocol is trusting price inputs that attackers can move.
+4/8 OWASP lists several forms: spot price manipulation through large trades, flash loans or just-in-time liquidity in the same block, and TWAP manipulation over short windows or low-liquidity periods.
+5/8 Stale or stuck data is another form when freshness is not enforced, as is aggregation that fails to reject outliers. Lending protocols that value collateral and decide liquidations are a typical consumer.
+6/8 For mitigation, aggregate multiple sources with a median or mean and reject outliers. Use TWAPs over sufficient windows, and reject prices older than a maximum staleness threshold.
+7/8 Avoid basing core prices on illiquid pools, and cap the impact of a single pool or feed. Halt sensitive operations such as borrowing and liquidations when data looks suspicious or is unavailable.
+8/8 Also monitor deviations between the oracle and reference markets with automated alerts. Then grep your code for every place a price is read, and test that each one rejects a stale value and a single-pool outlier.",images/slot-thread_2.png
+"1/8 A developer assumes a contract has one variable named x. In older Solidity with inheritance, there can be two separate copies of x, and each part of the code reads its own.
+2/8 Take contract A that defines x and inherits contract B that also defines a state variable x. A accesses one version and B accesses the other. Same name, two separate variables.
+3/8 Local names, or inherited state-variable names in legacy Solidity, obscure which variable is accessed. In more complex contract systems this can go unnoticed and lead to security issues.
+4/8 Shadowing can also occur within a single contract, when there are multiple definitions at contract and function level. The compiler can flag this with a warning.
+5/8 The Solidity scoping documentation shows a case where the compiler warns that an outer variable is shadowed, and the first assignment to x assigns the outer variable rather than the inner one.
+6/8 Since Solidity 0.6.0, state variable shadowing is disallowed. A derived contract can only declare a state variable x if no visible state variable with the same name exists in any of its bases.
+7/8 For older code, review storage variable layouts of contract systems carefully and remove any ambiguities. Always check compiler warnings, since they can flag the issue within a single contract.
+8/8 Two things to verify in pre-0.6.0 code: no derived contract redeclares a state variable name that a base already has, and no compiler warning reports a shadowed variable.",images/slot-thread_3.png
+"A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix. Request a review of your smart contract code.",images/slot-marketing_1.png
+"Sentinel Grove has completed 12 smart contract audits. If your team is preparing to ship, you can request a review of your smart contract code.",images/slot-marketing_2.png
+How can anyone drain a contract's Ether? A withdrawal function without a caller check lets malicious parties take some or all of it. Limit withdrawals to authorized parties. Does your contract's initialization code block repeat calls from arbitrary accounts?,images/slot-marketing_3.png

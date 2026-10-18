@@ -1,12 +1,12 @@
 {
-  "concept": "Education card on unprotected Ether withdrawal: missing caller checks let any account move Ether out of a contract.",
-  "scene": "Dark navy background with a simple padlock outline in amber standing open beside a stylized contract block, with a thin amber line showing Ether leaving the block. Clean, calm, minimal engineering style with generous empty space for the overlay text.",
+  "concept": "Missing caller checks on withdrawal functions let anyone drain Ether; restrict withdrawals to authorized parties.",
+  "scene": "Dark navy background with a simple vault outline whose door is ajar, a single amber key-shaped accent beside it, and large clean space for the overlay text in white.",
   "palette": [
     "#14213d",
     "#fca311",
     "#ffffff"
   ],
   "overlay_text": "Limit withdrawals to authorized parties",
-  "alt_text": "Navy card with an open amber padlock beside a contract block and a line showing Ether leaving it, with the text: Limit withdrawals to authorized parties.",
+  "alt_text": "Navy brand card showing an open vault with an amber key and the text: Limit withdrawals to authorized parties.",
   "severity": null
 }
