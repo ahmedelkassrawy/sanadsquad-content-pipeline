@@ -68,8 +68,8 @@ evidence. `--estimate` prints a worst-case cost ceiling without any call. Defaul
 400,000 tokens and 1 USD per run.
 
 The ceiling is far above a real run on purpose: it assumes every call uses its full output cap
-and every retry, repair and search turn happens (about $52 on the committed Claude models, while
-the sample run cost about $0.41). It is a warning, not a plan. What keeps a run inside the $1
+and every retry, repair and search turn happens (about $52 on the committed Claude models; real
+runs cost about $0.41 to $0.50). It is a warning, not a plan. What keeps a run inside the $1
 budget is the guard in `model_client.py`, which reserves each call's worst case before sending
 it and refuses the call (`failed_budget`) when it no longer fits.
 
@@ -81,8 +81,22 @@ brief and off by default. Set `ADVISOR_ENABLED=true` in `.env` to turn it on.
 Each run folder (`output/week-42`, or `output/<UTC time>-<random>` without `--output`) holds
 `posts.csv`, the deliverable. A generated `README.md` in the folder lists the result and
 trace files it contains (internal resume files are not listed), and `run.log` shows what happened to each slot: research, each draft, reviewer
-scores and reasons, and the outcome. `run_summary.json` has tokens and cost, in total and per agent. A finished
-example is in [output/sample-week](output/sample-week).
+scores and reasons, and the outcome. `run_summary.json` has tokens and cost, in total and per agent. Finished examples are
+below.
+
+## Sample runs
+
+- **Headline sample: [output/claude-run-with-drop](output/claude-run-with-drop)**, a live run on
+  the committed Claude models, shipped 5 of 6 for $0.503 (123,644 tokens, from its
+  `run_summary.json`). It shows the whole review loop: the reviewer rejected threads for
+  copying their sources nearly word for word, and `thread_1` and `thread_2` shipped after a retry
+  with that feedback. `thread_3` was rejected for an unsupported claim, and its retry failed a
+  code check (`repeated_credit:swc`), so it was dropped. The three marketing posts shipped
+  first try. Start with its `run.log`.
+- **[output/sample-week](output/sample-week)**: a clean 6 of 6 run ($0.41) made on an earlier
+  commit (`5f115ae`, per its `sample-provenance.json`).
+- Most runs ship 4 to 6 of 6, and an occasional run ships fewer (see Known limitations). The gates are strict and drop weak pieces on purpose, so a
+  drop is expected behaviour, not a bug.
 
 Importing `posts.csv` into a scheduler: each row is one post. A thread is one cell, with its
 tweets separated by newlines and already numbered (`1/8`, `2/8`). In a scheduler's thread
@@ -92,10 +106,12 @@ tweet. The CSV is UTF-8 with standard quoting. Import into a real scheduler has 
 
 ## Quality gates in short
 
-Code checks tweet count and length, banned words and characters (an en dash is a banned character and is
-auto-fixed to a hyphen; NFKC folding catches full-width look-alikes such as `＃`), links, citations, and that multi-digit numbers appear in the
-evidence. The reviewer scores each criterion; any score below the type's `min_score` (3)
-rejects the draft even if the average passes.
+Code checks tweet count and length, banned words and characters, links, citations, and that
+multi-digit numbers appear in the evidence. An en dash is auto-fixed to a hyphen. Text is
+first normalized (Unicode NFKC), so look-alike characters such as a full-width `＃` cannot
+sneak a banned character or hashtag past the rules. The reviewer scores each criterion. Any score
+below the minimum reviewer score a post type needs to ship (`min_score`, 3) rejects the draft,
+even if the average passes.
 
 ## More documentation
 
@@ -108,7 +124,7 @@ rejects the draft even if the average passes.
 
 | Limitation | Next step |
 | --- | --- |
-| The committed Claude sample shows two code rejections and retries (outline labels) but no reviewer rejection or drop. | See `output/claude-run-with-drop` for a reviewer drop on Claude and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, round-4 code: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
+| The clean `output/sample-week` run shows two code rejections and retries (outline labels) but no reviewer rejection or drop. | See `output/claude-run-with-drop` for reviewer rejections, retries and a drop on Claude, and `output/failed-source-example` for a slot that fails closed. See `output/free-run-6-of-6` (free models, round-4 code: 6 of 6 after three retries) and `output/free-run-with-drops` (free models, older code: drops). |
 | The general number check skips bare single digits ("3 steps") and numbers written as words ("three steps"); the firm-stat check enforces an approved number when it counts people or firm work ("12 engineers" fails) or counts nothing in a sentence about the firm's work ("We have completed 12." fails), and ignores technical counts ("3 functions"), dates, times and dotted versions; it reads spelled-out approved counts up to twenty. Cross-sentence joins ("...12 smart contract audits. All 3 auditors worked on each one.") remain semantic and stay with the reviewer. | Extend the check once false positives are measured. |
 | Within-thread repetition uses stemmed content-word overlap plus repeated phrases; it excludes the closing tweet and asymmetric example/detail transitions, so semantic repetition with little shared language remains with the reviewer. | Add embeddings only after measuring their false-positive rate on accepted threads. |
 | The reviewer (Opus) is a different model from the writers, which reduces shared blind spots but is still an LLM judgement. Tests use scripted models, so they prove routing and rules, not real judgement quality. | Run `live_proof --live` and hand-check a sample after every model change. |
@@ -121,7 +137,7 @@ rejects the draft even if the average passes.
 | The reviewer is an LLM and not fully consistent: it rejected "12 smart contract audits completed by a team of 3 auditors" in one run and passed it in the next. That case is now a code check (`check_stat_claims`: a stat's number keeps its noun, and two stats may not share a sentence), but other judgement calls still vary run to run. | Turn a recurring reviewer disagreement into a code check when it can be stated as a rule. |
 | Knowledge base entries are not reviewed by the owner. | Owner review of `kb.json`. |
 | Exercised on Windows with Python 3.13 only; card fonts differ elsewhere. | Run the offline checks and a sample on macOS and Linux. |
-| Resume is not exactly-once for billing (see [Resume](docs/operations.md#resume)). | Accept it, or move to a durable executor for a daily service. |
+| A crashed run that is resumed can pay twice for a model call that had already been billed (see [Resume](docs/operations.md#resume)). | Accept it, or move to a durable executor for a daily service. |
 
 The exported CSV follows the brief's format. No particular scheduling tool's import
 format is claimed.

@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import pytest
 from PIL import Image
+from content_pipeline import image_backends
 from content_pipeline.config import load_plan
 from content_pipeline.pipeline import run_pipeline
 from content_pipeline.models import ImageSpec
@@ -26,6 +27,15 @@ module_spec.loader.exec_module(packager)
 
 @pytest.fixture(scope="module", params=["png", "spec"])
 def six_slot_source(tmp_path_factory, request):
+    # Module-scoped, so the autouse hermetic fixture has not run yet: keep real keys out here too.
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(image_backends, "dotenv_values", lambda *a, **k: {})
+        for name in ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN", "TAVILY_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
+        yield from _build_six_slot_source(tmp_path_factory, request)
+
+
+def _build_six_slot_source(tmp_path_factory, request):
     output = tmp_path_factory.mktemp("package-baseline") / "source-run"
     models = DeliveryModels()
 
@@ -44,7 +54,7 @@ def six_slot_source(tmp_path_factory, request):
         )
     )
     assert summary.shipped == 6 and summary.uncertain_tokens == 0
-    return output
+    yield output
 
 
 def copied_source(tmp_path, six_slot_source):
