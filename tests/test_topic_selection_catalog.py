@@ -192,3 +192,15 @@ def test_wire_schema_keeps_odd_slot_ids_and_folds_to_the_canonical_contract():
         {"slot_id": "_batch", "attempt": 1, "assignments": {}}
     )
     assert canonical_topic_choices(empty).assignments == {}
+
+
+async def test_reason_is_dropped_when_the_pick_was_rejected_even_if_fallback_lands_on_it(tmp_path):
+    await run(tmp_path, TopicModels(), slots("a", "b", "c", type="marketing-post"), "first")
+    # Every angle is now recent history, so ANGLE-service is refused; the fallback then happens
+    # to choose that same id first. The model's reason must not be credited with the pick.
+    models = TopicModels({"x": "ANGLE-service"}, {"x": "Service fits."})
+    summary = await run(tmp_path, models, slots("x", type="marketing-post"), "second")
+    plan = resolved(tmp_path, "second")
+    assert summary.slots["x"].topic_id == "ANGLE-service"
+    assert "topic_proposal_rejected:x:ANGLE-service" in plan["warnings"]
+    assert plan["topic_reasons"] == {}

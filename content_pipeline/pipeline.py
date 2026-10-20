@@ -832,12 +832,16 @@ class Pipeline:
 
         warnings = list(dict.fromkeys(warnings + notes))
 
-        # A reason explains the model's pick, so it is kept only where code accepted that pick.
+        # A reason explains the model's pick, so it is kept only where code took that pick. A
+        # rejected pick can still equal the id the ranked fallback then chose; that is not
+        # the model's doing, so the rejection warning decides, not the ids.
         accepted = {
             state.slot.slot_id: reasons[state.slot.slot_id].strip()[:TOPIC_REASON_LIMIT]
             for state in empty
             if state.slot.slot_id in assigned
             and proposals.get(state.slot.slot_id) == assigned[state.slot.slot_id]
+            and f"topic_proposal_rejected:{state.slot.slot_id}:{assigned[state.slot.slot_id]}"
+            not in notes
             and reasons.get(state.slot.slot_id, "").strip()
         }
 
