@@ -115,8 +115,8 @@ and a `TopicChoiceRequest` with three parts:
   `assign_topics` would refuse: topics used by a focused slot this week and topics from the
   last four runs. If that leaves a slot nothing, it gets its whole pool back and code
   decides afterwards (`history_exhausted`). Every id in that pool is refused by
-  `assign_topics`, so the model's pick for such a slot is always overridden and always logged as
-  rejected. It is kept this way so a slot has no special case in the request; skipping those
+  `assign_topics`, so the model's pick for such a slot is always rejected (and logged as
+  such), even when the fallback then lands on the same id. It is kept this way so a slot has no special case in the request; skipping those
   slots would be quieter (see the history note below, which makes it common in a fresh clone).
 - `catalog`: what each offered id is. A knowledge-base id carries its name, category,
   severity and the first sentence of its description. An angle id carries only its name,
@@ -131,12 +131,17 @@ what an id was.
 **The answer shape matters.** The model is asked through a schema with one named field per
 open slot (`topic_wire_schema` in `research.py`, folded back into `TopicChoices` the way the
 reviewer's wire schema is). The canonical contract holds a plain `dict[str, str]`, and a
-dictionary with no named keys reaches Claude as an object with no properties. Sent that schema
-in a live check, Claude answered `{}`, and the sample week's call used 28 output tokens, the
-size of an empty answer, so on Claude the original call most likely never influenced a topic
-and the ranked fallback did all the work, silently. Named fields fixed that: the same
-request now returns a pick and a reason for every slot. The fields are optional strings, not
-enums, so a bad id is one rejected slot, not a failed batch.
+dictionary with no named keys reaches Claude as an object with no properties: with the pinned
+SDK (`anthropic` 1.13.0, `langchain-anthropic` 1.7.6) the schema it receives for `assignments`
+is `{"type": "object", "properties": {}, "additionalProperties": false}`, which allows only an
+empty object. Sent that schema in a live check, Claude answered `assignments: {}`, and the
+sample week's call used 28 output tokens, the size of an empty answer. So on Claude the
+original call could not name a single topic; the ranked fallback did all the work, silently.
+Named fields fixed that: the same request now returns a pick and a reason for every slot. The
+fields are optional strings, not enums, so a bad id is one rejected slot, not a failed batch.
+Because optional fields can still be skipped, a successful call that leaves an open slot
+without a pick warns `topic_proposal_missing:<slot>`. Only Claude Sonnet was checked live;
+Gemini and the `function_calling` providers are untested here.
 
 **What code enforces.** `assign_topics` stays the only authority. A proposal is used only if
 it is in that slot's pool, not used by a focused slot or an earlier slot this week, and not

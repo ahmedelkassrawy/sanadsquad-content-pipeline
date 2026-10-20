@@ -46,7 +46,7 @@ def topic_wire_schema(request: TopicChoiceRequest):
         "TopicChoices",
         __base__=TopicChoices,
         assignments=(assignments, ...),
-        reasons=(reasons, Field(default_factory=reasons)),
+        reasons=(reasons | None, Field(default_factory=reasons)),
     )
 
 
@@ -58,7 +58,7 @@ def canonical_topic_choices(wire) -> TopicChoices:
         slot_id=dump["slot_id"],
         attempt=dump["attempt"],
         assignments={slot: id for slot, id in dump["assignments"].items() if id},
-        reasons={slot: text for slot, text in dump["reasons"].items() if text},
+        reasons={slot: text for slot, text in (dump["reasons"] or {}).items() if text},
     )
 
 

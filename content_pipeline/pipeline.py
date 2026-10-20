@@ -830,6 +830,15 @@ class Pipeline:
                 state.outcome = SlotOutcome.failed_research
                 state.reasons = ["topic_pool_exhausted"]
 
+        # An answer that skips an open slot is as silent as the old empty-dict answer was, so
+        # say so. When the call itself failed, `topic_selection_failed` already says it.
+        if empty and "topic_selection_failed:code_fallback" not in warnings:
+            warnings.extend(
+                f"topic_proposal_missing:{state.slot.slot_id}"
+                for state in empty
+                if state.slot.slot_id not in proposals
+            )
+
         warnings = list(dict.fromkeys(warnings + notes))
 
         # A reason explains the model's pick, so it is kept only where code took that pick. A

@@ -205,3 +205,29 @@ async def test_reason_is_dropped_when_the_pick_was_rejected_even_if_fallback_lan
     assert summary.slots["x"].topic_id == "ANGLE-service"
     assert "topic_proposal_rejected:x:ANGLE-service" in plan["warnings"]
     assert plan["topic_reasons"] == {}
+
+
+async def test_an_answer_that_skips_a_slot_is_warned_not_silent(tmp_path):
+    models = TopicModels({"a": "KB-18"})
+    summary = await run(tmp_path, models, slots("a", "b", "c"))
+    warnings = resolved(tmp_path)["warnings"]
+    assert summary.shipped == 3
+    assert "topic_proposal_missing:b" in warnings
+    assert "topic_proposal_missing:c" in warnings
+    assert "topic_proposal_missing:a" not in warnings
+
+
+async def test_a_failed_call_reports_only_the_failure_not_a_missing_pick_per_slot(tmp_path):
+    await run(tmp_path, TopicModels(fail=True), slots("a", "b"))
+    warnings = resolved(tmp_path)["warnings"]
+    assert "topic_selection_failed:code_fallback" in warnings
+    assert not any(warning.startswith("topic_proposal_missing") for warning in warnings)
+
+
+def test_a_null_reasons_object_is_tolerated():
+    request = TopicChoiceRequest(choices={"a": ["KB-01"]})
+    wire = topic_wire_schema(request).model_validate(
+        {"slot_id": "_batch", "attempt": 1, "assignments": {"a": "KB-01"}, "reasons": None}
+    )
+    chosen = canonical_topic_choices(wire)
+    assert chosen.assignments == {"a": "KB-01"} and chosen.reasons == {}
