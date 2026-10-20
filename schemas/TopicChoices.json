@@ -15,6 +15,13 @@
       },
       "title": "Assignments",
       "type": "object"
+    },
+    "reasons": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "object"
     }
   },
   "required": [

@@ -138,6 +138,7 @@ even if the average passes.
 | Knowledge base entries are not reviewed by the owner. | Owner review of `kb.json`. |
 | Exercised on Windows with Python 3.13 only; card fonts differ elsewhere. | Run the offline checks and a sample on macOS and Linux. |
 | A crashed run that is resumed can pay twice for a model call that had already been billed (see [Resume](docs/operations.md#resume)). | Accept it, or move to a durable executor for a daily service. |
+| The model's topic choices are not saved, so a resume after a crash inside the topic node can re-ask and get a different answer; the affected slot then fails instead of swapping topics. Topic history also counts every sibling folder of the run folder (the committed `output/` samples included), so a first run next to them can warn `history_exhausted`. See [Topic selection](ARCHITECTURE.md#topic-selection-decision-and-alternatives). | Save `TopicChoices` to the trail and reuse it on resume; add an explicit history folder. |
 
 The exported CSV follows the brief's format. No particular scheduling tool's import
 format is claimed.

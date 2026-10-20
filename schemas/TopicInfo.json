@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "description": "What the topic chooser is told about one candidate id, so it does not pick blind.",
+  "properties": {
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+    },
+    "category": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Category"
+    },
+    "severity": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Severity"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "TopicInfo",
+  "type": "object"
+}

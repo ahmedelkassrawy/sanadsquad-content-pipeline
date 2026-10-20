@@ -1,5 +1,52 @@
 {
+  "$defs": {
+    "TopicInfo": {
+      "additionalProperties": false,
+      "description": "What the topic chooser is told about one candidate id, so it does not pick blind.",
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Severity"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "TopicInfo",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
+  "description": "One batch of open slots. Each slot's choices already hold only ids that code will accept.",
   "properties": {
     "slot_id": {
       "default": "_batch",
@@ -21,17 +68,23 @@
       "title": "Choices",
       "type": "object"
     },
-    "exclude": {
-      "items": {
+    "catalog": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TopicInfo"
+      },
+      "title": "Catalog",
+      "type": "object"
+    },
+    "taken": {
+      "additionalProperties": {
         "type": "string"
       },
-      "title": "Exclude",
-      "type": "array"
+      "title": "Taken",
+      "type": "object"
     }
   },
   "required": [
-    "choices",
-    "exclude"
+    "choices"
   ],
   "title": "TopicChoiceRequest",
   "type": "object"

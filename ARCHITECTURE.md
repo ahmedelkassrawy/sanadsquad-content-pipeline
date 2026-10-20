@@ -84,7 +84,7 @@ The brief says rules belong in code and judgement in the model. The split:
 | X formatting, kept apart from the rule checks: tweet numbering (`1/7`); a thread tweet over the length limit split at a sentence boundary while the thread is below its maximum, keeping its citations; markdown X would show literally. None of it adds or changes a word. | `x_format.py` |
 | Hard checks, all in `validation.py` and holding whichever model writes or reviews. **Counts and format:** tweet count, weighted X length, no tweet ending on a dangling colon. **Words and links:** banned words, hashtags, link allow-list. A post type's `claim_words` ("thorough", "expertise", "precise") are allowed only when the evidence uses them, outside code spans. Rules match text after NFKC folding (Unicode normalization). **Evidence:** citation ids exist and have usable evidence, no source id leaked into the text, multi-digit numbers appear in the pack evidence, no text points at the research material ("the article", "the discussion"). **Firm stats** (`check_stat_claims`): an approved stat's number keeps its noun and exact qualifier, unrelated technical counts and dotted versions are ignored, and two stats never share a sentence. Optional post-type limits cap approved firm facts and brand-name mentions across a whole post. **Repetition and structure:** no first word opens three distinct tweets, no publisher derived from the pack's source titles or URLs is credited in more than one tweet, no non-closing tweet repeats an earlier point or example above the measured content-word threshold, and no tweet opens with an outline label (including `TL;DR`, numbered mitigations and noun-phrase code labels; finite-verb clauses remain allowed). Every writer-only instruction starts with `writer_note:`. | `validation.py` |
 | Reviewer arithmetic: all criteria present, scores 1 to 5, reasons present, average, pass threshold, a per-criterion `min_score` floor (3), hard-fail flags. The model's own "accepted" is never trusted. One module builds the reviewer's wire schema and judges an assessment as accepted, rejected or malformed (malformed fails closed). | `review_scoring.py` `judge_review()`; `review_wire.py` only re-exports |
-| Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic fallback when the model's choice is missing or invalid | `research.py` `assign_topics()` |
+| Topic assignment checks: no duplicates, avoids ids from the last four runs when it can, deterministic ranked fallback when the model's choice is missing or invalid, and a `topic_proposal_rejected:<slot>:<id>` warning for every choice it throws away. The same rule filters the pool the model is offered. See [Topic selection](#topic-selection-decision-and-alternatives) | `research.py` `assign_topics()`, `open_topics()` |
 | Focus guard: a `--set` focus must cover at least half of its words in the chosen KB entry's name, category or aliases (hyphen and space variants joined, generic words like "value" or "proxy" never enough alone); a focus that matches no entry fails closed: a KB topic that does not match ends the slot (`topic_does_not_match_focus`), so such a focus is only served by web research. | `agents.py` `focus_matches()` |
 | What a post type means: its writer, rubric, prompts, topic pool (knowledge base or angles) and brand rules, each read once per run. An angle can limit its approved stats (`stat_ids`) and, with `pick_one`, take the first of several KB topics that no other slot covers that week, recorded as `angle_source` in `plan.resolved.json` (a forced repeat is a `duplicate_topic` warning). A type's `hook_styles` and `closing_styles` are handed to its slots in plan order (thread 1 the first style, thread 2 the second, wrapping) as the write request's `style`, so a week's threads do not share one opening and ending | `post_types.py` `PostTypes` |
 | The stable id `slot_id/node/attempt/call_n` of every record and model call: build, parse, next call number | `record_ids.py` |
@@ -101,6 +101,86 @@ Nothing edits it after approval.
 Where the model is trusted: choosing and judging sources, writing, judging whether every
 factual claim is supported by the evidence, and scoring the rubric. A valid source id
 alone proves no claim, so the reviewer checks every factual clause, cited or not.
+
+## Topic selection: decision and alternatives
+
+Slots with a `focus` get their topic from research. Every other slot ("open slot") has its
+topic picked once per run, in one batch model call (`topic_selection` node, `TopicSelector`
+in `agents.py`), and then checked by code. The rule is: the model judges, code guarantees.
+
+**What the model sees.** The research agent's usual system prompt plus `agents/research/topics.md`,
+and a `TopicChoiceRequest` with three parts:
+
+- `choices`: for each open slot, the ids it may use. Code has already removed the ids that
+  `assign_topics` would refuse: topics used by a focused slot this week and topics from the
+  last four runs. If that leaves a slot nothing, it gets its whole pool back and code
+  decides afterwards (`history_exhausted`). Every id in that pool is refused by
+  `assign_topics`, so the model's pick for such a slot is always rejected (and logged as
+  such), even when the fallback then lands on the same id. It is kept this way so a slot has no special case in the request; skipping those
+  slots would be quieter (see the history note below, which makes it common in a fresh clone).
+- `catalog`: what each offered id is. A knowledge-base id carries its name, category,
+  severity and the first sentence of its description. An angle id carries only its name,
+  because `angles.yaml` has nothing more.
+- `taken`: the topics of this week's focused slots by slot, such as `thread_1: "KB-01 Reentrancy"`,
+  so the model can avoid overlapping them.
+
+It returns one id per slot and, for each, a one-line reason. Before this change the request
+held bare ids (`KB-01` to `KB-20`) and the model chose blind; nothing in its prompt named
+what an id was.
+
+**The answer shape matters.** The model is asked through a schema with one named field per
+open slot (`topic_wire_schema` in `research.py`, folded back into `TopicChoices` the way the
+reviewer's wire schema is). The canonical contract holds a plain `dict[str, str]`, and a
+dictionary with no named keys reaches Claude as an object with no properties: with the pinned
+SDK (`anthropic` 1.13.0, `langchain-anthropic` 1.7.6) the schema it receives for `assignments`
+is `{"type": "object", "properties": {}, "additionalProperties": false}`, which allows only an
+empty object. Sent that schema in a live check, Claude answered `assignments: {}`, and the
+sample week's call used 28 output tokens, the size of an empty answer. So on Claude the
+original call could not name a single topic; the ranked fallback did all the work, silently.
+Named fields fixed that: the same request now returns a pick and a reason for every slot. The
+fields are optional strings, not enums, so a bad id is one rejected slot, not a failed batch.
+Because optional fields can still be skipped, a successful call that leaves an open slot
+without a pick warns `topic_proposal_missing:<slot>`. Only Claude Sonnet was checked live;
+Gemini and the `function_calling` providers are untested here.
+
+**What code enforces.** `assign_topics` stays the only authority. A proposal is used only if
+it is in that slot's pool, not used by a focused slot or an earlier slot this week, and not
+in the last four runs. Anything else is dropped with a `topic_proposal_rejected:<slot>:<id>`
+warning (before, it vanished silently) and the slot gets the best-ranked free topic: for a
+knowledge-base pool, a BM25 ranking against the post type's source hints; for angles, the
+order in `angles.yaml`. If the call fails outright, every slot takes that path and the run
+warns `topic_selection_failed:code_fallback`. A reason is kept in `plan.resolved.json`
+(`topic_reasons`) only when code took the model's pick (a rejected pick that the fallback
+happens to repeat gets no reason), cut to 200 characters. Code never acts on a reason; it is there so a reader can audit a choice.
+
+**Alternatives considered.**
+
+| Option | Verdict |
+| --- | --- |
+| Model picks from bare ids (the old behaviour) | Rejected. It cannot tell topics apart, so its choice is guesswork that code then overrides. |
+| Random pick | Rejected. It ignores what the post type wants (the source hints), and runs stop being reproducible. |
+| Code only: drop the call and use the ranked pick | Rejected, but close. The ranking is a fixed function of the hints, so it never looks at what else is in the week: it can give a thread to a near-duplicate of the focused one, or three topics from one category. Spreading categories is a few lines of code, since every KB entry has one, and could replace the call if this ever needs to be cheaper. Judging that two topics overlap or that one fits a slot better is where the model is used. One batch call costs about one cent (live, final code: 4,058 in, 262 out, $0.011; the old bare-id call was 1,876 in, 28 out, $0.004). Code validates every id, so a bad answer cannot break a rule, but it can still be a weaker pick than the ranked one. We did **not** measure how often the model beats the ranked pick; the logged reasons and rejection warnings are what make that checkable. |
+| Model picks from the filtered pool with a catalog (chosen) | The model's judgement is used where it adds something (spread, overlap, fit) and nothing it says can break a rule of the week. |
+
+**Known limitations.**
+
+- *Resume.* The model's proposals are not saved. A run that dies inside the topic node and
+  is resumed asks the model again, and a different answer is possible. A slot whose research
+  was already saved for the first assignment then meets a changed topic, and replay refuses
+  it: that slot ends `failed_research` instead of swapping topics (tested in
+  `test_replay_interrupted_research.py::test_replayed_empty_slot_research_rejects_changed_topic_assignment`).
+  The fix is to save `TopicChoices` to the trail and reuse it on resume. Not done: the
+  window is one node and the failure is closed, not wrong.
+- *History scope.* `history()` in `pipeline.py` reads **every sibling folder of the run
+  folder** that has a `run_summary.json`, takes the four newest by folder modification time,
+  and treats their topics as used. In this repo that includes the five committed sample folders
+  (`sample-week`, `failed-source-example`, `claude-run-with-drop`, `free-run-6-of-6`,
+  `free-run-with-drops`; which four count depends on checkout order), so a first run written
+  next to them warns `history_exhausted` (marketing posts have only three angles) for topics it
+  never used itself. A live run on this branch did: all three marketing picks were rejected. It is left as it is because avoiding last
+  week's topics is the feature; to start with a clean history, write the run into an empty
+  parent folder (`--output elsewhere/week-42`). A cleaner fix would be an explicit
+  history folder or manifest.
 
 ## Model choice is configuration
 

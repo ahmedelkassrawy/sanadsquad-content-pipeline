@@ -47,7 +47,7 @@ from .model_client import (
 )
 from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .post_types import PostTypes
-from .research import KnowledgeBase, assign_topics
+from .research import KnowledgeBase, assign_topics, open_topics, recent_topic_ids
 from .run_log import render_run_index, render_run_log
 from .tools import configured_web_search
 from .trail import Trail, export_posts
@@ -79,6 +79,7 @@ from .stage_replay import (
 
 MAX_CONTENT_ATTEMPTS = 2
 HISTORY_RUN_LIMIT = 4
+TOPIC_REASON_LIMIT = 200
 ESTIMATED_INPUT_TOKENS = 16000
 ESTIMATED_OUTPUT_MULTIPLIER = 1.5
 ESTIMATED_CALL_ALLOWANCE = 8
@@ -702,28 +703,49 @@ class Pipeline:
 
         return {"slots": {state["slot"]["slot_id"]: state for state in results}}
 
+    def _taken_topics(self, states):
+        """This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy"."""
+        return {
+            state.slot.slot_id: f"{state.slot.topic_id} "
+            + (state.pack.topic_name if state.pack else state.slot.focus)
+            for state in states
+            if state.slot.focus and state.slot.topic_id
+        }
+
     async def _propose_topics(self, empty, states, prior, warnings):
-        proposals = {}
+        """Ask the model for one topic per open slot; return its proposals and one-line reasons.
+
+        The model is offered only the ids `assign_topics` would accept for that slot, described
+        by the catalog, and told what the focused slots already cover. A slot whose pool is
+        empty after filtering gets its whole pool back: `assign_topics` then falls back to the
+        least recently used topic and warns `history_exhausted`.
+        """
+        used = {state.slot.topic_id for state in states if state.slot.focus and state.slot.topic_id}
+        recent = recent_topic_ids(prior)
         choices = {}
+        catalog = {}
 
         for state in empty:
-            choices[state.slot.slot_id] = self.types.topic_pool(state.slot.type, self.kb)
+            pool = self.types.topic_pool(state.slot.type, self.kb)
+            info = self.types.topic_info(state.slot.type, self.kb)
 
-        excluded = [state.slot.topic_id for state in states if state.slot.topic_id]
+            choices[state.slot.slot_id] = open_topics(pool, used, recent) or pool
+            catalog.update({id: info[id] for id in choices[state.slot.slot_id]})
 
-        for run in prior:
-            excluded.extend(run)
+        request = TopicChoiceRequest(
+            choices=choices, catalog=catalog, taken=self._taken_topics(states)
+        )
 
         try:
-            proposals = (
-                await TopicSelector(self.root, self.client("research", "_batch"), self.types)(
-                    TopicChoiceRequest(choices=choices, exclude=excluded)
-                )
-            ).assignments
+            chosen = await TopicSelector(self.root, self.client("research", "_batch"), self.types)(
+                request
+            )
         except Exception:
             warnings.append("topic_selection_failed:code_fallback")
 
-        return proposals
+            return {}, {}
+
+        return chosen.assignments, chosen.reasons
 
     async def _record_topic_exhaustion(self, state):
         await self.record(
@@ -738,7 +760,7 @@ class Pipeline:
             ),
         )
 
-    def _save_resolved_plan(self, states, changed, warnings):
+    def _save_resolved_plan(self, states, changed, warnings, reasons):
         resolved = []
 
         for state in states:
@@ -752,6 +774,7 @@ class Pipeline:
             attempt=1,
             slots=resolved,
             warnings=warnings,
+            topic_reasons=reasons,
         )
 
         (self.context.run_dir / "plan.resolved.json").write_text(
@@ -786,10 +809,11 @@ class Pipeline:
         empty = [state for state in states if not state.slot.focus]
         warnings = []
         proposals = {}
+        reasons = {}
         prior = history(self.context.run_dir.parent)
 
         if empty:
-            proposals = await self._propose_topics(empty, states, prior, warnings)
+            proposals, reasons = await self._propose_topics(empty, states, prior, warnings)
 
         assigned, notes = assign_topics(
             self.root,
@@ -806,7 +830,29 @@ class Pipeline:
                 state.outcome = SlotOutcome.failed_research
                 state.reasons = ["topic_pool_exhausted"]
 
+        # An answer that skips an open slot is as silent as the old empty-dict answer was, so
+        # say so. When the call itself failed, `topic_selection_failed` already says it.
+        if empty and "topic_selection_failed:code_fallback" not in warnings:
+            warnings.extend(
+                f"topic_proposal_missing:{state.slot.slot_id}"
+                for state in empty
+                if state.slot.slot_id not in proposals
+            )
+
         warnings = list(dict.fromkeys(warnings + notes))
+
+        # A reason explains the model's pick, so it is kept only where code took that pick. A
+        # rejected pick can still equal the id the ranked fallback then chose; that is not
+        # the model's doing, so the rejection warning decides, not the ids.
+        accepted = {
+            state.slot.slot_id: reasons[state.slot.slot_id].strip()[:TOPIC_REASON_LIMIT]
+            for state in empty
+            if state.slot.slot_id in assigned
+            and proposals.get(state.slot.slot_id) == assigned[state.slot.slot_id]
+            and f"topic_proposal_rejected:{state.slot.slot_id}:{assigned[state.slot.slot_id]}"
+            not in notes
+            and reasons.get(state.slot.slot_id, "").strip()
+        }
 
         for state in empty:
             if not state.outcome:
@@ -824,7 +870,7 @@ class Pipeline:
 
         changed = {state["slot"]["slot_id"]: state for state in results}
 
-        self._save_resolved_plan(states, changed, warnings)
+        self._save_resolved_plan(states, changed, warnings, accepted)
 
         return {"slots": changed, "warnings": warnings}
 

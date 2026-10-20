@@ -85,6 +85,13 @@
       },
       "title": "Warnings",
       "type": "array"
+    },
+    "topic_reasons": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Topic Reasons",
+      "type": "object"
     }
   },
   "required": [
