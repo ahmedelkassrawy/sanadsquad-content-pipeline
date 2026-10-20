@@ -114,7 +114,10 @@ and a `TopicChoiceRequest` with three parts:
 - `choices`: for each open slot, the ids it may use. Code has already removed the ids that
   `assign_topics` would refuse: topics used by a focused slot this week and topics from the
   last four runs. If that leaves a slot nothing, it gets its whole pool back and code
-  decides afterwards (`history_exhausted`).
+  decides afterwards (`history_exhausted`). Every id in that pool is refused by
+  `assign_topics`, so the model's pick for such a slot is always overridden and always logged as
+  rejected. It is kept this way so a slot has no special case in the request; skipping those
+  slots would be quieter (see the history note below, which makes it common in a fresh clone).
 - `catalog`: what each offered id is. A knowledge-base id carries its name, category,
   severity and the first sentence of its description. An angle id carries only its name,
   because `angles.yaml` has nothing more.
@@ -128,20 +131,22 @@ what an id was.
 **The answer shape matters.** The model is asked through a schema with one named field per
 open slot (`topic_wire_schema` in `research.py`, folded back into `TopicChoices` the way the
 reviewer's wire schema is). The canonical contract holds a plain `dict[str, str]`, and a
-dictionary with no named keys reaches Claude as an object with no properties; in live runs it
-answered `{}` (28 to 35 output tokens, no picks), so the original call never influenced a
-topic and the ranked fallback did all the work, silently. Named fields fixed that: the same
+dictionary with no named keys reaches Claude as an object with no properties. Sent that schema
+in a live check, Claude answered `{}`, and the sample week's call used 28 output tokens, the
+size of an empty answer, so on Claude the original call most likely never influenced a topic
+and the ranked fallback did all the work, silently. Named fields fixed that: the same
 request now returns a pick and a reason for every slot. The fields are optional strings, not
 enums, so a bad id is one rejected slot, not a failed batch.
 
 **What code enforces.** `assign_topics` stays the only authority. A proposal is used only if
 it is in that slot's pool, not used by a focused slot or an earlier slot this week, and not
 in the last four runs. Anything else is dropped with a `topic_proposal_rejected:<slot>:<id>`
-warning (before, it vanished silently) and the slot gets the best-ranked free topic: for a knowledge-base pool, a BM25
-ranking against the post type's source hints; for angles, the order in `angles.yaml`. If the call fails outright, every
-slot takes that path and the run warns `topic_selection_failed:code_fallback`. A reason is kept in
-`plan.resolved.json` (`topic_reasons`) only when its pick was accepted as proposed, cut to
-200 characters. Code never acts on a reason; it is there so a reader can audit a choice.
+warning (before, it vanished silently) and the slot gets the best-ranked free topic: for a
+knowledge-base pool, a BM25 ranking against the post type's source hints; for angles, the
+order in `angles.yaml`. If the call fails outright, every slot takes that path and the run
+warns `topic_selection_failed:code_fallback`. A reason is kept in `plan.resolved.json`
+(`topic_reasons`) only when code took the model's pick (a rejected pick that the fallback
+happens to repeat gets no reason), cut to 200 characters. Code never acts on a reason; it is there so a reader can audit a choice.
 
 **Alternatives considered.**
 
@@ -149,8 +154,8 @@ slot takes that path and the run warns `topic_selection_failed:code_fallback`. A
 | --- | --- |
 | Model picks from bare ids (the old behaviour) | Rejected. It cannot tell topics apart, so its choice is guesswork that code then overrides. |
 | Random pick | Rejected. It ignores what the post type wants (the source hints), and runs stop being reproducible. |
-| Code only: drop the call and use the ranked pick | Rejected, but close. The ranking is a fixed function of the hints, so it never looks at what else is in the week: it can give a thread to a near-duplicate of the focused one, or three topics from one category. Code cannot judge "overlaps with" without a hand-built topic taxonomy. The model can, and one batch call costs a couple of thousand input tokens, about half a cent (the sample week's call: 1,876 in, 28 out, $0.004). Because code validates every id, a bad model answer can do no worse than the code-only path. We did **not** measure how often the model beats the ranked pick; the logged reasons and rejection warnings are what makes that checkable. |
-| Model picks from the filtered pool with a catalog (chosen) | The model's judgement is used where it adds something (spread, overlap, fit) and nothing it says can break the week. |
+| Code only: drop the call and use the ranked pick | Rejected, but close. The ranking is a fixed function of the hints, so it never looks at what else is in the week: it can give a thread to a near-duplicate of the focused one, or three topics from one category. Spreading categories is a few lines of code, since every KB entry has one, and could replace the call if this ever needs to be cheaper. Judging that two topics overlap or that one fits a slot better is where the model is used. One batch call costs about one cent (live, final code: 4,058 in, 262 out, $0.011; the old bare-id call was 1,876 in, 28 out, $0.004). Code validates every id, so a bad answer cannot break a rule, but it can still be a weaker pick than the ranked one. We did **not** measure how often the model beats the ranked pick; the logged reasons and rejection warnings are what make that checkable. |
+| Model picks from the filtered pool with a catalog (chosen) | The model's judgement is used where it adds something (spread, overlap, fit) and nothing it says can break a rule of the week. |
 
 **Known limitations.**
 
@@ -163,10 +168,11 @@ slot takes that path and the run warns `topic_selection_failed:code_fallback`. A
   window is one node and the failure is closed, not wrong.
 - *History scope.* `history()` in `pipeline.py` reads **every sibling folder of the run
   folder** that has a `run_summary.json`, takes the four newest by folder modification time,
-  and treats their topics as used. In this repo that includes the committed
-  `output/sample-week`, `output/failed-source-example` and `output/claude-run-with-drop`, so
-  a first run written next to them can warn `history_exhausted` (marketing posts have only
-  three angles) for topics it never used itself. It is left as it is because avoiding last
+  and treats their topics as used. In this repo that includes the five committed sample folders
+  (`sample-week`, `failed-source-example`, `claude-run-with-drop`, `free-run-6-of-6`,
+  `free-run-with-drops`; which four count depends on checkout order), so a first run written
+  next to them warns `history_exhausted` (marketing posts have only three angles) for topics it
+  never used itself. A live run on this branch did: all three marketing picks were rejected. It is left as it is because avoiding last
   week's topics is the feature; to start with a clean history, write the run into an empty
   parent folder (`--output elsewhere/week-42`). A cleaner fix would be an explicit
   history folder or manifest.

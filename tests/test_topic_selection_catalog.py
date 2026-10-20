@@ -30,7 +30,8 @@ class TopicModels(OfflineModels):
             if schema.__name__ == "TopicChoices":
                 self.schemas.append(schema.model_json_schema())
                 result["parsed"]["assignments"] = self.assignments
-                result["parsed"]["reasons"] = self.reasons
+                if self.reasons:
+                    result["parsed"]["reasons"] = self.reasons
                 if self.fail:
                     result["parsed"]["slot_id"] = "not-the-batch"
                 result["raw"].content = json.dumps(result["parsed"])
