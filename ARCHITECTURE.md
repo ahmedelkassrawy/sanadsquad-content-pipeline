@@ -125,6 +125,15 @@ It returns one id per slot and, for each, a one-line reason. Before this change 
 held bare ids (`KB-01` to `KB-20`) and the model chose blind; nothing in its prompt named
 what an id was.
 
+**The answer shape matters.** The model is asked through a schema with one named field per
+open slot (`topic_wire_schema` in `research.py`, folded back into `TopicChoices` the way the
+reviewer's wire schema is). The canonical contract holds a plain `dict[str, str]`, and a
+dictionary with no named keys reaches Claude as an object with no properties; in live runs it
+answered `{}` (28 to 35 output tokens, no picks), so the original call never influenced a
+topic and the ranked fallback did all the work, silently. Named fields fixed that: the same
+request now returns a pick and a reason for every slot. The fields are optional strings, not
+enums, so a bad id is one rejected slot, not a failed batch.
+
 **What code enforces.** `assign_topics` stays the only authority. A proposal is used only if
 it is in that slot's pool, not used by a focused slot or an earlier slot this week, and not
 in the last four runs. Anything else is dropped with a `topic_proposal_rejected:<slot>:<id>`

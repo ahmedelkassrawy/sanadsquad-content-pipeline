@@ -3,7 +3,8 @@ Pick one topic for every slot in this batch.
 What you are given:
 
 - `choices`: for each slot, the topic ids it may use. Code has already removed topics used
-  earlier this week and topics from recent runs, so every id listed is allowed.
+  earlier this week and topics from recent runs. If that would leave a slot with nothing, its
+  whole pool is listed instead and code makes the final pick.
 - `catalog`: what each offered id is: its title, category, severity and a one-sentence summary.
   An angle id (ANGLE-...) has a title only.
 - `taken`: topics already fixed for this week's focused slots, as `slot id: "id title"`. It can

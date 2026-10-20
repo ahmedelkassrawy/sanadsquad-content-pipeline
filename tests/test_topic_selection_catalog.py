@@ -2,8 +2,10 @@
 
 import json
 from pathlib import Path
+from content_pipeline.contracts import TopicChoiceRequest
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
+from content_pipeline.research import canonical_topic_choices, topic_wire_schema
 from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +19,7 @@ class TopicModels(OfflineModels):
         self.assignments = assignments or {}
         self.reasons = reasons or {}
         self.fail = fail
+        self.schemas = []
 
     def factory(self, name, slot_id, context):
         client = super().factory(name, slot_id, context)
@@ -25,6 +28,7 @@ class TopicModels(OfflineModels):
         async def transport(messages, schema, max_tokens):
             result = await original(messages, schema, max_tokens)
             if schema.__name__ == "TopicChoices":
+                self.schemas.append(schema.model_json_schema())
                 result["parsed"]["assignments"] = self.assignments
                 result["parsed"]["reasons"] = self.reasons
                 if self.fail:
@@ -159,3 +163,32 @@ async def test_failed_topic_call_falls_back_to_code_with_no_reasons(tmp_path):
     # The ranked fallback ran; the scripted KB-02 was never read.
     assert summary.slots["a"].topic_id != "KB-02"
     assert not any(warning.startswith("topic_proposal_rejected") for warning in plan["warnings"])
+
+
+async def test_model_is_asked_through_a_schema_with_one_named_field_per_open_slot(tmp_path):
+    # Live finding: a free-form dict[str, str] reaches Claude as an object with no properties
+    # and it answers {}. The old call was a silent no-op; named fields give it something to fill.
+    models = TopicModels({"b": "KB-02"})
+    await run(tmp_path, models, slots("a", "b", "c", focus="reentrancy"))
+    (schema,) = models.schemas
+    for name in ("TopicAssignments", "TopicReasons"):
+        assert set(schema["$defs"][name]["properties"]) == {"b", "c"}
+
+
+def test_wire_schema_keeps_odd_slot_ids_and_folds_to_the_canonical_contract():
+    request = TopicChoiceRequest(choices={"thread 1/a": ["KB-01"], "b": ["KB-02"], "c": ["KB-03"]})
+    wire = topic_wire_schema(request).model_validate(
+        {
+            "slot_id": "_batch",
+            "attempt": 1,
+            "assignments": {"thread 1/a": "KB-01", "b": None, "unknown": "KB-09"},
+            "reasons": {"thread 1/a": "Fits.", "b": ""},
+        }
+    )
+    chosen = canonical_topic_choices(wire)
+    assert chosen.assignments == {"thread 1/a": "KB-01"}
+    assert chosen.reasons == {"thread 1/a": "Fits."}
+    empty = topic_wire_schema(request).model_validate(
+        {"slot_id": "_batch", "attempt": 1, "assignments": {}}
+    )
+    assert canonical_topic_choices(empty).assignments == {}

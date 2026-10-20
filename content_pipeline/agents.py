@@ -19,6 +19,7 @@ from .contracts import (
 from .models import Draft, ResearchPack, Review, SourceRecord
 from .model_client import ModelFailure
 from .post_types import PostTypes, load_rubric
+from .research import canonical_topic_choices, topic_wire_schema
 from .tools import research_tools
 from .review_scoring import (
     canonical_review,
@@ -264,7 +265,7 @@ class TopicSelector(Agent):
         )
 
         output = await self.invoke(
-            TopicChoices,
+            topic_wire_schema(request),
             request,
             request.slot_id,
             request.attempt,
@@ -274,7 +275,7 @@ class TopicSelector(Agent):
 
         identity(request.slot_id, request.attempt, output)
 
-        return output
+        return canonical_topic_choices(output)
 
 
 class Writer(Agent):
