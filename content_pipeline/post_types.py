@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import yaml
@@ -13,7 +14,7 @@ from .config import (
     read_type_file,
     read_utf8,
 )
-from .contracts import Rubric, WriteStyle
+from .contracts import Rubric, TopicInfo, WriteStyle
 from .models import AgentConfig, BrandRules, PostType, ResearchPack, ResolvedSlot, SourceRecord
 
 
@@ -25,6 +26,11 @@ def load_rubric(root: Path, spec: PostType, read=read_utf8) -> Rubric:
         raise ValueError("rubric needs criteria front matter")
 
     return Rubric.model_validate(yaml.safe_load(text.split("---", 2)[1]))
+
+
+def first_sentence(text: str, limit: int = 200) -> str:
+    """The first sentence of a description, cut at `limit` characters."""
+    return re.split(r"(?<=[.!?])\s", text.strip(), maxsplit=1)[0][:limit]
 
 
 class PostTypes:
@@ -160,6 +166,24 @@ class PostTypes:
             return [e["id"] for e in kb.search(self.hints(slot_type), len(kb.entries))]
 
         return [entry["id"] for entry in kb.entries]
+
+    def topic_info(self, slot_type: str, kb) -> dict[str, TopicInfo]:
+        """Describe every id in `topic_pool`: a kb entry by name, category, severity and summary.
+
+        An angle has only a name in `angles.yaml`, so that is all the topic chooser gets for it.
+        """
+        if self.spec(slot_type).research.topic_source == "angles":
+            return {angle.id: TopicInfo(title=angle.name) for angle in self.angles(slot_type)}
+
+        return {
+            entry["id"]: TopicInfo(
+                title=entry["name"],
+                summary=first_sentence(entry["description"]),
+                category=entry["category"],
+                severity=entry["severity"],
+            )
+            for entry in kb.entries
+        }
 
     def choose_angle_source(self, slot: ResolvedSlot, week_topics: set[str]) -> str | None:
         """For a pick-one angle, the first candidate source no other slot this week covers.

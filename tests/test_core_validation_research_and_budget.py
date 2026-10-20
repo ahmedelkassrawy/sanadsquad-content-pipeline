@@ -306,7 +306,11 @@ def test_kb_alias_and_batch_assignment():
         "ANGLE-credibility",
         "ANGLE-education",
     ]
-    assert warnings == []
+    assert warnings == [
+        "topic_proposal_rejected:thread_2:KB-01",
+        "topic_proposal_rejected:thread_3:KB-01",
+        "topic_proposal_rejected:marketing_2:ANGLE-service",
+    ]
     slots[1].focus = "recursive call"
     slots[1].topic_id = "KB-01"
     assigned, warnings = assign_topics(ROOT, slots, {}, kb, [[e["id"] for e in kb.entries]])

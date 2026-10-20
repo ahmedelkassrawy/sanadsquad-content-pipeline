@@ -77,17 +77,33 @@ class ResearchTurn(Contract):
     searches_remaining: int
 
 
+class TopicInfo(Contract):
+    """What the topic chooser is told about one candidate id, so it does not pick blind."""
+
+    title: str
+    summary: str = ""
+    category: str | None = None
+    severity: str | None = None
+
+
 class TopicChoiceRequest(Contract):
+    """One batch of open slots. Each slot's choices already hold only ids that code will accept."""
+
     slot_id: str = "_batch"
     attempt: int = 1
     choices: dict[str, list[str]]
-    exclude: list[str]
+    # Every id in `choices`, described.
+    catalog: dict[str, TopicInfo] = Field(default_factory=dict)
+    # This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy".
+    taken: dict[str, str] = Field(default_factory=dict)
 
 
 class TopicChoices(Contract):
     slot_id: str
     attempt: int
     assignments: dict[str, str]
+    # slot id -> one line on why that topic. Optional and informational: code never acts on it.
+    reasons: dict[str, str] = Field(default_factory=dict)
 
 
 class WriteStyle(Contract):
@@ -242,6 +258,8 @@ class ExportPost(Trace):
 class ResolvedPlan(Trace):
     slots: list[ResolvedSlot]
     warnings: list[str]
+    # slot id -> the model's one-line reason, only for picks that code accepted as proposed.
+    topic_reasons: dict[str, str] = Field(default_factory=dict)
 
 
 class ExternalUsage(Contract):

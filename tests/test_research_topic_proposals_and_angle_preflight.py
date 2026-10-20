@@ -112,7 +112,8 @@ def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():
     assert assigned["a"] not in {"KB-01", "KB-02", "KB-18"}
     assert assigned["c"] == "ANGLE-education"
     assert assigned["d"] == "ANGLE-credibility"
-    assert warnings == []
+    # c asked for a KB id outside its angle pool (and one from recent history): rejected and logged.
+    assert warnings == ["topic_proposal_rejected:c:KB-18"]
 
 
 def config_root(tmp_path, text=None, missing_file=False):
