@@ -1,0 +1,49 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "blogs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blogs",
+      "type": "array"
+    },
+    "docs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Docs",
+      "type": "array"
+    },
+    "production": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Production",
+      "type": "array"
+    },
+    "analysis": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Analysis",
+      "type": "array"
+    },
+    "figures": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Figures",
+      "type": "array"
+    }
+  },
+  "required": [
+    "blogs",
+    "docs",
+    "production",
+    "analysis",
+    "figures"
+  ],
+  "title": "SourceGroups",
+  "type": "object"
+}

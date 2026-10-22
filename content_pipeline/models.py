@@ -56,7 +56,8 @@ class ResolvedSlot(Contract):
 
 
 class SourceRecord(Contract):
-    source_id: str = Field(pattern=r"^(SS-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
+    # KB-* remains readable solely for run folders saved before the SS migration.
+    source_id: str = Field(pattern=r"^(?:(?:SS|KB)-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
     kind: Literal["kb", "stat", "web"]
     url: str | None = None
     title: str
@@ -66,7 +67,8 @@ class SourceRecord(Contract):
 
     @model_validator(mode="after")
     def source_kind(self):
-        if not self.source_id.startswith({"kb": "SS-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
+        expected = {"kb": ("SS-", "KB-"), "stat": ("STAT-",), "web": ("WEB-",)}[self.kind]
+        if not self.source_id.startswith(expected):
             raise ValueError("source id must match kind")
 
         if self.status == "ok" and not self.evidence_text.strip():

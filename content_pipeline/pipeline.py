@@ -119,7 +119,7 @@ def parse_sets(slots, values):
     return list(indexed.values())
 
 
-def validate_inputs(root, slots, settings=None, types=None):
+def validate_inputs(root, slots, settings=None, types=None, *, allow_legacy_snapshot=False):
     """Validate the plan and required configuration before starting a run."""
     if not slots or len({slot.slot_id.casefold() for slot in slots}) != len(slots):
         raise ValueError("plan needs case-insensitive unique slots")
@@ -136,7 +136,11 @@ def validate_inputs(root, slots, settings=None, types=None):
         ImageColor.getrgb(color)
 
     KnowledgeBase(root / "inputs/kb.json")
-    load_sources(local_file(root, "inputs/sources.json"))
+    sources = root / "inputs/sources.json"
+    if sources.is_file():
+        load_sources(sources)
+    elif not allow_legacy_snapshot:
+        local_file(root, "inputs/sources.json")
 
     for slot in slots:
         _validate_slot_inputs(root, slot, settings, types)
@@ -1748,7 +1752,12 @@ async def run_pipeline(
 
             snapshot_root, slots, settings, identity = saved_inputs
 
-            validate_inputs(snapshot_root, slots, settings)
+            validate_inputs(
+                snapshot_root,
+                slots,
+                settings,
+                allow_legacy_snapshot=not (snapshot_root / "inputs/sources.json").is_file(),
+            )
 
             if on_resume_inputs is not None:
                 on_resume_inputs(saved_inputs)

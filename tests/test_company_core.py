@@ -211,7 +211,7 @@ def test_web_thread_requires_fetched_link():
     )
 
 
-def test_configured_search_uses_fixtures_without_a_tavily_key(monkeypatch, tmp_path):
+def test_configured_search_without_key_uses_live_ddgs_not_fixtures(monkeypatch, tmp_path):
     import content_pipeline.tools as tools
 
     monkeypatch.delenv("TAVILY_API_KEY", raising=False)
@@ -221,4 +221,4 @@ def test_configured_search_uses_fixtures_without_a_tavily_key(monkeypatch, tmp_p
     monkeypatch.setattr(tools, "local_file", lambda *_: source_path)
     monkeypatch.setattr(tools, "load_sources", lambda _: type("R", (), {"deny": []})())
     search = configured_web_search(tmp_path)
-    assert search.ddgs is None and isinstance(search.fixture, FixtureSearch)
+    assert search.tavily is None and search.ddgs is not None and search.fixture is None

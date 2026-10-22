@@ -44,6 +44,41 @@
       ],
       "default": null,
       "title": "Stat Ids"
+    },
+    "service_line": {
+      "anyOf": [
+        {
+          "enum": [
+            "web3-security",
+            "pentesting",
+            "agentic-security",
+            "agentic-payments"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Service Line"
+    },
+    "kb_allowed": {
+      "default": false,
+      "title": "Kb Allowed",
+      "type": "boolean"
+    },
+    "subject": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Subject"
     }
   },
   "required": [

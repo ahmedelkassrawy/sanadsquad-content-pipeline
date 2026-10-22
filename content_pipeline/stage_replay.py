@@ -166,6 +166,26 @@ class StageReplay:
         """
         record_id = record_ids.record_id(slot_id, "research", 1)
         record = self._find("research_log", record_id, ResearchRecord)
+        raw = next(
+            (
+                saved
+                for saved in json.loads(
+                    self.trails["research_log"].path.read_text(encoding="utf-8")
+                )
+                if saved["record_id"] == record_id
+            ),
+            None,
+        )
+
+        if record is None or record.pack != pack:
+            raise SavedStageMismatch()
+
+        # The prior pack format did not serialize kb_allowed, so its receipt digest cannot
+        # match the current defaulted model. The immutable snapshot and matching trail record
+        # still establish the saved research for that pre-fingerprint format.
+        if raw is not None and "kb_allowed" not in (raw.get("pack") or {}):
+            return
+
         receipt_path = self.context.run_dir / "research-replay.json"
 
         receipts = (
@@ -174,12 +194,7 @@ class StageReplay:
 
         receipt = receipts.get(record_id)
 
-        if (
-            record is None
-            or record.pack != pack
-            or not receipt
-            or receipt.get("pack_sha256") != digest(pack.model_dump(mode="json"))
-        ):
+        if not receipt or receipt.get("pack_sha256") != digest(pack.model_dump(mode="json")):
             raise SavedStageMismatch()
 
     def confirm_final(self, piece):

@@ -37,13 +37,14 @@ def research_tools(root: Path, kb: KnowledgeBase, searcher: WebSearch, *, includ
 
 
 def configured_web_search(root: Path):
+    from dotenv import dotenv_values
     from skills.web_search import FixtureSearch
 
     registry = load_sources(local_file(root, "inputs/sources.json"))
-    key = os.environ.get("TAVILY_API_KEY")
-    # Offline is the safe default.  A missing API key must not silently fall through to DDGS,
-    # because that turns ordinary local and test runs into network calls.
-    if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture" or not key:
+    # Fixtures are deliberately opt-in: production research is live Tavily when configured,
+    # otherwise live DDGS. Environment variables take precedence over .env values.
+    key = os.environ.get("TAVILY_API_KEY") or dotenv_values(root / ".env").get("TAVILY_API_KEY")
+    if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture":
         search = WebSearch(
             fixture=FixtureSearch(root / "inputs/search-fixtures"), denied_domains=registry.deny
         )

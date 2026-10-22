@@ -34,6 +34,8 @@ def hermetic_environment(monkeypatch):
     for name in PROVIDER_VARIABLES:
         monkeypatch.delenv(name, raising=False)
 
+    monkeypatch.setenv("SEARCH_BACKEND", "fixture")
+
 
 @pytest.fixture(autouse=True)
 def advisor_on_for_pipeline_runs(monkeypatch):

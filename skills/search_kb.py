@@ -19,21 +19,24 @@ class KnowledgeBase:
 
     def __init__(self, path: Path):
         data = json.loads(path.read_text(encoding="utf-8"))
-
-        self.entries = data["findings"]
+        legacy = "findings" not in data
+        self.entries = data["entries"] if legacy else data["findings"]
         ids = [e["id"] for e in self.entries]
 
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate KB ids")
 
         for entry in self.entries:
+            if legacy:
+                self._normalize_legacy_entry(entry)
+
             for field in ("id", "title", "impact", "tags", "protocol", "language", "content"):
                 if entry.get(field) in (None, "", []):
                     raise ValueError("incomplete KB entry: " + field)
             for field in ("description", "location", "recommendation", "status"):
                 if not entry["content"].get(field):
                     raise ValueError("incomplete KB entry content: " + field)
-            if not re.fullmatch(r"SS-\d+", entry["id"]):
+            if not re.fullmatch(r"(?:SS|KB)-\d+", entry["id"]):
                 raise ValueError("invalid KB id")
             # Compatibility aliases keep topic-selection code independent of the source schema.
             entry["name"] = entry["title"]
@@ -56,6 +59,29 @@ class KnowledgeBase:
                 )
                 for e in self.entries
             ]
+        )
+
+    @staticmethod
+    def _normalize_legacy_entry(entry):
+        """Adapt the retired KB format only while resuming an old run snapshot."""
+        required = ("name", "severity", "category", "description", "root_cause", "aliases")
+        if any(entry.get(field) in (None, "", []) for field in required):
+            raise ValueError("incomplete legacy KB entry")
+
+        entry.update(
+            {
+                "title": entry["name"],
+                "impact": entry["severity"],
+                "tags": entry["aliases"],
+                "protocol": "legacy",
+                "language": "legacy",
+                "content": {
+                    "description": entry["description"],
+                    "location": (entry.get("references") or ["legacy"])[0],
+                    "recommendation": entry["root_cause"],
+                    "status": entry.get("review_status", "legacy"),
+                },
+            }
         )
 
     def search(self, query: str, top_k: int = 5):

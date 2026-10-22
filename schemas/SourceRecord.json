@@ -2,7 +2,7 @@
   "additionalProperties": false,
   "properties": {
     "source_id": {
-      "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+      "pattern": "^(?:(?:SS|KB)-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
       "title": "Source Id",
       "type": "string"
     },
