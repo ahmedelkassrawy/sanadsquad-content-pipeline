@@ -38,6 +38,7 @@ class WebSearch:
         self.fetch_calls = 0
         self.allowed_domains = set(allowed_domains or ())
         self.denied_domains = set(denied_domains or ())
+        self.registry = None
         self.service_line = service_line
         self.query_log = []
         self.fetch_log = []
@@ -117,7 +118,9 @@ class WebSearch:
 
             if not evidence:
                 self.fetch_calls += 1
-                self.fetch_log.append(url)
+                self.fetch_log.append(
+                    {"url": url, "service_line": service_line or self.service_line}
+                )
 
                 try:
                     evidence = self.fetch(url)

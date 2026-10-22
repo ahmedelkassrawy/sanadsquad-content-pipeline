@@ -24,6 +24,11 @@ class Angle(Contract):
     # The approved stats this angle may use; None means all of them, [] means none. Different stats per angle
     # keep two marketing posts in one week from saying the same thing.
     stat_ids: list[StrictStr] | None = None
+    service_line: (
+        Literal["web3-security", "pentesting", "agentic-security", "agentic-payments"] | None
+    ) = None
+    kb_allowed: bool = False
+    subject: StrictStr | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
@@ -37,6 +42,9 @@ class Angle(Contract):
 
         if self.pick_one and not self.source_ids:
             raise ValueError("pick_one needs candidate source ids")
+
+        if self.kb_allowed and self.subject != "vulnerability-class":
+            raise ValueError("kb_allowed angles must be vulnerability-class")
 
         # An empty list is allowed: the angle uses no firm stats at all.
         if self.stat_ids is not None and len(self.stat_ids) != len(set(self.stat_ids)):

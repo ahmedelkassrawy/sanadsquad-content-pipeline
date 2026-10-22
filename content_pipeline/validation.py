@@ -1016,6 +1016,7 @@ def validate(
         tweet.text = numbering(spec, i, len(fixed.tweets)) + text
 
     errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+    errors.extend(brand_rules.check_research_separation(fixed, pack, spec))
     errors.extend(
         check_post_limits([tweet.text for tweet in fixed.tweets], pack, spec, rules.brand_name)
     )

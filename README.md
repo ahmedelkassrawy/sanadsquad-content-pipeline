@@ -41,8 +41,9 @@ provider name decides which key is read. The committed config needs:
   (`anthropic:claude-opus-5-5`), a larger model than the writers; the writers, research,
   visual and advisor run on Claude Sonnet 5.5 (`anthropic:claude-sonnet-5-5`). All use
   reasoning effort low.
-- Optional: `TAVILY_API_KEY` (web search; without it research uses the small committed
-  `inputs/search-fixtures/` fixture set), `CLOUDFLARE_ACCOUNT_ID`
+- Optional: `TAVILY_API_KEY` (web search; without it research uses DDGS when available).
+  Set `SEARCH_BACKEND=fixture` for deterministic offline fixtures in `inputs/search-fixtures/`.
+  `CLOUDFLARE_ACCOUNT_ID`
   and `CLOUDFLARE_API_TOKEN` (FLUX image background; otherwise a Pillow card).
 
 A free setup (Ministral writers, Nemotron reviewer) is described in

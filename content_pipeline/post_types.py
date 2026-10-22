@@ -179,7 +179,9 @@ class PostTypes:
             entry["id"]: TopicInfo(
                 title=entry["name"],
                 summary=first_sentence(entry["description"]),
-                category=entry["category"],
+                category=", ".join(entry["category"])
+                if isinstance(entry["category"], list)
+                else entry["category"],
                 severity=entry["severity"],
             )
             for entry in kb.entries
@@ -251,5 +253,9 @@ class PostTypes:
             sources = [kb.source(source_id) for source_id in angle.source_ids] + sources
 
         return ResearchPack(
-            slot_id=slot.slot_id, topic_id=slot.topic_id, topic_name=angle.name, sources=sources
+            slot_id=slot.slot_id,
+            topic_id=slot.topic_id,
+            topic_name=angle.name,
+            sources=sources,
+            kb_allowed=angle.kb_allowed or angle.subject == "vulnerability-class",
         )

@@ -36,3 +36,24 @@ def check_brand(text: str, rules: BrandRules, pack: ResearchPack | None = None) 
             errors.append("link_not_fetched:" + url)
 
     return errors
+
+
+def check_research_separation(draft, pack, spec) -> list[str]:
+    """Enforce source separation after writing, independent of the prompt."""
+    if spec.name == "marketing-post":
+        kb_ids = {source.source_id for source in pack.sources if source.kind == "kb"}
+        if kb_ids and not pack.kb_allowed:
+            return ["marketing_kb_forbidden"]
+        if (
+            pack.kb_allowed
+            and kb_ids
+            and not any(kb_ids.intersection(tweet.source_ids) for tweet in draft.tweets)
+        ):
+            return ["marketing_kb_citation_required"]
+    if spec.name == "tech-thread" and any(source.kind == "web" for source in pack.sources):
+        urls = pack.fetched_urls
+        published = {
+            link["url"] for tweet in draft.tweets for link in extract_urls_with_indices(tweet.text)
+        }
+        return [f"thread_web_link_required:{url}" for url in urls if url not in published]
+    return []

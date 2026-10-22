@@ -4,23 +4,23 @@
 angles:
 - id: ANGLE-service
   name: service
+  service_line: web3-security
   stat_ids:
   - STAT-04
   - STAT-05
 - id: ANGLE-credibility
   name: credibility
+  service_line: pentesting
   # Two stats only, matching the post type's max_approved_stats: the audit count and the offer.
   stat_ids:
   - STAT-01
   - STAT-05
 - id: ANGLE-education
-  name: education-to-cta
-  pick_one: true
+  name: vulnerability-class
+  subject: vulnerability-class
+  kb_allowed: true
+  service_line: agentic-security
   source_ids:
-  - KB-01
-  - KB-04
-  - KB-05
-  - KB-07
-  - KB-03
+  - SS-03699
   # No firm stats: the education post ends on its engagement question, not the review offer.
   stat_ids: []

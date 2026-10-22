@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 
 from content_pipeline.config import load_sources
-from content_pipeline.models import ResearchPack, SourceRecord
+from content_pipeline.models import Draft, ResearchPack, SourceRecord, Tweet
+from content_pipeline.tools import configured_web_search, research_tools
+from content_pipeline.validation import validate
 from skills.brand_rules import check_brand
 from skills.search_kb import KnowledgeBase
 from skills.web_search import FixtureSearch, WebSearch
@@ -87,7 +89,7 @@ def test_fixture_search_filters_hosts_and_logs_zero_result_query(tmp_path):
     assert search.query_log == [
         {"query": "prompt injection", "service_line": None, "backend": "fixture", "result_count": 1}
     ]
-    assert search.fetch_log == ["https://docs.example.org/guide"]
+    assert search.fetch_log == [{"url": "https://docs.example.org/guide", "service_line": None}]
     assert search.search("nothing here") == []
     assert search.query_log[-1]["result_count"] == 0
 
@@ -113,3 +115,112 @@ def test_post_links_must_have_been_fetched_in_this_run():
     assert check_brand("Read https://docs.example.org/other", rules, pack) == [
         "link_not_fetched:https://docs.example.org/other"
     ]
+
+
+def test_marketing_tools_exclude_kb_and_reject_kb_pack(tmp_path):
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+    search = WebSearch(fixture=FixtureSearch(tmp_path))
+    assert [tool.name for tool in research_tools(ROOT, kb, search, include_kb=False)] == [
+        "web_search"
+    ]
+    pack = ResearchPack(
+        slot_id="m",
+        topic_id="ANGLE-service",
+        topic_name="service",
+        sources=[kb.source(kb.entries[0]["id"])],
+    )
+    draft = Draft(slot_id="m", tweets=[Tweet(text="Fact", source_ids=[pack.sources[0].source_id])])
+    spec = __import__("content_pipeline.config", fromlist=["load_type"]).load_type(
+        ROOT, "marketing-post"
+    )
+    rules = type(
+        "Rules",
+        (),
+        {
+            "banned_words": [],
+            "banned_characters": [],
+            "allowed_links": [],
+            "safe_fixes": [],
+            "brand_name": "x",
+        },
+    )()
+    assert "marketing_kb_forbidden" in validate(draft, pack, spec, rules).violations
+
+
+def test_vulnerability_marketing_requires_explicit_kb_citation():
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+    source = kb.source(kb.entries[0]["id"])
+    pack = ResearchPack(
+        slot_id="m",
+        topic_id="ANGLE-vulnerability",
+        topic_name="vulnerability-class",
+        sources=[source],
+        kb_allowed=True,
+    )
+    draft = Draft(slot_id="m", tweets=[Tweet(text="Fact", source_ids=[])])
+    spec = __import__("content_pipeline.config", fromlist=["load_type"]).load_type(
+        ROOT, "marketing-post"
+    )
+    rules = type(
+        "Rules",
+        (),
+        {
+            "banned_words": [],
+            "banned_characters": [],
+            "allowed_links": [],
+            "safe_fixes": [],
+            "brand_name": "x",
+        },
+    )()
+    assert "marketing_kb_citation_required" in validate(draft, pack, spec, rules).violations
+
+
+def test_web_thread_requires_fetched_link():
+    pack = ResearchPack(
+        slot_id="t",
+        topic_id="WEB-aabb",
+        topic_name="External",
+        sources=[
+            SourceRecord(
+                source_id="WEB-aabb",
+                kind="web",
+                title="External",
+                url="https://docs.example.org/x",
+                evidence_text="facts",
+            )
+        ],
+    )
+    draft = Draft(slot_id="t", tweets=[Tweet(text="Facts", source_ids=["WEB-aabb"])])
+    spec = __import__("content_pipeline.config", fromlist=["load_type"]).load_type(
+        ROOT, "tech-thread"
+    )
+    rules = type(
+        "Rules",
+        (),
+        {
+            "banned_words": [],
+            "banned_characters": [],
+            "allowed_links": [],
+            "safe_fixes": [],
+            "brand_name": "x",
+        },
+    )()
+    assert (
+        "thread_web_link_required:https://docs.example.org/x"
+        in validate(draft, pack, spec, rules).violations
+    )
+
+
+def test_configured_search_uses_ddgs_without_tavily_or_fixture(monkeypatch, tmp_path):
+    import content_pipeline.tools as tools
+
+    monkeypatch.delenv("TAVILY_API_KEY", raising=False)
+    monkeypatch.delenv("SEARCH_BACKEND", raising=False)
+    source_path = tmp_path / "sources.json"
+    source_path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(tools, "local_file", lambda *_: source_path)
+    monkeypatch.setattr(tools, "load_sources", lambda _: type("R", (), {"deny": []})())
+    monkeypatch.setattr(tools, "dotenv_values", lambda _: {})
+    monkeypatch.setattr("ddgs.DDGS", lambda: "ddgs")
+    search = configured_web_search(tmp_path)
+    assert search.ddgs == "ddgs" and search.fixture is None

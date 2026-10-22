@@ -80,6 +80,7 @@ class ResearchPack(Contract):
     topic_id: str
     topic_name: str
     sources: list[SourceRecord]
+    kb_allowed: bool = False
 
     @model_validator(mode="after")
     def unique_sources(self):

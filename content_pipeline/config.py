@@ -99,7 +99,7 @@ def load_angles(root: Path, spec: PostType):
         kb_ids = {
             entry["id"]
             for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))[
-                "entries"
+                "findings"
             ]
         }
 
