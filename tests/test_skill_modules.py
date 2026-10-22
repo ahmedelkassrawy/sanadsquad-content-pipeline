@@ -26,11 +26,11 @@ def brand_rules():
 def pack(slot_id="thread_1"):
     return ResearchPack(
         slot_id=slot_id,
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is updated.",
@@ -42,7 +42,7 @@ def pack(slot_id="thread_1"):
 def draft(text="State before calls.", count=5, slot_id="thread_1"):
     return Draft(
         slot_id=slot_id,
-        tweets=[Tweet(text=text, source_ids=["KB-01"]) for _ in range(count)],
+        tweets=[Tweet(text=text, source_ids=["SS-01"]) for _ in range(count)],
     )
 
 
@@ -144,7 +144,7 @@ def test_research_tools_call_the_skill_modules(monkeypatch):
 
     def fake_search_kb(kb, query):
         calls.append(("search_kb", query))
-        return [{"id": "KB-42", "name": "Fake entry"}]
+        return [{"id": "SS-42", "name": "Fake entry"}]
 
     def fake_web_search(searcher, query):
         calls.append(("web_search", query))
@@ -161,7 +161,7 @@ def test_research_tools_call_the_skill_modules(monkeypatch):
         (ROOT / "skills/search_kb.md").read_text(encoding="utf-8").strip(),
         (ROOT / "skills/web_search.md").read_text(encoding="utf-8").strip(),
     ]
-    assert tools[0].invoke({"query": "reentrancy"}) == [{"id": "KB-42", "name": "Fake entry"}]
+    assert tools[0].invoke({"query": "reentrancy"}) == [{"id": "SS-42", "name": "Fake entry"}]
     assert tools[1].invoke({"query": "oracle manipulation"}) == [
         {"source_id": "WEB-42", "kind": "web"}
     ]

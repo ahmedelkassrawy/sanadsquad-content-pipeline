@@ -230,7 +230,7 @@ class ResearchAgent(Agent):
 
                 if (
                     slot.focus
-                    and topic.startswith("KB-")
+                    and topic.startswith("SS-")
                     and not focus_matches(slot.focus, self.kb, topic)
                 ):
                     # The operator asked for one topic; shipping the nearest other one is a
@@ -239,7 +239,7 @@ class ResearchAgent(Agent):
 
                 title = (
                     self.kb.source(topic).title
-                    if topic.startswith("KB-")
+                    if topic.startswith("SS-")
                     else slot.focus or selected[0].title
                 )
 

@@ -31,27 +31,27 @@ def education_slot():
 def test_education_angle_avoids_a_kb_topic_a_thread_already_covers():
     types = PostTypes(ROOT)
 
-    # thread_1 is about reentrancy (KB-01), so the education post takes the next candidate.
-    assert types.choose_angle_source(education_slot(), {"KB-01", "ANGLE-service"}) == "KB-04"
-    assert types.choose_angle_source(education_slot(), set()) == "KB-01"
+    # thread_1 is about reentrancy (SS-01), so the education post takes the next candidate.
+    assert types.choose_angle_source(education_slot(), {"SS-01", "ANGLE-service"}) == "SS-04"
+    assert types.choose_angle_source(education_slot(), set()) == "SS-01"
 
 
 def test_chosen_education_source_is_the_only_kb_record_in_its_pack():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
     slot = education_slot()
-    slot.angle_source = "KB-05"
+    slot.angle_source = "SS-05"
 
     kb_ids = [s.source_id for s in types.assigned_pack(slot, kb).sources if s.kind == "kb"]
 
-    assert kb_ids == ["KB-05"]
+    assert kb_ids == ["SS-05"]
 
 
 def test_angle_source_choice_skips_slots_that_are_not_pick_one_angles():
     types = PostTypes(ROOT)
     service = ResolvedSlot(slot_id="marketing_1", type="marketing-post", topic_id="ANGLE-service")
-    focused = ResolvedSlot(slot_id="x", type="marketing-post", topic_id="KB-01", focus="reentrancy")
-    thread = ResolvedSlot(slot_id="thread_1", type="tech-thread", topic_id="KB-01")
+    focused = ResolvedSlot(slot_id="x", type="marketing-post", topic_id="SS-01", focus="reentrancy")
+    thread = ResolvedSlot(slot_id="thread_1", type="tech-thread", topic_id="SS-01")
 
     assert types.choose_angle_source(service, set()) is None
     assert types.choose_angle_source(focused, set()) is None
@@ -87,11 +87,11 @@ def test_text_that_points_at_the_research_material_is_banned():
 def thread_pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is updated.",
@@ -102,7 +102,7 @@ def thread_pack():
 
 def test_the_unicode_minus_sign_is_replaced_like_other_dash_look_alikes():
     texts = [f"Point {n}: call order matters x {chr(0x2212)} 1 here." for n in "ABCDE"]
-    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in texts])
 
     result = validate(draft, thread_pack(), load_type(ROOT, "tech-thread"), RULES)
 
@@ -124,7 +124,7 @@ def visual_request(post_type, tweets):
         slot_id="thread_1",
         attempt=1,
         draft=Draft(
-            slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in tweets]
+            slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in tweets]
         ),
         research=thread_pack(),
         post_type=load_type(ROOT, post_type),

@@ -78,7 +78,7 @@ class OfflineModels:
                     "action": action,
                     "query": focus,
                     "source_ids": selected,
-                    "topic_id": selected[0] if selected and selected[0].startswith("KB-") else None,
+                    "topic_id": selected[0] if selected and selected[0].startswith("SS-") else None,
                 }
                 if mode.get("research_mismatch"):
                     parsed["slot_id"] = "other"
@@ -94,13 +94,13 @@ class OfflineModels:
                 source_id = payload["research"]["sources"][0]["source_id"]
                 text = (
                     "State before calls."
-                    if source_id.startswith("KB-")
+                    if source_id.startswith("SS-")
                     else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
                     else "Source evidence supports this topic."
                 )
                 if attempt in mode.get("invalid_attempts", []):
-                    source_id = "KB-99"
+                    source_id = "SS-99"
                 parsed = {
                     "slot_id": "other" if mode.get("writer_mismatch") else slot_id,
                     "attempt": attempt,
@@ -307,10 +307,10 @@ async def test_focused_research_and_write_overlap_barriers(tmp_path):
     models = OfflineModels(barriers=True)
     summary = await asyncio.wait_for(run(tmp_path, models), 15)
     assert summary.shipped == 2
-    assert summary.slots["a"].topic_id == "KB-01"
-    assert summary.slots["b"].topic_id == "KB-01"
+    assert summary.slots["a"].topic_id == "SS-01"
+    assert summary.slots["b"].topic_id == "SS-01"
     assert json.loads((tmp_path / "run/plan.resolved.json").read_text())["warnings"] == [
-        "explicit_duplicate:KB-01"
+        "explicit_duplicate:SS-01"
     ]
 
 
@@ -342,7 +342,7 @@ async def test_shared_content_retry_drops_after_mixed_rejections(tmp_path, first
         call[3] for call in models.calls if call[2] == "Draft" and call[3]["attempt"] == 2
     )
     assert (
-        second["feedback"] == [f"tweet_{i}:citation:KB-99" for i in range(1, 6)]
+        second["feedback"] == [f"tweet_{i}:citation:SS-99" for i in range(1, 6)]
         if first_validator
         else second["feedback"] == ["Unsupported claim must be removed."]
     )

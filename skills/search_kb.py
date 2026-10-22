@@ -15,34 +15,45 @@ def words(text):
 
 
 class KnowledgeBase:
-    """One KB file, ranked by BM25 over names, aliases and text."""
+    """One SanadSquad finding file, ranked by title, tags and evidence text."""
 
     def __init__(self, path: Path):
         data = json.loads(path.read_text(encoding="utf-8"))
 
-        self.entries = data["entries"]
+        self.entries = data["findings"]
         ids = [e["id"] for e in self.entries]
 
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate KB ids")
 
         for entry in self.entries:
-            for field in (
-                "id",
-                "name",
-                "severity",
-                "category",
-                "description",
-                "root_cause",
-                "aliases",
-                "references",
-            ):
-                if not entry.get(field):
+            for field in ("id", "title", "impact", "tags", "protocol", "language", "content"):
+                if entry.get(field) in (None, "", []):
                     raise ValueError("incomplete KB entry: " + field)
+            for field in ("description", "location", "recommendation", "status"):
+                if not entry["content"].get(field):
+                    raise ValueError("incomplete KB entry content: " + field)
+            if not re.fullmatch(r"SS-\d+", entry["id"]):
+                raise ValueError("invalid KB id")
+            # Compatibility aliases keep topic-selection code independent of the source schema.
+            entry["name"] = entry["title"]
+            entry["severity"] = entry["impact"]
+            entry["aliases"] = entry["tags"]
+            entry["description"] = entry["content"]["description"]
 
         self.index = BM25Okapi(
             [
-                words(" ".join([e["name"], e["category"], e["description"], *e["aliases"]]))
+                words(
+                    " ".join(
+                        [
+                            e["title"],
+                            *e["tags"],
+                            *e["category"],
+                            e["content"]["description"],
+                            e["content"]["recommendation"],
+                        ]
+                    )
+                )
                 for e in self.entries
             ]
         )
@@ -61,9 +72,15 @@ class KnowledgeBase:
         return SourceRecord(
             source_id=entry["id"],
             kind="kb",
-            title=entry["name"],
-            url=entry["references"][0],
-            evidence_text=entry["description"] + "\nRoot cause: " + entry["root_cause"],
+            title=entry["title"],
+            url=entry["content"]["location"],
+            evidence_text="\n".join(
+                (
+                    entry["title"],
+                    entry["content"]["description"],
+                    entry["content"]["recommendation"],
+                )
+            ),
         )
 
 

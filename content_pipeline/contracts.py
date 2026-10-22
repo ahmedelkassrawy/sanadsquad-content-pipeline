@@ -94,7 +94,7 @@ class TopicChoiceRequest(Contract):
     choices: dict[str, list[str]]
     # Every id in `choices`, described.
     catalog: dict[str, TopicInfo] = Field(default_factory=dict)
-    # This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy".
+    # This week's focused slots that already have a topic: slot id -> "SS-01 Reentrancy".
     taken: dict[str, str] = Field(default_factory=dict)
 
 

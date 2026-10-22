@@ -57,7 +57,7 @@ class VisualModels(OfflineModels):
 
 async def visual_run(tmp_path, overlays, accepted_text=None):
     models = VisualModels(overlays, accepted_text)
-    await run(tmp_path, models, [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")])
+    await run(tmp_path, models, [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01")])
     record = json.loads((tmp_path / "run/visuals.json").read_text())[0]
     return models, record
 
@@ -111,7 +111,7 @@ async def test_saved_visual_without_detail_still_validates(tmp_path):
     pipeline = Pipeline(SimpleNamespace(root=folder / "snapshot", run_dir=folder), [])
     result = await pipeline.visual(
         {
-            "slot": {"slot_id": "a", "type": "tech-thread", "topic_id": "KB-01"},
+            "slot": {"slot_id": "a", "type": "tech-thread", "topic_id": "SS-01"},
             "attempt": 1,
             "pack": pack,
             "audit": audit,

@@ -10,14 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def validate_texts(texts, post_type="tech-thread"):
-    draft = Draft(slot_id="slot", tweets=[Tweet(text=text, source_ids=["KB-01"]) for text in texts])
+    draft = Draft(slot_id="slot", tweets=[Tweet(text=text, source_ids=["SS-01"]) for text in texts])
     pack = ResearchPack(
         slot_id="slot",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Topic",
         sources=[
             SourceRecord(
-                source_id="KB-01", kind="kb", title="Topic", evidence_text="Source evidence."
+                source_id="SS-01", kind="kb", title="Topic", evidence_text="Source evidence."
             )
         ],
     )

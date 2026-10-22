@@ -50,7 +50,7 @@ def valid_draft():
     return {
         "slot_id": "m",
         "attempt": 1,
-        "tweets": [{"text": "State before calls.", "source_ids": ["KB-01"]}],
+        "tweets": [{"text": "State before calls.", "source_ids": ["SS-01"]}],
     }
 
 
@@ -256,9 +256,9 @@ def test_declared_anthropic_adapter_initializes_without_request(tmp_path, monkey
 
 @pytest.mark.parametrize("text", [" ", "a\uffffb"])
 def test_normalized_empty_or_parser_invalid_tweet_rejected(text):
-    source = SourceRecord(source_id="KB-01", kind="kb", title="Topic", evidence_text="Evidence")
-    pack = ResearchPack(slot_id="m", topic_id="KB-01", topic_name="Topic", sources=[source])
-    draft = Draft(slot_id="m", tweets=[Tweet(text=text, source_ids=["KB-01"])])
+    source = SourceRecord(source_id="SS-01", kind="kb", title="Topic", evidence_text="Evidence")
+    pack = ResearchPack(slot_id="m", topic_id="SS-01", topic_name="Topic", sources=[source])
+    draft = Draft(slot_id="m", tweets=[Tweet(text=text, source_ids=["SS-01"])])
     result = validate(
         draft,
         pack,

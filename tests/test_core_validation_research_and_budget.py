@@ -32,11 +32,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is updated.",
@@ -49,7 +49,7 @@ def draft(text="State before calls.", ids=None, count=5):
     return Draft(
         slot_id="thread_1",
         tweets=[
-            Tweet(text=text, source_ids=ids if ids is not None else ["KB-01"]) for _ in range(count)
+            Tweet(text=text, source_ids=ids if ids is not None else ["SS-01"]) for _ in range(count)
         ],
     )
 
@@ -105,7 +105,7 @@ def test_folder_only_post_type(tmp_path):
     type_file = tmp_path / "post_types/case-study/type.yaml"
     type_file.write_text(type_file.read_text().replace("name: marketing-post", "name: case-study"))
     value = Draft(
-        slot_id="thread_1", tweets=[Tweet(text="Explain one root cause.", source_ids=["KB-01"])]
+        slot_id="thread_1", tweets=[Tweet(text="Explain one root cause.", source_ids=["SS-01"])]
     )
     result = validate(
         value,
@@ -114,7 +114,7 @@ def test_folder_only_post_type(tmp_path):
         load_brand(ROOT / "inputs/brand-voice.md")[0],
     )
     assert result.model_dump()["normalized"]["tweets"] == [
-        {"text": "Explain one root cause.", "source_ids": ["KB-01"]}
+        {"text": "Explain one root cause.", "source_ids": ["SS-01"]}
     ]
     assert result.accepted is True
 
@@ -215,7 +215,7 @@ def test_number_token_boundaries():
     assert numbers_result("Works in 0.8.0-0.9.5 only.", evidence="Since 0.8.0.") == [
         "unsourced_number:0.9.5"
     ]
-    assert numbers_result("See KB-01 and SWC-107 with uint256.") == []
+    assert numbers_result("See SS-01 and SWC-107 with uint256.") == []
     assert numbers_result("The max is 2**256 - 1.", evidence="Wraps at 256 bits.") == []
 
 
@@ -264,9 +264,9 @@ def test_citations_unknown_failed_and_snippet_rejected():
             source_id="WEB-cd", kind="web", title="Failed", evidence_text="", status="fetch_failed"
         ),
     ]
-    result = validate_thread(draft(ids=["KB-99", "WEB-ab", "WEB-cd"]), evidence)
+    result = validate_thread(draft(ids=["SS-99", "WEB-ab", "WEB-cd"]), evidence)
     assert result.violations[:3] == [
-        "tweet_1:citation:KB-99",
+        "tweet_1:citation:SS-99",
         "tweet_1:citation:WEB-ab",
         "tweet_1:citation:WEB-cd",
     ]
@@ -274,32 +274,32 @@ def test_citations_unknown_failed_and_snippet_rejected():
 
 
 def test_unknown_kb_citation_is_rejected():
-    result = validate_thread(draft(ids=["KB-99"]))
+    result = validate_thread(draft(ids=["SS-99"]))
     assert result.accepted is False
-    assert result.violations[0] == "tweet_1:citation:KB-99"
+    assert result.violations[0] == "tweet_1:citation:SS-99"
 
 
 def test_kb_alias_and_batch_assignment():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    assert kb.search("recursive call")[0]["id"] == "KB-01"
+    assert kb.search("recursive call")[0]["id"] == "SS-01"
     assert (
-        kb.source("KB-01").evidence_text
+        kb.source("SS-01").evidence_text
         == "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency."
     )
     slots = load_plan(ROOT, ROOT / "inputs/plan.json")
-    slots[0].topic_id = "KB-01"
+    slots[0].topic_id = "SS-01"
     assigned, warnings = assign_topics(
         ROOT,
         slots,
         {
-            "thread_2": "KB-01",
-            "thread_3": "KB-01",
+            "thread_2": "SS-01",
+            "thread_3": "SS-01",
             "marketing_1": "ANGLE-service",
             "marketing_2": "ANGLE-service",
         },
         kb,
     )
-    assert assigned["thread_1"] == "KB-01"
+    assert assigned["thread_1"] == "SS-01"
     assert len(set(assigned.values())) == 6
     assert [assigned[f"marketing_{i}"] for i in range(1, 4)] == [
         "ANGLE-service",
@@ -307,15 +307,15 @@ def test_kb_alias_and_batch_assignment():
         "ANGLE-education",
     ]
     assert warnings == [
-        "topic_proposal_rejected:thread_2:KB-01",
-        "topic_proposal_rejected:thread_3:KB-01",
+        "topic_proposal_rejected:thread_2:SS-01",
+        "topic_proposal_rejected:thread_3:SS-01",
         "topic_proposal_rejected:marketing_2:ANGLE-service",
     ]
     slots[1].focus = "recursive call"
-    slots[1].topic_id = "KB-01"
+    slots[1].topic_id = "SS-01"
     assigned, warnings = assign_topics(ROOT, slots, {}, kb, [[e["id"] for e in kb.entries]])
-    assert assigned["thread_2"] == "KB-01"
-    assert warnings == ["explicit_duplicate:KB-01", "history_exhausted:thread_3"]
+    assert assigned["thread_2"] == "SS-01"
+    assert warnings == ["explicit_duplicate:SS-01", "history_exhausted:thread_3"]
 
 
 class Search:

@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def review_request():
     """A marketing-post review request for one evidence-backed tweet."""
     spec = load_type(ROOT, "marketing-post")
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("KB-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-01")
 
     return ReviewRequest(
         slot_id="a",
@@ -34,12 +34,12 @@ def review_request():
             tweets=[
                 Tweet(
                     text="External calls can reenter before state is finalized.",
-                    source_ids=["KB-01"],
+                    source_ids=["SS-01"],
                 )
             ],
         ),
         research=ResearchPack(
-            slot_id="a", topic_id="KB-01", topic_name=source.title, sources=[source]
+            slot_id="a", topic_id="SS-01", topic_name=source.title, sources=[source]
         ),
         post_type=spec,
         rubric=load_rubric(ROOT, spec),

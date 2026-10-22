@@ -5,7 +5,7 @@ from typing import Literal
 import yaml
 from dotenv import dotenv_values
 from pydantic import Field
-from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot
+from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot, SourceRegistry
 from .contracts import AnglesFile
 
 
@@ -43,6 +43,11 @@ def local_file(root: Path, name: str) -> Path:
 
 def load_brand(path: Path) -> tuple[BrandRules, str]:
     return parse_brand(path.read_text(encoding="utf-8"))
+
+
+def load_sources(path: Path) -> SourceRegistry:
+    """Load the source allowlist; invalid or incomplete lists fail before research starts."""
+    return SourceRegistry.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
 
 def parse_brand(text: str) -> tuple[BrandRules, str]:
