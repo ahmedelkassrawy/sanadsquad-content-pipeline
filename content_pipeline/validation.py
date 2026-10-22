@@ -13,6 +13,7 @@ from .x_format import (
     split_overlong_tweets,
     strip_markdown,
 )
+from . import ai_text as _ai_text
 
 
 # The brand check lives in the brand_rules skill; this alias keeps existing imports working.
@@ -26,6 +27,7 @@ _PUNCTUATION = _CLOSING_PUNCTUATION + _OPENING_BRACKETS + _QUOTES
 _DASH_RUN = re.compile(r"\s*\u2014(?:\s*\u2014)*\s*")
 # Hyphen and en-dash look-alikes become a plain hyphen; only the em dash needs run handling.
 _HYPHEN_LIKE = "\u2010\u2011\u2012\u2013\u2015\u2212"
+_AI_TEXT_REJECTED_CHARACTERS = frozenset("\u2014\u2013\u2018\u2019\u201c\u201d")
 # A number token not glued to a word or a decimal point (uint256, KB-01 and SWC-107 are not
 # numbers here, but the second half of "0.8.0-0.9.5" is). A "v" before a dotted version is a
 # prefix, so "v0.8.0" and "0.8.0" are the same number.
@@ -57,6 +59,9 @@ def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
 def _fix_plain_text(plain: str, banned: list[str], before: str, after: str) -> str:
     """Replace configured banned characters in prose between protected URL tokens."""
     for char in banned:
+        if char in _AI_TEXT_REJECTED_CHARACTERS:
+            continue
+
         if char != "\u2014":
             plain = plain.replace(char, "-" if char in _HYPHEN_LIKE else "")
 
@@ -955,14 +960,14 @@ def _apply_safe_fixes(text: str, index: int, rules: BrandRules, fixes: list[str]
     operations = {
         "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
         "whitespace": lambda t: " ".join(t.split()),
-        "curly_quotes": lambda t: t.translate(
-            str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
-        ),
         "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
         "markdown": strip_markdown,
     }
 
     for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
+        if fix == "curly_quotes":
+            continue
+
         changed = operations[fix](text)
 
         if changed != text:
@@ -990,6 +995,7 @@ def validate(
     unsourced = []
     dangling = []
     claims = []
+    ai_violations = _ai_text.check_ai_text("\n".join(tweet.text for tweet in draft.tweets))
 
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
@@ -1015,7 +1021,9 @@ def validate(
 
         tweet.text = numbering(spec, i, len(fixed.tweets)) + text
 
-    errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+    errors = (
+        ai_violations + check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+    )
     errors.extend(
         check_post_limits([tweet.text for tweet in fixed.tweets], pack, spec, rules.brand_name)
     )

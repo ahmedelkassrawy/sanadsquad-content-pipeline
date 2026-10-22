@@ -23,6 +23,8 @@ Write one marketing post, exactly one tweet, from the supplied research pack. Ci
 
 Write a finished, reader-facing post around one supported point, not a list of brand facts. Open with a specific question, contrast or concrete statement tied to the supplied angle and evidence; avoid generic hooks. Develop only what the evidence says, then end with a direct next step that the supplied evidence supports. Do not force a service CTA onto a technical post or add a claim to make the CTA sound stronger. If you open with a question, the next sentence must answer it; never leave the opening question hanging.
 
+Keep the draft clear of the AI-text checks: plain punctuation, no emoji or listed vocabulary/constructions, and direct rather than hedged phrasing.
+
 Use two to four short sentences, as each angle below sets out.
 
 Each angle opens and ends differently, so a week of posts does not repeat one hook shape or one closing line. Every opening is built from the pack itself: never open with a claim about what teams assume, what usually goes wrong, or what code without a review risks, because the pack does not support those.

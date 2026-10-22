@@ -120,14 +120,13 @@ def test_folder_only_post_type(tmp_path):
 
 
 def test_normalization_keeps_original_and_numbers_before_review():
-    result = validate_thread(draft("  “State”   before calls. #audit #security  "))
-    assert result.original.tweets[0].text == "  “State”   before calls. #audit #security  "
+    result = validate_thread(draft('  "State"   before calls. #audit #security  '))
+    assert result.original.tweets[0].text == '  "State"   before calls. #audit #security  '
     assert [t.text for t in result.normalized.tweets] == [
         f'{i}/5 "State" before calls.' for i in range(1, 6)
     ]
-    assert result.fixes[:3] == [
+    assert result.fixes[:2] == [
         "tweet_1:whitespace",
-        "tweet_1:curly_quotes",
         "tweet_1:trailing_hashtags",
     ]
     assert result.accepted is True
@@ -153,7 +152,7 @@ def test_brand_and_weighted_length_rejections(text, error):
 
 
 def test_dash_look_alikes_are_fixed_to_a_plain_hyphen():
-    result = validate_thread(draft("Checks–effects‒interactions order."))
+    result = validate_thread(draft("Checks‒effects‑interactions order."))
 
     assert result.normalized.tweets[0].text == "1/5 Checks-effects-interactions order."
     assert "tweet_1:banned_characters" in result.fixes
