@@ -1,0 +1,163 @@
+{
+  "_deny": [
+    "businessinsider.com",
+    "buzzfeed.com",
+    "cointelegraph.com",
+    "cryptonews.com",
+    "ehow.com",
+    "forbes.com",
+    "geeksforgeeks.org",
+    "investopedia.com",
+    "medium.com",
+    "pinterest.com",
+    "quora.com",
+    "softonic.com",
+    "tutorialspoint.com"
+  ],
+  "agentic-payments": {
+    "analysis": [
+      "defillama.com",
+      "dune.com",
+      "l2beat.com",
+      "tokenterminal.com",
+      "visa.com"
+    ],
+    "blogs": [
+      "circle.com",
+      "coinbase.com",
+      "mirror.xyz",
+      "stripe.com"
+    ],
+    "docs": [
+      "developers.circle.com",
+      "docs.cdp.coinbase.com",
+      "docs.stripe.com",
+      "eips.ethereum.org",
+      "w3.org"
+    ],
+    "figures": [
+      "balajis.com",
+      "cdixon.org",
+      "mirror.xyz",
+      "vitalik.eth.limo"
+    ],
+    "production": [
+      "base.org",
+      "github.com",
+      "npmjs.com",
+      "solana.com"
+    ]
+  },
+  "agentic-security": {
+    "analysis": [
+      "adversarial-robustness-toolbox.org",
+      "arxiv.org",
+      "artificialanalysis.ai",
+      "epochai.org"
+    ],
+    "blogs": [
+      "anthropic.com",
+      "deepmind.google",
+      "embracethered.com",
+      "openai.com",
+      "simonwillison.net"
+    ],
+    "docs": [
+      "csrc.nist.gov",
+      "docs.anthropic.com",
+      "genai.owasp.org",
+      "owasp.org",
+      "platform.openai.com"
+    ],
+    "figures": [
+      "aisnakeoil.com",
+      "embracethered.com",
+      "gwern.net",
+      "simonwillison.net"
+    ],
+    "production": [
+      "github.com",
+      "huggingface.co",
+      "langchain.com",
+      "modelcontextprotocol.io",
+      "pypi.org"
+    ]
+  },
+  "pentesting": {
+    "analysis": [
+      "bleepingcomputer.com",
+      "darkreading.com",
+      "mandiant.com",
+      "securityweek.com",
+      "thehackernews.com"
+    ],
+    "blogs": [
+      "blog.cloudflare.com",
+      "krebsonsecurity.com",
+      "portswigger.net",
+      "schneier.com",
+      "troyhunt.com",
+      "unit42.paloaltonetworks.com"
+    ],
+    "docs": [
+      "attack.mitre.org",
+      "cheatsheetseries.owasp.org",
+      "csrc.nist.gov",
+      "cve.org",
+      "owasp.org"
+    ],
+    "figures": [
+      "danielmiessler.com",
+      "grahamcluley.com",
+      "krebsonsecurity.com",
+      "schneier.com",
+      "troyhunt.com"
+    ],
+    "production": [
+      "aws.amazon.com",
+      "cisa.gov",
+      "github.com",
+      "nvd.nist.gov",
+      "security.googleblog.com"
+    ]
+  },
+  "web3-security": {
+    "analysis": [
+      "defillama.com",
+      "dune.com",
+      "l2beat.com",
+      "rekt.news",
+      "tokenterminal.com"
+    ],
+    "blogs": [
+      "blog.openzeppelin.com",
+      "blog.trailofbits.com",
+      "mixbytes.io",
+      "paradigm.xyz",
+      "samczsun.com",
+      "zellic.io"
+    ],
+    "docs": [
+      "anchor-lang.com",
+      "book.getfoundry.sh",
+      "docs.openzeppelin.com",
+      "docs.solana.com",
+      "docs.soliditylang.org",
+      "ethereum.org"
+    ],
+    "figures": [
+      "danrobinson.xyz",
+      "mirror.xyz",
+      "paradigm.xyz",
+      "samczsun.com",
+      "vitalik.eth.limo"
+    ],
+    "production": [
+      "eips.ethereum.org",
+      "etherscan.io",
+      "github.com",
+      "solana.com",
+      "solscan.io"
+    ]
+  }
+}
