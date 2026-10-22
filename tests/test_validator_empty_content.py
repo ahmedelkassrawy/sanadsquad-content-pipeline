@@ -20,6 +20,7 @@ def validate_texts(texts, post_type="tech-thread"):
                 source_id="SS-01", kind="kb", title="Topic", evidence_text="Source evidence."
             )
         ],
+        kb_allowed=True,
     )
     return validate(
         draft, pack, load_type(ROOT, post_type), load_brand(ROOT / "inputs/brand-voice.md")[0]

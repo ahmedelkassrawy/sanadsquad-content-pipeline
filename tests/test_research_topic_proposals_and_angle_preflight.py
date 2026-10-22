@@ -35,7 +35,7 @@ class ProposedModels(OfflineModels):
 
 
 @pytest.mark.parametrize(
-    "type_name,proposal", [("tech-thread", "SS-18"), ("marketing-post", "ANGLE-service")]
+    "type_name,proposal", [("tech-thread", "SS-03738"), ("marketing-post", "ANGLE-service")]
 )
 async def test_later_valid_topic_proposal_is_reserved_before_earlier_fallback(
     tmp_path, type_name, proposal
@@ -61,7 +61,7 @@ async def test_later_valid_topic_proposal_is_reserved_before_earlier_fallback(
 
 
 async def test_duplicate_proposal_precedence_and_other_valid_proposals(tmp_path):
-    models = ProposedModels({"a": "SS-18", "b": "SS-18", "c": "SS-02"})
+    models = ProposedModels({"a": "SS-03738", "b": "SS-03738", "c": "SS-03703"})
     summary = await run_pipeline(
         ROOT,
         [ResolvedSlot(slot_id=id, type="tech-thread") for id in ["a", "b", "c"]],
@@ -70,9 +70,9 @@ async def test_duplicate_proposal_precedence_and_other_valid_proposals(tmp_path)
         search_factory=search_factory,
     )
     assert summary.shipped == 3
-    assert summary.slots["a"].topic_id == "SS-18"
-    assert summary.slots["c"].topic_id == "SS-02"
-    assert summary.slots["b"].topic_id not in {"SS-18", "SS-02"}
+    assert summary.slots["a"].topic_id == "SS-03738"
+    assert summary.slots["c"].topic_id == "SS-03703"
+    assert summary.slots["b"].topic_id not in {"SS-03738", "SS-03703"}
 
 
 async def test_later_valid_angle_survives_pool_exhaustion(tmp_path):
@@ -94,7 +94,9 @@ async def test_later_valid_angle_survives_pool_exhaustion(tmp_path):
 def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
     slots = [
-        ResolvedSlot(slot_id="focused", type="tech-thread", focus="reentrancy", topic_id="SS-01"),
+        ResolvedSlot(
+            slot_id="focused", type="tech-thread", focus="oracle manipulation", topic_id="SS-03738"
+        ),
         ResolvedSlot(slot_id="a", type="tech-thread"),
         ResolvedSlot(slot_id="b", type="tech-thread"),
         ResolvedSlot(slot_id="c", type="marketing-post"),
@@ -103,17 +105,17 @@ def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():
     assigned, warnings = assign_topics(
         ROOT,
         slots,
-        {"b": "SS-02", "c": "SS-18", "d": "ANGLE-credibility"},
+        {"b": "SS-03703", "c": "SS-03738", "d": "ANGLE-credibility"},
         kb,
-        [["SS-18", "ANGLE-service"]],
+        [["SS-03738", "ANGLE-service"]],
     )
-    assert assigned["focused"] == "SS-01"
-    assert assigned["b"] == "SS-02"
-    assert assigned["a"] not in {"SS-01", "SS-02", "SS-18"}
+    assert assigned["focused"] == "SS-03738"
+    assert assigned["b"] == "SS-03703"
+    assert assigned["a"] not in {"SS-03738", "SS-03703"}
     assert assigned["c"] == "ANGLE-education"
     assert assigned["d"] == "ANGLE-credibility"
     # c asked for a KB id outside its angle pool (and one from recent history): rejected and logged.
-    assert warnings == ["topic_proposal_rejected:c:SS-18"]
+    assert warnings == ["topic_proposal_rejected:c:SS-03738"]
 
 
 def config_root(tmp_path, text=None, missing_file=False):

@@ -28,23 +28,24 @@ def education_slot():
     return ResolvedSlot(slot_id="marketing_3", type="marketing-post", topic_id="ANGLE-education")
 
 
-def test_education_angle_avoids_a_kb_topic_a_thread_already_covers():
+def test_vulnerability_class_angle_does_not_select_retired_kb_candidates():
     types = PostTypes(ROOT)
 
-    # thread_1 is about reentrancy (SS-01), so the education post takes the next candidate.
-    assert types.choose_angle_source(education_slot(), {"SS-01", "ANGLE-service"}) == "SS-04"
-    assert types.choose_angle_source(education_slot(), set()) == "SS-01"
+    # Marketing angle routing is service-line based; the one permitted KB source is declared,
+    # not selected from a legacy pick-one KB list.
+    assert types.choose_angle_source(education_slot(), {"SS-03699", "ANGLE-service"}) is None
+    assert types.choose_angle_source(education_slot(), set()) is None
 
 
 def test_chosen_education_source_is_the_only_kb_record_in_its_pack():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
     slot = education_slot()
-    slot.angle_source = "SS-05"
+    slot.angle_source = "SS-03699"
 
     kb_ids = [s.source_id for s in types.assigned_pack(slot, kb).sources if s.kind == "kb"]
 
-    assert kb_ids == ["SS-05"]
+    assert kb_ids == ["SS-03699"]
 
 
 def test_angle_source_choice_skips_slots_that_are_not_pick_one_angles():
@@ -169,29 +170,19 @@ def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
     assert plain.read_bytes() != styled.read_bytes()
 
 
-def test_week_selection_records_angle_source_and_warns_on_a_forced_repeat():
+def test_vulnerability_class_angle_needs_no_runtime_kb_source_selection():
     from types import SimpleNamespace
     from content_pipeline.contracts import SlotState
     from content_pipeline.pipeline import Pipeline
 
     types = PostTypes(ROOT)
-    candidates = next(a for a in types.angles("marketing-post") if a.pick_one).source_ids
-    threads = [
-        SlotState(slot=ResolvedSlot(slot_id=f"t{i}", type="tech-thread", topic_id=kb_id))
-        for i, kb_id in enumerate(candidates)
-    ]
+    threads = [SlotState(slot=ResolvedSlot(slot_id="t0", type="tech-thread", topic_id="SS-03699"))]
     education = SlotState(slot=education_slot())
     host = SimpleNamespace(types=types)
 
-    warnings = Pipeline._choose_angle_sources(host, threads[:1] + [education])
-
-    assert education.slot.angle_source == candidates[1] and warnings == []
-
-    education = SlotState(slot=education_slot())
     warnings = Pipeline._choose_angle_sources(host, threads + [education])
 
-    assert education.slot.angle_source == candidates[0]
-    assert warnings == [f"duplicate_topic:marketing_3:{candidates[0]}"]
+    assert education.slot.angle_source is None and warnings == []
 
 
 def test_redaction_covers_key_values_of_any_shape():

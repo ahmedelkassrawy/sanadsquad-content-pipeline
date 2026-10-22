@@ -68,11 +68,18 @@ def _label_words(entry: dict) -> set[str]:
     """Words of a KB entry's name, category and aliases, with "front running" also joined."""
     words = set()
 
-    for part in [entry["name"], entry.get("category", ""), *entry.get("aliases", [])]:
+    category = entry.get("category", "")
+    categories = category if isinstance(category, list) else [category]
+    for part in [entry["name"], *categories, *entry.get("aliases", [])]:
+        if not isinstance(part, str):
+            continue
         joined = re.sub(r"(?<=[a-z0-9])-(?=[a-z0-9])", "", part.casefold())
         pieces = re.findall(r"[a-z0-9]+", joined)
 
         words.update(_focus_words(part))
+        # Preserve both forms of a hyphenated KB tag: "front-running" must
+        # match a focus written as either "front-running" or "front running".
+        words.update(_focus_words(part.replace("-", " ")))
         words.update(_stem(a + b) for a, b in zip(pieces, pieces[1:]))
 
     return words
@@ -93,7 +100,9 @@ def focus_matches(focus: str, kb, topic_id: str) -> bool:
     if not wanted:
         return True
 
-    entry = next(e for e in kb.entries if e["id"] == topic_id)
+    entry = next((e for e in kb.entries if e["id"] == topic_id), None)
+    if entry is None:
+        return False
     overlap = wanted & _label_words(entry)
 
     return len(overlap) / len(wanted) >= FOCUS_MIN_OVERLAP and bool(overlap - _FOCUS_GENERIC)

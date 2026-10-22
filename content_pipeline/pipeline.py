@@ -302,7 +302,13 @@ def snapshot(root, run_dir, slots, settings):
 
     target.mkdir()
 
-    for name in ["inputs/brand-voice.md", "inputs/kb.json"]:
+    for name in [
+        "inputs/brand-voice.md",
+        "inputs/kb.json",
+        "inputs/sources.json",
+        "inputs/ai-vocabulary.txt",
+        "inputs/ai-constructions.yaml",
+    ]:
         source = local_file(root, name)
         destination = target / name
 

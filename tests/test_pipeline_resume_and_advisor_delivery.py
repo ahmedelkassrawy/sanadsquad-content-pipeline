@@ -11,7 +11,7 @@ from content_pipeline.cli import main
 from content_pipeline.config import Settings
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline_end_to_end import OfflineModels, search_factory
+from test_pipeline_end_to_end import DEFAULT_FOCUS, DEFAULT_KB_ID, OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -91,7 +91,7 @@ class DeliveryModels(OfflineModels):
         return client
 
 
-def one_slot(focus="reentrancy"):
+def one_slot(focus=DEFAULT_FOCUS):
     return [ResolvedSlot(slot_id="a", type="tech-thread", focus=focus)]
 
 
@@ -278,7 +278,7 @@ async def test_unfinished_research_gather_can_repeat_saved_sibling_call(tmp_path
     from unittest.mock import patch
 
     output = tmp_path / "run"
-    slots = [ResolvedSlot(slot_id=id, type="tech-thread", focus="reentrancy") for id in ["a", "b"]]
+    slots = [ResolvedSlot(slot_id=id, type="tech-thread", focus=DEFAULT_FOCUS) for id in ["a", "b"]]
     with patch.object(Pipeline, "record", record):
         with pytest.raises(NodeCancelledError):
             await run_pipeline(
@@ -624,7 +624,7 @@ async def test_inline_source_ids_metadata_is_rejected_before_review_and_export(t
             result = await original(messages, schema, max_tokens)
             if schema.__name__ == "Draft":
                 for tweet in result["parsed"]["tweets"]:
-                    tweet["text"] += " source_ids: [SS-01]"
+                    tweet["text"] += f" source_ids: [{DEFAULT_KB_ID}]"
             return result
 
         client.transport = transport
@@ -640,4 +640,4 @@ async def test_inline_source_ids_metadata_is_rejected_before_review_and_export(t
     assert (tmp_path / "run/posts.csv").read_bytes() == b"Post Text,Image\r\n"
     reasons = summary.slots["a"].reasons
     assert any("banned_phrase:source_ids" in reason for reason in reasons)
-    assert any("leaked_source_id:SS-01" in reason for reason in reasons)
+    assert any(f"leaked_source_id:{DEFAULT_KB_ID}" in reason for reason in reasons)

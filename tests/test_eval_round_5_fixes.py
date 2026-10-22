@@ -306,19 +306,17 @@ def test_run_log_hides_writer_notes_from_terminal_reasons(tmp_path):
     assert "approved_stat_limit:3/2" in log
 
 
-# Fix 7: post-Merge weak-randomness guidance.
+# Fix 7: current company-KB guidance (rewritten from the retired weak-randomness entry).
 
 
-def test_weak_randomness_entry_uses_current_ethereum_terms():
+def test_company_kb_price_feed_entry_keeps_the_canonical_account_guidance():
     data = json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))
-    entry = next(item for item in data["entries"] if item["id"] == "SS-10")
-    text = (entry["description"] + " " + entry["root_cause"]).casefold()
+    entry = next(item for item in data["findings"] if item["id"] == "SS-03738")
+    text = (entry["content"]["description"] + " " + entry["content"]["recommendation"]).casefold()
 
-    assert "since the merge" in text
-    assert "validators" in text or "proposers" in text
-    assert "block.prevrandao" in text
-    assert "not safe randomness" in text
-    assert "no longer actively maintained" in text
+    assert "canonical accounts" in text
+    assert "historical prices" in text
+    assert "canonical feed account" in text
 
 
 # Fix 8: token headroom.

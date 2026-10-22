@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def review_request():
     """A marketing-post review request for one evidence-backed tweet."""
     spec = load_type(ROOT, "marketing-post")
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-03738")
 
     return ReviewRequest(
         slot_id="a",

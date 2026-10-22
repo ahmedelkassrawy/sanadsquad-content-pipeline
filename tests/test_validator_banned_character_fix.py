@@ -39,6 +39,7 @@ def check(text: str, rules: BrandRules, post_type="marketing-post"):
                 evidence_text="External calls can reenter before state is finalized.",
             )
         ],
+        kb_allowed=True,
     )
     return validate(draft, pack, spec, rules)
 

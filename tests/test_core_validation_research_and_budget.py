@@ -66,7 +66,7 @@ def validate_thread(value, research=None):
 def test_loaded_inputs_and_invalid_configuration(tmp_path):
     slots = load_plan(ROOT, ROOT / "inputs/plan.json")
     assert [(s.slot_id, s.type, s.focus) for s in slots] == [
-        ("thread_1", "tech-thread", "reentrancy"),
+        ("thread_1", "tech-thread", "oracle manipulation"),
         ("thread_2", "tech-thread", None),
         ("thread_3", "tech-thread", None),
         ("marketing_1", "marketing-post", None),
@@ -280,25 +280,24 @@ def test_unknown_kb_citation_is_rejected():
 
 def test_kb_alias_and_batch_assignment():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    assert kb.search("recursive call")[0]["id"] == "SS-01"
-    assert (
-        kb.source("SS-01").evidence_text
-        == "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency."
-    )
+    topic_id = "SS-03738"
+    assert kb.search("oracle manipulation")[0]["id"] == topic_id
+    assert "Non-Canonical Price Feeds" in kb.source(topic_id).evidence_text
+    assert "canonical feed account" in kb.source(topic_id).evidence_text
     slots = load_plan(ROOT, ROOT / "inputs/plan.json")
-    slots[0].topic_id = "SS-01"
+    slots[0].topic_id = topic_id
     assigned, warnings = assign_topics(
         ROOT,
         slots,
         {
-            "thread_2": "SS-01",
-            "thread_3": "SS-01",
+            "thread_2": topic_id,
+            "thread_3": topic_id,
             "marketing_1": "ANGLE-service",
             "marketing_2": "ANGLE-service",
         },
         kb,
     )
-    assert assigned["thread_1"] == "SS-01"
+    assert assigned["thread_1"] == topic_id
     assert len(set(assigned.values())) == 6
     assert [assigned[f"marketing_{i}"] for i in range(1, 4)] == [
         "ANGLE-service",
@@ -306,15 +305,15 @@ def test_kb_alias_and_batch_assignment():
         "ANGLE-education",
     ]
     assert warnings == [
-        "topic_proposal_rejected:thread_2:SS-01",
-        "topic_proposal_rejected:thread_3:SS-01",
+        f"topic_proposal_rejected:thread_2:{topic_id}",
+        f"topic_proposal_rejected:thread_3:{topic_id}",
         "topic_proposal_rejected:marketing_2:ANGLE-service",
     ]
-    slots[1].focus = "recursive call"
-    slots[1].topic_id = "SS-01"
+    slots[1].focus = "oracle manipulation"
+    slots[1].topic_id = topic_id
     assigned, warnings = assign_topics(ROOT, slots, {}, kb, [[e["id"] for e in kb.entries]])
-    assert assigned["thread_2"] == "SS-01"
-    assert warnings == ["explicit_duplicate:SS-01", "history_exhausted:thread_3"]
+    assert assigned["thread_2"] == topic_id
+    assert warnings == [f"explicit_duplicate:{topic_id}", "history_exhausted:thread_3"]
 
 
 class Search:
@@ -451,7 +450,10 @@ def test_fetch_redirect_to_private_is_blocked(monkeypatch):
 def test_research_llm_callable_tool_returns_retained_entry():
     tools = research_tools(ROOT, KnowledgeBase(ROOT / "inputs/kb.json"), WebSearch())
     assert [tool.name for tool in tools] == ["search_kb", "web_search"]
-    assert tools[0].invoke({"query": "recursive call"})[0]["name"] == "Reentrancy"
+    assert (
+        tools[0].invoke({"query": "oracle manipulation"})[0]["name"]
+        == "Non-Canonical Price Feeds Allow Historical Price Manipulation"
+    )
 
 
 async def test_concurrent_budget_and_crash_recovery(tmp_path):

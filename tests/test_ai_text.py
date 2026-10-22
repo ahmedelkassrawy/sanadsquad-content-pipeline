@@ -32,11 +32,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def _pack(slot_id: str = "s1") -> ResearchPack:
     return ResearchPack(
         slot_id=slot_id,
-        topic_id="KB-01",
+        topic_id="SS-03699",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-03699",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text=(
@@ -57,9 +57,9 @@ def _validate(text: str, post_type: str = "marketing-post") -> object:
     spec = load_type(ROOT, post_type)
     draft = Draft(
         slot_id="s1",
-        tweets=[Tweet(text=text, source_ids=["KB-01"])]
+        tweets=[Tweet(text=text, source_ids=["SS-03699"])]
         + [
-            Tweet(text="Update state before external calls.", source_ids=["KB-01"])
+            Tweet(text="Update state before external calls.", source_ids=["SS-03699"])
             for _ in range(spec.units.min - 1)
         ],
     )

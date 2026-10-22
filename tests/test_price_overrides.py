@@ -10,7 +10,7 @@ from content_pipeline.config import Settings
 from content_pipeline.model_client import PRICES_FILE, Prices, load_price_overrides
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline_end_to_end import OfflineModels, search_factory
+from test_pipeline_end_to_end import DEFAULT_FOCUS, OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,7 +53,7 @@ async def test_resume_ignores_later_edits_to_the_live_prices_file(tmp_path, monk
     root = tmp_path / "root"
     output = tmp_path / "run"
     models = OfflineModels()
-    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy")]
+    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS)]
     seen = []
     real = pipeline.Prices
 

@@ -62,7 +62,13 @@ async def reviewer_control(
         ("unsupported", controls["unsupported_text"]),
     ]:
         pack = ResearchPack(
-            slot_id=name, topic_id=source.source_id, topic_name=source.title, sources=[source]
+            slot_id=name,
+            topic_id=source.source_id,
+            topic_name=source.title,
+            sources=[source],
+            # This control is a vulnerability-class marketing post, the approved
+            # marketing exception that uses a KB source and cites it explicitly.
+            kb_allowed=True,
         )
 
         draft = Draft(

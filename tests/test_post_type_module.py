@@ -190,10 +190,10 @@ def test_post_type_module_assigns_research_packs_by_topic_source():
     rules, _ = types.brand()
 
     from_kb = types.assigned_pack(
-        ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01"), kb
+        ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-03738"), kb
     )
 
-    assert [source.source_id for source in from_kb.sources] == ["SS-01"]
+    assert [source.source_id for source in from_kb.sources] == ["SS-03738"]
 
     from_angle = types.assigned_pack(
         ResolvedSlot(slot_id="b", type="marketing-post", topic_id="ANGLE-service"), kb
@@ -208,7 +208,7 @@ def test_post_type_module_assigns_research_packs_by_topic_source():
     assert types.assigned_pack(ResolvedSlot(slot_id="c", type="tech-thread"), kb) is None
     assert (
         types.assigned_pack(
-            ResolvedSlot(slot_id="d", type="tech-thread", topic_id="SS-01", focus="x"), kb
+            ResolvedSlot(slot_id="d", type="tech-thread", topic_id="SS-03738", focus="x"), kb
         )
         is None
     )

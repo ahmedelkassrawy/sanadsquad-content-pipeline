@@ -23,7 +23,13 @@ def configured_root(tmp_path, source_ids):
         yaml.safe_dump(
             {
                 "angles": [
-                    {"id": "ANGLE-education", "name": "education-to-cta", "source_ids": source_ids}
+                    {
+                        "id": "ANGLE-education",
+                        "name": "vulnerability-class",
+                        "subject": "vulnerability-class",
+                        "kb_allowed": True,
+                        "source_ids": source_ids,
+                    }
                 ]
             }
         ),
@@ -36,7 +42,7 @@ def configured_root(tmp_path, source_ids):
 async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_with_writer_and_reviewer(
     tmp_path,
 ):
-    root = configured_root(tmp_path, ["SS-01"])
+    root = configured_root(tmp_path, ["SS-03699"])
     models = OfflineModels()
 
     summary = await run_pipeline(
@@ -53,16 +59,16 @@ async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_wit
     assert writer == reviewer
     assert writer["topic_id"] == "ANGLE-education"
     technical_sources = [source for source in writer["sources"] if source["kind"] == "kb"]
-    assert [source["source_id"] for source in technical_sources] == ["SS-01"]
+    assert [source["source_id"] for source in technical_sources] == ["SS-03699"]
     evidence = technical_sources[0]
     assert evidence["kind"] == "kb"
-    assert "reenter" in evidence["evidence_text"].lower()
-    assert "checks-effects-interactions" in evidence["evidence_text"].lower()
+    assert "malicious instructions" in evidence["evidence_text"].lower()
+    assert "proper restrictions" in evidence["evidence_text"].lower()
 
 
 @pytest.mark.asyncio
 async def test_configured_angle_with_unknown_kb_evidence_is_rejected_before_run(tmp_path):
-    root = configured_root(tmp_path, ["SS-999"])
+    root = configured_root(tmp_path, ["SS-99999"])
     models = OfflineModels()
 
     with pytest.raises(ValueError, match="unknown knowledge-base source"):

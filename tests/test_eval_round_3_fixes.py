@@ -101,9 +101,9 @@ def test_only_credibility_describes_the_firm():
         firm[angle.name] = "STAT-01" in ids
         offer[angle.name] = "STAT-05" in ids
 
-    assert firm == {"service": False, "credibility": True, "education-to-cta": False}
-    # The education post ends on its own question, so only two posts carry the review offer.
-    assert offer == {"service": True, "credibility": True, "education-to-cta": False}
+    assert firm == {"service": False, "credibility": True, "vulnerability-class": False}
+    # The vulnerability-class post ends on its own question, so only two posts carry the offer.
+    assert offer == {"service": True, "credibility": True, "vulnerability-class": False}
 
 
 def test_an_empty_stat_list_means_the_angle_uses_no_firm_stats():
@@ -243,12 +243,12 @@ def test_focus_matches_the_kb_label_not_its_description():
 
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("oracle manipulation", kb, "SS-18")
-    assert focus_matches("recursive call", kb, "SS-01")
-    assert focus_matches("flash loans", kb, "SS-19")
-    # SS-19's description mentions pricing, but its label is about flash loans.
-    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-19")
-    assert focus_matches("x", kb, "SS-19")
+    assert focus_matches("oracle manipulation", kb, "SS-03738")
+    assert focus_matches("front running", kb, "SS-03813")
+    assert focus_matches("DoS", kb, "SS-03928")
+    # A description can mention prices without becoming a label match for an unrelated focus.
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-03926")
+    assert focus_matches("x", kb, "SS-03926")
 
 
 def test_ordinary_capitalized_prose_is_not_a_credit():
@@ -326,12 +326,11 @@ def test_hyphenated_focus_words_join_and_aliases_cover_common_spellings():
 
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("re-entrancy", kb, "SS-01")
-    assert focus_matches("front-running", kb, "SS-08")
-    assert focus_matches("frontrunning", kb, "SS-08")
-    assert focus_matches("DoS", kb, "SS-11")
-    assert focus_matches("DoS", kb, "SS-12")
-    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-19")
+    assert focus_matches("front-running", kb, "SS-03813")
+    assert focus_matches("frontrunning", kb, "SS-03813")
+    assert focus_matches("DoS", kb, "SS-03928")
+    assert focus_matches("DoS", kb, "SS-03812")
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-03926")
 
     for entry in kb.entries:
         assert focus_matches(entry["name"], kb, entry["id"])

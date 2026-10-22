@@ -1,6 +1,5 @@
 from pathlib import Path
 import os
-from dotenv import dotenv_values
 from langchain_core.tools import StructuredTool
 from skills import search_kb as search_kb_skill
 from skills import web_search as web_search_skill
@@ -41,8 +40,10 @@ def configured_web_search(root: Path):
     from skills.web_search import FixtureSearch
 
     registry = load_sources(local_file(root, "inputs/sources.json"))
-    key = os.environ.get("TAVILY_API_KEY") or dotenv_values(root / ".env").get("TAVILY_API_KEY")
-    if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture":
+    key = os.environ.get("TAVILY_API_KEY")
+    # Offline is the safe default.  A missing API key must not silently fall through to DDGS,
+    # because that turns ordinary local and test runs into network calls.
+    if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture" or not key:
         search = WebSearch(
             fixture=FixtureSearch(root / "inputs/search-fixtures"), denied_domains=registry.deny
         )

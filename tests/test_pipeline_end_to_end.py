@@ -19,6 +19,9 @@ from content_pipeline.cli import main
 from run_piece import main as piece_main
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_FOCUS = "oracle manipulation"
+DEFAULT_KB_ID = "SS-03738"
+DEFAULT_KB_TITLE = "Non-Canonical Price Feeds Allow Historical Price Manipulation"
 
 
 class FixturePrices:
@@ -97,7 +100,7 @@ class OfflineModels:
                     if source_id.startswith("SS-")
                     else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
-                    else "Source evidence supports this topic."
+                    else f"Read {payload['research']['sources'][0]['url']} for source evidence."
                 )
                 if attempt in mode.get("invalid_attempts", []):
                     source_id = "SS-99"
@@ -212,8 +215,8 @@ def search_factory(root):
 
 def plan_pair():
     return [
-        ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy"),
-        ResolvedSlot(slot_id="b", type="tech-thread", focus="recursive call"),
+        ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS),
+        ResolvedSlot(slot_id="b", type="tech-thread", focus=DEFAULT_FOCUS),
     ]
 
 
@@ -307,10 +310,10 @@ async def test_focused_research_and_write_overlap_barriers(tmp_path):
     models = OfflineModels(barriers=True)
     summary = await asyncio.wait_for(run(tmp_path, models), 15)
     assert summary.shipped == 2
-    assert summary.slots["a"].topic_id == "SS-01"
-    assert summary.slots["b"].topic_id == "SS-01"
+    assert summary.slots["a"].topic_id == DEFAULT_KB_ID
+    assert summary.slots["b"].topic_id == DEFAULT_KB_ID
     assert json.loads((tmp_path / "run/plan.resolved.json").read_text())["warnings"] == [
-        "explicit_duplicate:SS-01"
+        f"explicit_duplicate:{DEFAULT_KB_ID}"
     ]
 
 
@@ -455,7 +458,7 @@ async def test_visual_errors_fallback_to_grounded_real_png(tmp_path, mode):
     summary = await run(tmp_path, OfflineModels({"a": behavior}), [plan_pair()[0]])
     assert summary.shipped == 1
     record = json.loads((tmp_path / "run/visuals.json").read_text())[0]
-    assert record["spec"]["overlay_text"] == "Reentrancy"
+    assert record["spec"]["overlay_text"] == DEFAULT_KB_TITLE
     assert record["result"]["fallback_reason"] == "visual_fallback"
     assert Image.open(tmp_path / "run" / record["result"]["path"]).size == (1200, 675)
 
@@ -527,7 +530,7 @@ def test_public_piece_cli_uses_same_graph_and_file_only_type(tmp_path, capsys):
                 "--type",
                 "case-study",
                 "--topic",
-                "reentrancy",
+                DEFAULT_FOCUS,
                 "--output",
                 str(tmp_path / "piece"),
             ],
@@ -608,7 +611,7 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
     )
     assert first.slots["a"].topic_id != second.slots["a"].topic_id
     all_ids = [
-        entry["id"] for entry in json.loads((ROOT / "inputs/kb.json").read_text())["entries"]
+        entry["id"] for entry in json.loads((ROOT / "inputs/kb.json").read_text())["findings"]
     ]
     prior = first.model_copy(deep=True)
     prior.slots = {
@@ -703,7 +706,7 @@ async def test_budget_refusal_in_expensive_writer_leaves_other_lane_shipped(tmp_
         .replace("name: tech-thread", "name: expensive-type")
         .replace("writer: thread_writer", "writer: expensive")
     )
-    slots = [ResolvedSlot(slot_id="a", type="expensive-type", focus="reentrancy"), plan_pair()[1]]
+    slots = [ResolvedSlot(slot_id="a", type="expensive-type", focus=DEFAULT_FOCUS), plan_pair()[1]]
     models = OfflineModels()
     summary = await run_pipeline(
         root, slots, tmp_path / "run", model_factory=models.factory, search_factory=search_factory

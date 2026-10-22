@@ -38,12 +38,13 @@ def check(text, rules, source_id="STAT-03", status="ok", post_type="marketing-po
             ),
             SourceRecord(
                 source_id=source_id,
-                kind={"KB": "kb", "STAT": "stat", "WEB": "web"}[source_id.split("-")[0]],
+                kind={"SS": "kb", "STAT": "stat", "WEB": "web"}[source_id.split("-")[0]],
                 title="Supporting evidence",
                 evidence_text="Teams can request a review." if status == "ok" else "",
                 status=status,
             ),
         ],
+        kb_allowed=True,
     )
     return validate(draft, pack, spec, rules)
 

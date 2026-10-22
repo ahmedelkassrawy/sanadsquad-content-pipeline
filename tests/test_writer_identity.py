@@ -26,7 +26,7 @@ class ScriptedClient:
 
 
 def write_request(attempt):
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-03738")
 
     return WriteRequest(
         slot_id="a",

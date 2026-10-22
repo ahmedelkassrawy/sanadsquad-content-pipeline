@@ -24,7 +24,7 @@ def pack(slot_id, evidence, source_id="SS-01"):
         sources=[
             SourceRecord(
                 source_id=source_id,
-                kind=source_id.split("-")[0].lower(),
+                kind={"SS": "kb", "STAT": "stat", "WEB": "web"}[source_id.split("-")[0]],
                 title="Reentrancy",
                 evidence_text=evidence,
             )

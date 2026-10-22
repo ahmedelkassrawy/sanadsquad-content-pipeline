@@ -195,11 +195,11 @@ def test_stat_note_does_not_mention_a_stat_no_pack_carries():
     assert "team size" not in note
 
 
-def test_kb_09_describes_post_merge_ethereum():
-    kb = {e["id"]: e for e in json.loads((ROOT / "inputs/kb.json").read_text("utf-8"))["entries"]}
-    text = kb["SS-09"]["description"]
+def test_company_kb_price_feed_entry_describes_historical_price_manipulation():
+    kb = {e["id"]: e for e in json.loads((ROOT / "inputs/kb.json").read_text("utf-8"))["findings"]}
+    text = kb["SS-03738"]["content"]["description"]
 
-    assert "12-second slots" in text and "historical" in text
+    assert "historical prices" in text and "canonical accounts" in text
 
 
 # Round-6 review, second pass.

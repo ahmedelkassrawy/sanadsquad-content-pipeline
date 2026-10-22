@@ -58,7 +58,7 @@ async def test_public_runner_routes_assigned_topics_by_configured_source(
         } == rules.approved_stats
         assert post["tweets"] == ["Sentinel Grove is a smart contract audit firm."]
     else:
-        entries = json.loads((root / "inputs/kb.json").read_text())["entries"]
+        entries = json.loads((root / "inputs/kb.json").read_text())["findings"]
         entry = next(entry for entry in entries if entry["id"] == post["topic_id"])
-        assert post["topic_name"] == entry["name"]
+        assert post["topic_name"] == entry["title"]
         assert writer["sources"][0]["source_id"] == entry["id"]

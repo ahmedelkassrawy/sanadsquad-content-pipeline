@@ -34,7 +34,7 @@ def review_request(custom=False):
         )
         spec = spec.model_copy(deep=True)
         spec.review.hard_fail = ["unsupported_claim", "model_dump", "brand-safe?"]
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-03738")
     return ReviewRequest(
         slot_id="a",
         attempt=1,
