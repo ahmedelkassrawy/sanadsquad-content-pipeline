@@ -145,16 +145,64 @@ class ResearchAgent(Agent):
 
         self.kb = kb
         self.searcher = searcher
-        self.tools = {tool.name: tool for tool in research_tools(root, kb, searcher)}
+        self.tools = {}
         self.records = []
         self.usage_callback = usage_callback
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
+        angle = None
+        if self.types.spec(slot.type).research.topic_source == "angles" and slot.topic_id:
+            angle = next((a for a in self.types.angles(slot.type) if a.id == slot.topic_id), None)
+        kb_allowed = bool(angle and (angle.kb_allowed or angle.subject == "vulnerability-class"))
+        # A marketing slot is never handed a KB callable unless its declared angle is a
+        # vulnerability class. This also keeps the KB file out of that normal code path.
+        self.tools = {
+            tool.name: tool
+            for tool in research_tools(
+                self.root,
+                self.kb,
+                self.searcher,
+                include_kb=slot.type != "marketing-post" or kb_allowed,
+            )
+        }
+        if angle and angle.service_line and self.searcher.registry is not None:
+            self.searcher.allowed_domains = self.searcher.registry.domains_for(angle.service_line)
+            self.searcher.service_line = angle.service_line
         assigned = self.types.assigned_pack(slot, self.kb)
 
         if assigned is not None:
-            return assigned
+            if (
+                slot.type == "marketing-post"
+                and any(source.kind == "kb" for source in assigned.sources)
+                and not kb_allowed
+            ):
+                raise ModelFailure("failed_research", "marketing_kb_forbidden")
+            return assigned.model_copy(update={"kb_allowed": kb_allowed})
+
+        if (
+            slot.type == "tech-thread"
+            and slot.focus
+            and slot.focus.startswith(("http://", "https://"))
+        ):
+            url = slot.focus
+            self.searcher.check_url(url)
+            evidence = self.searcher.fetch(url)
+            if not evidence:
+                raise ModelFailure("failed_research", "external_fetch_failed")
+            record = SourceRecord(
+                source_id="WEB-" + __import__("hashlib").sha256(url.encode()).hexdigest()[:16],
+                kind="web",
+                url=url,
+                title=url,
+                evidence_text=evidence,
+            )
+            return ResearchPack(
+                slot_id=slot.slot_id,
+                topic_id=record.source_id,
+                topic_name=record.title,
+                sources=[record],
+            )
 
         evidence = {}
         searches = 0
@@ -194,7 +242,9 @@ class ResearchAgent(Agent):
                 )
             )
 
-        await search("search_kb", slot.focus or request.hints)
+        await search(
+            "search_kb" if "search_kb" in self.tools else "web_search", slot.focus or request.hints
+        )
 
         instructions = local_file(self.root / "agents/research", "loop.md").read_text(
             encoding="utf-8"
@@ -230,7 +280,7 @@ class ResearchAgent(Agent):
 
                 if (
                     slot.focus
-                    and topic.startswith("KB-")
+                    and topic.startswith("SS-")
                     and not focus_matches(slot.focus, self.kb, topic)
                 ):
                     # The operator asked for one topic; shipping the nearest other one is a
@@ -239,7 +289,7 @@ class ResearchAgent(Agent):
 
                 title = (
                     self.kb.source(topic).title
-                    if topic.startswith("KB-")
+                    if topic.startswith("SS-")
                     else slot.focus or selected[0].title
                 )
 

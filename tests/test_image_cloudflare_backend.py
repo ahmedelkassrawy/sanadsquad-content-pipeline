@@ -82,7 +82,7 @@ async def run_image(tmp_path):
     summary = await run(
         tmp_path,
         OfflineModels(),
-        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")],
+        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01")],
     )
     record = json.loads((tmp_path / "run/visuals.json").read_text())[0]
     return summary, record
@@ -193,7 +193,7 @@ async def test_configured_pillow_first_skips_cloudflare(tmp_path, monkeypatch):
     )
     summary = await run_pipeline(
         root,
-        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")],
+        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01")],
         tmp_path / "run",
         model_factory=OfflineModels().factory,
         search_factory=search_factory,
@@ -221,7 +221,7 @@ async def test_saved_cloudflare_png_is_validated_on_resume(tmp_path, monkeypatch
     )
     pipeline = Pipeline(SimpleNamespace(root=folder / "snapshot", run_dir=folder), [])
     raw = {
-        "slot": {"slot_id": "a", "type": "tech-thread", "topic_id": "KB-01"},
+        "slot": {"slot_id": "a", "type": "tech-thread", "topic_id": "SS-01"},
         "attempt": 1,
         "pack": pack,
         "audit": audit,
@@ -239,7 +239,7 @@ async def test_cloudflare_failure_keeps_visual_fallback_detail(tmp_path, monkeyp
     await run(
         tmp_path,
         VisualModels(["Invented claim", "Another invented claim"]),
-        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")],
+        [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01")],
     )
     record = json.loads((tmp_path / "run/visuals.json").read_text())[0]
     assert record["result"]["backend"] == "pillow_card"
@@ -521,7 +521,7 @@ async def test_malformed_visual_config_fails_preflight(tmp_path):
     with pytest.raises(ValueError, match="invalid visual backends"):
         await run_pipeline(
             root,
-            [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01")],
+            [ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-01")],
             tmp_path / "run",
             model_factory=OfflineModels().factory,
             search_factory=search_factory,

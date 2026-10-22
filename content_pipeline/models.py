@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+import re
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -55,7 +56,7 @@ class ResolvedSlot(Contract):
 
 
 class SourceRecord(Contract):
-    source_id: str = Field(pattern=r"^(KB-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
+    source_id: str = Field(pattern=r"^(SS-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
     kind: Literal["kb", "stat", "web"]
     url: str | None = None
     title: str
@@ -65,7 +66,7 @@ class SourceRecord(Contract):
 
     @model_validator(mode="after")
     def source_kind(self):
-        if not self.source_id.startswith({"kb": "KB-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
+        if not self.source_id.startswith({"kb": "SS-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
             raise ValueError("source id must match kind")
 
         if self.status == "ok" and not self.evidence_text.strip():
@@ -79,6 +80,7 @@ class ResearchPack(Contract):
     topic_id: str
     topic_name: str
     sources: list[SourceRecord]
+    kb_allowed: bool = False
 
     @model_validator(mode="after")
     def unique_sources(self):
@@ -91,6 +93,11 @@ class ResearchPack(Contract):
             raise ValueError("failed_research: no citable evidence")
 
         return self
+
+    @property
+    def fetched_urls(self) -> set[str]:
+        """URLs fetched successfully for this run and therefore safe to publish."""
+        return {source.url for source in self.sources if source.status == "ok" and source.url}
 
 
 class Tweet(Contract):
@@ -255,6 +262,47 @@ class BrandRules(Contract):
     ]
     approved_stats: dict[str, str]
     palette: list[str]
+
+
+SOURCE_GROUPS = ("blogs", "docs", "production", "analysis", "figures")
+SERVICE_LINES = ("web3-security", "pentesting", "agentic-security", "agentic-payments")
+
+
+class SourceGroups(Contract):
+    blogs: list[str]
+    docs: list[str]
+    production: list[str]
+    analysis: list[str]
+    figures: list[str]
+
+    @model_validator(mode="after")
+    def domains_are_nonempty_bare_hosts(self):
+        for group in SOURCE_GROUPS:
+            domains = getattr(self, group)
+            if not domains:
+                raise ValueError(f"source group {group} must not be empty")
+            if any(
+                not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", domain, re.I)
+                for domain in domains
+            ):
+                raise ValueError("source domains must be bare hostnames")
+        return self
+
+
+class SourceRegistry(Contract):
+    """Allowlisted web-source domains, loaded once before a run starts."""
+
+    web3_security: SourceGroups = Field(alias="web3-security")
+    pentesting: SourceGroups
+    agentic_security: SourceGroups = Field(alias="agentic-security")
+    agentic_payments: SourceGroups = Field(alias="agentic-payments")
+    deny: list[str] = Field(alias="_deny")
+
+    def domains_for(self, service_line: str) -> set[str]:
+        if service_line not in SERVICE_LINES:
+            raise ValueError("unknown service: " + service_line)
+        groups = getattr(self, service_line.replace("-", "_"))
+        return {domain for group in SOURCE_GROUPS for domain in getattr(groups, group)}
 
 
 class AgentConfig(Contract):

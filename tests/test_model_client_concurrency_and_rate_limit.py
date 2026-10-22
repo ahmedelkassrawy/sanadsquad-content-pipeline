@@ -31,7 +31,7 @@ def response(slot="a"):
             usage_metadata={"input_tokens": 2, "output_tokens": 3},
             response_metadata={},
         ),
-        "parsed": {"slot_id": slot, "tweets": [{"text": "Supported.", "source_ids": ["KB-01"]}]},
+        "parsed": {"slot_id": slot, "tweets": [{"text": "Supported.", "source_ids": ["SS-01"]}]},
     }
 
 

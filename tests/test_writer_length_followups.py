@@ -13,11 +13,11 @@ from content_pipeline.pipeline import run_pipeline
 def check(texts, limit=280):
     pack = ResearchPack(
         slot_id="a",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="t",
-        sources=[SourceRecord(source_id="KB-01", kind="kb", title="t", evidence_text="evidence")],
+        sources=[SourceRecord(source_id="SS-01", kind="kb", title="t", evidence_text="evidence")],
     )
-    draft = Draft(slot_id="a", tweets=[Tweet(text=text, source_ids=["KB-01"]) for text in texts])
+    draft = Draft(slot_id="a", tweets=[Tweet(text=text, source_ids=["SS-01"]) for text in texts])
     rules = load_brand(ROOT / "inputs/brand-voice.md")[0]
     return validate(draft, pack, load_type(ROOT, "tech-thread"), rules, limit)
 

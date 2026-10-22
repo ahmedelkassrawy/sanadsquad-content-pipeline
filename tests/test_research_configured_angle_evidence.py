@@ -36,7 +36,7 @@ def configured_root(tmp_path, source_ids):
 async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_with_writer_and_reviewer(
     tmp_path,
 ):
-    root = configured_root(tmp_path, ["KB-01"])
+    root = configured_root(tmp_path, ["SS-01"])
     models = OfflineModels()
 
     summary = await run_pipeline(
@@ -53,7 +53,7 @@ async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_wit
     assert writer == reviewer
     assert writer["topic_id"] == "ANGLE-education"
     technical_sources = [source for source in writer["sources"] if source["kind"] == "kb"]
-    assert [source["source_id"] for source in technical_sources] == ["KB-01"]
+    assert [source["source_id"] for source in technical_sources] == ["SS-01"]
     evidence = technical_sources[0]
     assert evidence["kind"] == "kb"
     assert "reenter" in evidence["evidence_text"].lower()
@@ -62,7 +62,7 @@ async def test_configured_education_angle_shares_kb_mechanism_and_mitigation_wit
 
 @pytest.mark.asyncio
 async def test_configured_angle_with_unknown_kb_evidence_is_rejected_before_run(tmp_path):
-    root = configured_root(tmp_path, ["KB-999"])
+    root = configured_root(tmp_path, ["SS-999"])
     models = OfflineModels()
 
     with pytest.raises(ValueError, match="unknown knowledge-base source"):

@@ -21,17 +21,17 @@ def check(text, rules, source_id="STAT-03", status="ok", post_type="marketing-po
     spec = load_type(ROOT, post_type)
     draft = Draft(
         slot_id="s12",
-        tweets=[Tweet(text="Update state before external calls.", source_ids=["KB-99"])]
+        tweets=[Tweet(text="Update state before external calls.", source_ids=["SS-99"])]
         * (spec.units.min - 1)
-        + [Tweet(text=text, source_ids=["KB-99"])],
+        + [Tweet(text=text, source_ids=["SS-99"])],
     )
     pack = ResearchPack(
         slot_id="s12",
-        topic_id="KB-99",
+        topic_id="SS-99",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-99",
+                source_id="SS-99",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="Update state before external calls.",
@@ -61,12 +61,12 @@ def test_parenthesized_pack_source_id_is_rejected_without_fixing(rules, status):
 
 
 def test_bare_source_id_in_later_thread_tweet_is_rejected_after_normalization(rules):
-    text = "  Review\tKB-10 before calling.  "
-    result = check(text, rules, source_id="KB-10", post_type="tech-thread")
+    text = "  Review\tSS-10 before calling.  "
+    result = check(text, rules, source_id="SS-10", post_type="tech-thread")
 
     assert not result.accepted
-    assert result.violations == ["tweet_5:leaked_source_id:KB-10"]
-    assert result.normalized.tweets[4].text == "5/5 Review KB-10 before calling."
+    assert result.violations == ["tweet_5:leaked_source_id:SS-10"]
+    assert result.normalized.tweets[4].text == "5/5 Review SS-10 before calling."
     assert result.original.tweets[4].text == text
     assert result.fixes == ["tweet_5:whitespace"]
 
@@ -74,8 +74,8 @@ def test_bare_source_id_in_later_thread_tweet_is_rejected_after_normalization(ru
 @pytest.mark.parametrize(
     "source_id,text",
     [
-        ("KB-10", "Review KB-1 before calling."),
-        ("KB-1", "Review KB-10 before calling."),
+        ("SS-10", "Review SS-1 before calling."),
+        ("SS-1", "Review SS-10 before calling."),
         ("STAT-03", "Review EIP-6780 before calling."),
         ("STAT-03", "Update state before external calls."),
         ("STAT-03", "Review stat-03 before calling."),
@@ -101,11 +101,11 @@ def test_text_without_a_whole_pack_source_id_is_accepted(rules, source_id, text)
 
 
 def test_every_leaked_pack_source_id_is_reported_once_per_tweet(rules):
-    result = check("Review KB-99, WEB-ab12, and KB-99.", rules, source_id="WEB-ab12")
+    result = check("Review SS-99, WEB-ab12, and SS-99.", rules, source_id="WEB-ab12")
 
     assert not result.accepted
     assert result.violations == [
-        "tweet_1:leaked_source_id:KB-99",
+        "tweet_1:leaked_source_id:SS-99",
         "tweet_1:leaked_source_id:WEB-ab12",
     ]
     assert result.fixes == []

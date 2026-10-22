@@ -38,10 +38,10 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
             if schema.__name__ == "ResearchAction" and slot_id == "a" and a_research_calls > 1:
                 parsed = result["parsed"]
                 evidence = json.loads(messages[-1]["content"])["evidence"]
-                kb02 = next((source for source in evidence if source["source_id"] == "KB-02"), None)
+                kb02 = next((source for source in evidence if source["source_id"] == "SS-02"), None)
                 if parsed["action"] == "finish" and kb02:
-                    parsed["source_ids"] = ["KB-02"]
-                    parsed["topic_id"] = "KB-02"
+                    parsed["source_ids"] = ["SS-02"]
+                    parsed["topic_id"] = "SS-02"
                     result["raw"].content = json.dumps(parsed)
             if (
                 schema.__name__ == "ResearchAction"
@@ -70,7 +70,7 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
     saved = next(
         item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"]
     )
-    assert saved["pack"]["topic_id"] == "KB-01"
+    assert saved["pack"]["topic_id"] == "SS-01"
     if tamper_receipt:
         receipt_path = output / "research-replay.json"
         receipts = json.loads(receipt_path.read_text())
@@ -96,7 +96,7 @@ async def test_interrupted_research_reuses_only_identity_bound_saved_pack(tmp_pa
         item for item in records(output, "research_log") if item["slot_id"] == "a" and item["pack"]
     )
     assert writer["research"] == reviewer["research"] == persisted["pack"]
-    assert persisted["pack"]["topic_id"] == "KB-01"
+    assert persisted["pack"]["topic_id"] == "SS-01"
     assert summary.shipped == 2
     research_calls = [
         call for call in models.calls if call[2] == "ResearchAction" and call[1] == "a"
@@ -130,9 +130,9 @@ async def test_replayed_empty_slot_research_rejects_changed_topic_assignment(tmp
             if schema.__name__ == "TopicChoices":
                 topic_calls += 1
                 result["parsed"]["assignments"] = (
-                    {"a": "KB-01", "b": "KB-02"}
+                    {"a": "SS-01", "b": "SS-02"}
                     if topic_calls == 1
-                    else {"a": "KB-02", "b": "KB-01"}
+                    else {"a": "SS-02", "b": "SS-01"}
                 )
                 result["raw"].content = json.dumps(result["parsed"])
             return result
@@ -168,7 +168,7 @@ async def test_replayed_empty_slot_research_rejects_changed_topic_assignment(tmp
     shipped_topics = [
         slot.topic_id for slot in summary.slots.values() if slot.outcome.value == "shipped"
     ]
-    assert shipped_topics == ["KB-01"]
+    assert shipped_topics == ["SS-01"]
 
 
 async def test_interrupted_research_keeps_saved_failure_terminal(tmp_path):

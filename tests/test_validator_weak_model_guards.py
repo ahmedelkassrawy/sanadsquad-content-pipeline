@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 
 
-def pack(slot_id, evidence, source_id="KB-01"):
+def pack(slot_id, evidence, source_id="SS-01"):
     return ResearchPack(
         slot_id=slot_id,
         topic_id=source_id,
@@ -111,7 +111,7 @@ def test_claim_feedback_says_delete_and_stays_out_of_drop_reasons():
 
 def thread(texts):
     research = pack("thread_1", "External calls can reenter before state is updated.")
-    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in texts])
 
     return validate(draft, research, load_type(ROOT, "tech-thread"), RULES)
 
@@ -132,7 +132,7 @@ def test_an_overlong_tweet_is_split_at_a_sentence_instead_of_rejected():
     assert not [v for v in result.violations if v.endswith(":length")]
     assert all(parse_tweet(t.text).weightedLength <= 280 for t in result.normalized.tweets)
     # Both halves keep the original citations and the thread is renumbered by code.
-    assert result.normalized.tweets[2].source_ids == ["KB-01"]
+    assert result.normalized.tweets[2].source_ids == ["SS-01"]
     assert result.normalized.tweets[5].text.startswith("6/6 ")
 
 

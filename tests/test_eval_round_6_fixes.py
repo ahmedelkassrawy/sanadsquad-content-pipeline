@@ -23,10 +23,10 @@ RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 def kb_pack(title, url):
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-04",
+        topic_id="SS-04",
         topic_name="x",
         sources=[
-            SourceRecord(source_id="KB-04", kind="kb", title=title, url=url, evidence_text="x")
+            SourceRecord(source_id="SS-04", kind="kb", title=title, url=url, evidence_text="x")
         ],
     )
 
@@ -197,7 +197,7 @@ def test_stat_note_does_not_mention_a_stat_no_pack_carries():
 
 def test_kb_09_describes_post_merge_ethereum():
     kb = {e["id"]: e for e in json.loads((ROOT / "inputs/kb.json").read_text("utf-8"))["entries"]}
-    text = kb["KB-09"]["description"]
+    text = kb["SS-09"]["description"]
 
     assert "12-second slots" in text and "historical" in text
 

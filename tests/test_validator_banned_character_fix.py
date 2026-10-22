@@ -21,19 +21,19 @@ def check(text, rules: BrandRules, post_type="marketing-post"):
     spec = load_type(ROOT, post_type)
     draft = Draft(
         slot_id="s9",
-        tweets=[Tweet(text=text, source_ids=["KB-01"])]
+        tweets=[Tweet(text=text, source_ids=["SS-01"])]
         + [
-            Tweet(text="Update state before external calls.", source_ids=["KB-01"])
+            Tweet(text="Update state before external calls.", source_ids=["SS-01"])
             for _ in range(spec.units.min - 1)
         ],
     )
     pack = ResearchPack(
         slot_id="s9",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is finalized. Version v1.2 applies.",

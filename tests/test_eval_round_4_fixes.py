@@ -42,7 +42,7 @@ def stat_pack():
 
 def credit_pack(*names):
     identities = {
-        "owasp": ("KB-18", "kb", "OWASP Smart Contract Top 10", "https://scs.owasp.org/"),
+        "owasp": ("SS-18", "kb", "OWASP Smart Contract Top 10", "https://scs.owasp.org/"),
         "solidity": (
             "WEB-acde",
             "web",
@@ -59,7 +59,7 @@ def credit_pack(*names):
 
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-18",
+        topic_id="SS-18",
         topic_name="source",
         sources=[
             SourceRecord(
@@ -157,11 +157,11 @@ def test_a_stat_joined_across_two_sentences_is_left_to_the_reviewer():
 @pytest.mark.parametrize(
     ("focus", "topic_id"),
     [
-        ("proxy storage collision", "KB-09"),
-        ("uninitialized proxy", "KB-09"),
-        ("timestamp dependence", "KB-08"),
-        ("unchecked return value", "KB-09"),
-        ("missing access control", "KB-16"),
+        ("proxy storage collision", "SS-09"),
+        ("uninitialized proxy", "SS-09"),
+        ("timestamp dependence", "SS-08"),
+        ("unchecked return value", "SS-09"),
+        ("missing access control", "SS-16"),
     ],
 )
 def test_one_shared_generic_word_does_not_match_a_kb_entry(focus, topic_id):
@@ -173,15 +173,15 @@ def test_one_shared_generic_word_does_not_match_a_kb_entry(focus, topic_id):
 def test_the_right_entry_still_matches_each_focus():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("timestamp dependence", kb, "KB-09")
-    assert focus_matches("unchecked return value", kb, "KB-03")
-    assert focus_matches("missing access control", kb, "KB-04")
-    assert focus_matches("reentrancy", kb, "KB-01")
-    assert focus_matches("re-entrancy", kb, "KB-01")
-    assert focus_matches("front-running", kb, "KB-08")
-    assert focus_matches("frontrunning", kb, "KB-08")
-    assert focus_matches("DoS", kb, "KB-11")
-    assert focus_matches("oracle manipulation", kb, "KB-18")
+    assert focus_matches("timestamp dependence", kb, "SS-09")
+    assert focus_matches("unchecked return value", kb, "SS-03")
+    assert focus_matches("missing access control", kb, "SS-04")
+    assert focus_matches("reentrancy", kb, "SS-01")
+    assert focus_matches("re-entrancy", kb, "SS-01")
+    assert focus_matches("front-running", kb, "SS-08")
+    assert focus_matches("frontrunning", kb, "SS-08")
+    assert focus_matches("DoS", kb, "SS-11")
+    assert focus_matches("oracle manipulation", kb, "SS-18")
 
 
 def test_a_focus_that_matches_no_entry_matches_none():

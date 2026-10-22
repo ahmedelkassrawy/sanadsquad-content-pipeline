@@ -39,7 +39,7 @@ async def test_actual_gemini_sdk_request_reasoning_and_raw_usage(
                                         "slot_id": "a",
                                         "attempt": 1,
                                         "tweets": [
-                                            {"text": "Supported text.", "source_ids": ["KB-01"]}
+                                            {"text": "Supported text.", "source_ids": ["SS-01"]}
                                         ],
                                     }
                                 )
@@ -125,7 +125,7 @@ async def test_actual_gemini_sdk_errors_retry_and_retain_uncertain_usage(
                                         "slot_id": "a",
                                         "attempt": 1,
                                         "tweets": [
-                                            {"text": "Supported text.", "source_ids": ["KB-01"]}
+                                            {"text": "Supported text.", "source_ids": ["SS-01"]}
                                         ],
                                     }
                                 )

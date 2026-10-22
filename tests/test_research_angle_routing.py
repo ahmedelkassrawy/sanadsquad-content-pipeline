@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize(
     "type_name,topic_id,topic_name,source_kind",
     [
-        ("marketing-post", "KB-01", "custom-service-angle", "stat"),
-        ("marketing-post", "KB-custom", "custom-service-angle", "stat"),
+        ("marketing-post", "SS-01", "custom-service-angle", "stat"),
+        ("marketing-post", "SS-custom", "custom-service-angle", "stat"),
         ("marketing-post", "ANGLE-service", "custom-service-angle", "stat"),
         ("tech-thread", None, None, "kb"),
     ],

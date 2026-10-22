@@ -26,13 +26,13 @@ class ScriptedClient:
 
 
 def write_request(attempt):
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("KB-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-01")
 
     return WriteRequest(
         slot_id="a",
         attempt=attempt,
         research=ResearchPack(
-            slot_id="a", topic_id="KB-01", topic_name=source.title, sources=[source]
+            slot_id="a", topic_id="SS-01", topic_name=source.title, sources=[source]
         ),
         post_type=load_type(ROOT, "tech-thread"),
         feedback=[],
@@ -41,7 +41,7 @@ def write_request(attempt):
 
 def draft(slot_id="a", attempt=1):
     return Draft(
-        slot_id=slot_id, attempt=attempt, tweets=[Tweet(text="Text.", source_ids=["KB-01"])]
+        slot_id=slot_id, attempt=attempt, tweets=[Tweet(text="Text.", source_ids=["SS-01"])]
     )
 
 

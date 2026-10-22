@@ -12,7 +12,7 @@ from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from . import record_ids
 from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent
-from .config import Settings, load_visual_backends, local_file, resolve_model
+from .config import Settings, load_sources, load_visual_backends, local_file, resolve_model
 from .contracts import (
     DraftAudit,
     DraftRecord,
@@ -136,6 +136,7 @@ def validate_inputs(root, slots, settings=None, types=None):
         ImageColor.getrgb(color)
 
     KnowledgeBase(root / "inputs/kb.json")
+    load_sources(local_file(root, "inputs/sources.json"))
 
     for slot in slots:
         _validate_slot_inputs(root, slot, settings, types)
@@ -704,7 +705,7 @@ class Pipeline:
         return {"slots": {state["slot"]["slot_id"]: state for state in results}}
 
     def _taken_topics(self, states):
-        """This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy"."""
+        """This week's focused slots that already have a topic: slot id -> "SS-01 Reentrancy"."""
         return {
             state.slot.slot_id: f"{state.slot.topic_id} "
             + (state.pack.topic_name if state.pack else state.slot.focus)

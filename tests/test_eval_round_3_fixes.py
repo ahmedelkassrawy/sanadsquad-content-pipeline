@@ -56,11 +56,11 @@ def test_each_stat_in_its_own_sentence_passes():
 def test_packs_without_stats_and_numbers_in_code_are_not_checked():
     thread = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01", kind="kb", title="Reentrancy", evidence_text="12 calls, 3 steps."
+                source_id="SS-01", kind="kb", title="Reentrancy", evidence_text="12 calls, 3 steps."
             )
         ],
     )
@@ -155,11 +155,11 @@ def test_reordered_or_linked_stat_numbers_are_not_false_positives():
 def test_twice_in_a_thread_needs_evidence_that_says_twice():
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="A callback can withdraw again against the unchanged balance.",
@@ -167,7 +167,7 @@ def test_twice_in_a_thread_needs_evidence_that_says_twice():
         ],
     )
     texts = [f"Point {n}: the callback can withdraw twice here." for n in "ABCDE"]
-    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in texts])
 
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
 
@@ -195,11 +195,11 @@ def test_a_source_credited_in_two_tweets_is_rejected_with_a_note():
 
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="x",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="OWASP Smart Contract Top 10",
                 url="https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
@@ -209,11 +209,11 @@ def test_a_source_credited_in_two_tweets_is_rejected_with_a_note():
     )
     solidity_pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="x",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Solidity documentation",
                 url="https://docs.soliditylang.org/en/latest/security-considerations.html",
@@ -229,7 +229,7 @@ def test_a_source_credited_in_two_tweets_is_rejected_with_a_note():
     ) == ["repeated_credit:solidity"]
 
     draft = Draft(
-        slot_id="thread_1", tweets=[Tweet(text=t[4:], source_ids=["KB-01"]) for t in texts]
+        slot_id="thread_1", tweets=[Tweet(text=t[4:], source_ids=["SS-01"]) for t in texts]
     )
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
     notes = credit_feedback(result)
@@ -243,12 +243,12 @@ def test_focus_matches_the_kb_label_not_its_description():
 
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("oracle manipulation", kb, "KB-18")
-    assert focus_matches("recursive call", kb, "KB-01")
-    assert focus_matches("flash loans", kb, "KB-19")
-    # KB-19's description mentions pricing, but its label is about flash loans.
-    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "KB-19")
-    assert focus_matches("x", kb, "KB-19")
+    assert focus_matches("oracle manipulation", kb, "SS-18")
+    assert focus_matches("recursive call", kb, "SS-01")
+    assert focus_matches("flash loans", kb, "SS-19")
+    # SS-19's description mentions pricing, but its label is about flash loans.
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-19")
+    assert focus_matches("x", kb, "SS-19")
 
 
 def test_ordinary_capitalized_prose_is_not_a_credit():
@@ -256,11 +256,11 @@ def test_ordinary_capitalized_prose_is_not_a_credit():
 
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-18",
+        topic_id="SS-18",
         topic_name="oracle",
         sources=[
             SourceRecord(
-                source_id="KB-18",
+                source_id="SS-18",
                 kind="kb",
                 title="OWASP Smart Contract Top 10",
                 url="https://scs.owasp.org/",
@@ -289,12 +289,12 @@ def _label_result(last_tweet):
         "Aggregate sources and reject outliers.",
         last_tweet,
     ]
-    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in texts])
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="x",
-        sources=[SourceRecord(source_id="KB-01", kind="kb", title="x", evidence_text="oracle.")],
+        sources=[SourceRecord(source_id="SS-01", kind="kb", title="x", evidence_text="oracle.")],
     )
 
     return validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
@@ -326,12 +326,12 @@ def test_hyphenated_focus_words_join_and_aliases_cover_common_spellings():
 
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("re-entrancy", kb, "KB-01")
-    assert focus_matches("front-running", kb, "KB-08")
-    assert focus_matches("frontrunning", kb, "KB-08")
-    assert focus_matches("DoS", kb, "KB-11")
-    assert focus_matches("DoS", kb, "KB-12")
-    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "KB-19")
+    assert focus_matches("re-entrancy", kb, "SS-01")
+    assert focus_matches("front-running", kb, "SS-08")
+    assert focus_matches("frontrunning", kb, "SS-08")
+    assert focus_matches("DoS", kb, "SS-11")
+    assert focus_matches("DoS", kb, "SS-12")
+    assert not focus_matches("Zorvex ledger re-pricing exploit in Cairo 9 vaults", kb, "SS-19")
 
     for entry in kb.entries:
         assert focus_matches(entry["name"], kb, entry["id"])

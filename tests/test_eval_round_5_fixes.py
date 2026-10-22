@@ -49,11 +49,11 @@ def stat_pack():
 def owasp_pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-18",
+        topic_id="SS-18",
         topic_name="Price oracle manipulation",
         sources=[
             SourceRecord(
-                source_id="KB-18",
+                source_id="SS-18",
                 kind="kb",
                 title="Price oracle manipulation",
                 url="https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
@@ -208,11 +208,11 @@ def test_the_credibility_brief_requires_one_fact_then_value_then_invitation():
 def test_a_thread_that_repeats_an_example_or_point_is_rejected(tweets):
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text=" ".join(tweets),
@@ -221,7 +221,7 @@ def test_a_thread_that_repeats_an_example_or_point_is_rejected(tweets):
     )
     draft = Draft(
         slot_id="thread_1",
-        tweets=[Tweet(text=text, source_ids=["KB-01"]) for text in tweets],
+        tweets=[Tweet(text=text, source_ids=["SS-01"]) for text in tweets],
     )
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
 
@@ -311,7 +311,7 @@ def test_run_log_hides_writer_notes_from_terminal_reasons(tmp_path):
 
 def test_weak_randomness_entry_uses_current_ethereum_terms():
     data = json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))
-    entry = next(item for item in data["entries"] if item["id"] == "KB-10")
+    entry = next(item for item in data["entries"] if item["id"] == "SS-10")
     text = (entry["description"] + " " + entry["root_cause"]).casefold()
 
     assert "since the merge" in text

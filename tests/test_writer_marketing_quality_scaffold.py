@@ -51,7 +51,7 @@ class CapturingClient:
         (
             "ANGLE-education",
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="Use checks-effects-interactions to mitigate reentrancy.",
