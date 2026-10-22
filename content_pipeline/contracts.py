@@ -188,6 +188,7 @@ class DraftAudit(Contract):
     fixes: list[str]
     violations: list[str]
     accepted: bool
+    sentence_length_stats: dict[str, float | int] | None = None
 
     def approved(self):
         if not self.accepted:

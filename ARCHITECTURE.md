@@ -132,8 +132,8 @@ The brief says rules belong in code and judgement in the model. This is the spli
 
 **Safe fixes** (`validation.py` `validate()`; X formatting in `x_format.py`). Every fix is logged.
 
-- Replace banned characters: the em dash, the en dash and the other dash look-alikes listed in `brand-voice.md`.
-- Normalise whitespace and use straight quotes.
+- Replace only safe banned characters (for example, non-breaking hyphens and other dash look-alikes) listed in `brand-voice.md`.
+- Normalise whitespace. Curly quotes, em dashes, and separator en dashes are rejected by the AI-text checks rather than rewritten.
 - Remove a trailing hashtag block.
 - Turn markdown code fences into inline code, and remove emphasis (`*word*`) outside code, since X would show both
   literally.
@@ -149,6 +149,10 @@ Order inside `validate()`: safe fixes first, then length splits, then numbering,
 
 The reviewer sees exactly the text that passed these checks, and that same text is exported. Nothing edits it after
 approval.
+
+### AI-text checks
+
+`content_pipeline/ai_text.py` checks each original piece before review for em dashes, separator en dashes, curly quotes, emoji, banned vocabulary, repeated three-item lists, and configured constructions. Vocabulary lives in `inputs/ai-vocabulary.txt`; construction regexes, hedge words, and the 3.0-per-100-word hedging threshold live in `inputs/ai-constructions.yaml`. Sentence-length count, mean, and sample deviation are retained in each draft audit for diagnostics. We use deterministic, reviewable checks rather than a third-party AI detector because detector scores are opaque and unreliable for short technical copy.
 
 ### Hard checks
 

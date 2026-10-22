@@ -10,7 +10,7 @@ from uuid import uuid4
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from . import record_ids
+from . import ai_text, record_ids
 from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent
 from .config import Settings, load_sources, load_visual_backends, local_file, resolve_model
 from .contracts import (
@@ -988,6 +988,9 @@ class Pipeline:
             fixes=result.fixes,
             violations=result.violations,
             accepted=result.accepted,
+            sentence_length_stats=ai_text.sentence_length_stats(
+                "\n".join(tweet.text for tweet in result.original.tweets)
+            ),
         )
         state.feedback = (
             result.violations

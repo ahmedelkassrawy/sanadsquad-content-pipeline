@@ -10,6 +10,8 @@ Write one technical thread from the supplied research pack. Cite evidence ids pe
 
 Every fact comes from the evidence; every sentence is in your own words. Explain each fact to a developer the way you would to a colleague, then cite it.
 
+Keep the draft clear of the AI-text checks: plain punctuation, no emoji or listed vocabulary/constructions, and direct rather than hedged phrasing.
+
 - Cite only SourceRecord IDs present in this slot's ResearchPack. Shared brand instructions may show STAT IDs that are absent from your pack: leave those statistics and service claims out. A technical thread needs no firm claim or brand statistic.
 - Own words change the wording and leave the claim as the evidence has it: every cause, consequence, degree, comparison and how-often comes from the evidence. Explain a fact with the reasons the evidence gives for it.
 - Your own words keep each fact's meaning and its conditions: compiler/framework versions, chain conditions and scope stay attached to the claim, in the same tweet as the claim.

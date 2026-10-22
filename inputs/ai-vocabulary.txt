@@ -1,0 +1,16 @@
+# AI-sounding banned vocabulary (one word or phrase per line)
+# Loaded by content_pipeline/ai_text.py
+delve
+leverage
+tapestry
+underscore
+foster
+pivotal
+realm
+landscape
+crucial
+seamless
+robust
+navigate
+testament
+ever-evolving
