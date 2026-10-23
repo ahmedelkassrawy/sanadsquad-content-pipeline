@@ -192,7 +192,11 @@ def build_prompt(
         parts.append(read(local_file(root / "skills", skill + ".md")))
 
     if spec and spec.name == "marketing-post":
-        parts.append(read(local_file(root / "inputs", "marketing-rules.md")))
+        rules = root / "inputs/marketing-rules.md"
+        # Pre-format snapshots did not include this later guide; their original writer prompt
+        # remains valid when a run resumes.
+        if rules.is_file():
+            parts.append(read(rules))
 
     parts.append(read(local_file(root / "inputs", "brand-voice.md")))
 

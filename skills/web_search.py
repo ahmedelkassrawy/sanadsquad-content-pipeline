@@ -185,6 +185,7 @@ class WebSearch:
                     title=hit.get("title", final_url),
                     evidence_text=(evidence or "")[: self.evidence_limit],
                     status=status,
+                    published_at=hit.get("published_date") or hit.get("published_at"),
                 )
             )
 

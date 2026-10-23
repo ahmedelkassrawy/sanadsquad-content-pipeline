@@ -67,6 +67,8 @@ class SourceRecord(Contract):
     url: str | None = None
     title: str
     retrieved_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Search backends may supply this. A retrieval time is not a publication date.
+    published_at: datetime | None = None
     evidence_text: str
     status: Literal["ok", "snippet_only", "fetch_failed"] = "ok"
 
@@ -260,6 +262,7 @@ class PostType(Contract):
     closing_styles: list[str] = Field(default_factory=list)
     # Marketing uses this table to select the effective unit, link and numbering rules.
     formats: list[MarketingFormat] = Field(default_factory=list)
+    weekly_topic_similarity: float = Field(default=0.6, ge=0, le=1)
 
     @model_validator(mode="after")
     def styles_not_blank(self):

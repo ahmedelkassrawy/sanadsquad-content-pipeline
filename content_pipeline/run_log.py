@@ -149,6 +149,10 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
                 + (", CTA allowed" if slot.get("cta_allowed") else ", no CTA")
                 for slot in marketing
             )
+            for warning in plan.get("warnings", []):
+                if warning.startswith("weekly_mix:"):
+                    _, phase, slot_id, rule, verdict = warning.split(":", 4)
+                    lines.append(f"   {phase} {slot_id}: {rule} {verdict}")
             lines.append("")
 
     for slot_id, slot in summary["slots"].items():

@@ -2,6 +2,7 @@ import re
 import unicodedata
 from pathlib import Path
 from functools import partial
+from functools import lru_cache
 from itertools import combinations
 from twitter_text import parse_tweet
 from skills import brand_rules
@@ -25,6 +26,7 @@ from .x_format import (
 )
 from . import ai_text as _ai_text
 from twitter_text import extract_urls_with_indices
+import yaml
 
 
 # The brand check lives in the brand_rules skill; this alias keeps existing imports working.
@@ -181,34 +183,51 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     ]
 
 
-_CTA = re.compile(
-    r"(?i)(?:^|[.!?]\s+)(?:request|read|learn|see|compare|contact|ask|visit|try)\b[^.!?]*[.!?]?$"
-)
+_DEFAULT_POLICY_ROOT = Path(__file__).resolve().parents[1]
+
+
+@lru_cache(maxsize=None)
+def _cta_patterns(root: Path) -> tuple[re.Pattern[str], ...]:
+    """Load commercial CTA phrases; technical advice is deliberately not a CTA."""
+    path = root / "inputs/marketing-cta.yaml"
+    if not path.is_file():
+        path = _DEFAULT_POLICY_ROOT / "inputs/marketing-cta.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    patterns = data.get("patterns") if isinstance(data, dict) else None
+    if (
+        not isinstance(patterns, list)
+        or not patterns
+        or not all(isinstance(p, str) for p in patterns)
+    ):
+        raise ValueError("marketing CTA patterns need nonempty string patterns")
+    return tuple(re.compile(pattern, re.I) for pattern in patterns)
 
 
 def check_marketing_format(
-    draft: Draft, format: MarketingFormat | None, cta_allowed: bool
+    draft: Draft, format: MarketingFormat | None, cta_allowed: bool, policy_root: Path | None = None
 ) -> list[str]:
     """Enforce a selected marketing format without making other post types opt in."""
-    if format is None:
-        return []
-
     errors = []
-    count = len(draft.tweets)
-    if not format.units.min <= count <= format.units.max:
-        errors.append(f"format_units:{format.id}:{count}/{format.units.min}-{format.units.max}")
+    if format is not None:
+        count = len(draft.tweets)
+        if not format.units.min <= count <= format.units.max:
+            errors.append(f"format_units:{format.id}:{count}/{format.units.min}-{format.units.max}")
 
-    links = [
-        link["url"] for tweet in draft.tweets for link in extract_urls_with_indices(tweet.text)
-    ]
-    if format.link_rule == "required" and not links:
-        errors.append(f"format_link_required:{format.id}")
-    if format.link_rule == "forbidden" and links:
-        errors.append(f"format_link_forbidden:{format.id}")
+        links = [
+            link["url"] for tweet in draft.tweets for link in extract_urls_with_indices(tweet.text)
+        ]
+        if format.link_rule == "required" and not links:
+            errors.append(f"format_link_required:{format.id}")
+        if format.link_rule == "forbidden" and links:
+            errors.append(f"format_link_forbidden:{format.id}")
 
-    ctas = sum(bool(_CTA.search(tweet.text.strip())) for tweet in draft.tweets)
+    ctas = sum(
+        len(pattern.findall(tweet.text))
+        for tweet in draft.tweets
+        for pattern in _cta_patterns(policy_root or _DEFAULT_POLICY_ROOT)
+    )
     if ctas > 1:
-        errors.append("marketing_cta_limit")
+        errors.append(f"marketing_cta_limit:{ctas}")
     elif ctas and not cta_allowed:
         errors.append("weekly_mix_cta_not_allowed")
 
@@ -1083,7 +1102,11 @@ def validate(
         + dangling
         + claims
     )
-    errors.extend(brand_rules.check_research_separation(fixed, pack, spec))
+    errors.extend(
+        brand_rules.check_research_separation(
+            fixed, pack, spec, enforce_marketing_web=format is not None
+        )
+    )
     errors.extend(
         check_post_limits([tweet.text for tweet in fixed.tweets], pack, spec, rules.brand_name)
     )
@@ -1099,7 +1122,7 @@ def validate(
     if not units.min <= len(fixed.tweets) <= units.max:
         errors.append("tweet_count")
 
-    errors.extend(check_marketing_format(fixed, format, cta_allowed))
+    errors.extend(check_marketing_format(fixed, format, cta_allowed, ai_policy_root))
 
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))

@@ -1,0 +1,11 @@
+# Phrases that ask the reader to take a commercial next step.  Ordinary technical imperatives
+# are intentionally absent: "check your approvals" is advice, not a CTA.
+patterns:
+  - '\bbook (?:a |your )?(?:review|assessment|audit|call)\b'
+  - '\bschedule (?:a |your )?(?:review|assessment|audit|call)\b'
+  - '\bdm us\b'
+  - '\breach out\b'
+  - '\bget in touch\b'
+  - '\btalk to us\b'
+  - '\bcontact us\b'
+  - '\brequest (?:a |your )?(?:review|assessment|audit)\b'

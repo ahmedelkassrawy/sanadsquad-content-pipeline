@@ -108,6 +108,7 @@ def expected_snapshot(contents):
         "inputs/sources.json",
         "inputs/ai-vocabulary.txt",
         "inputs/ai-constructions.yaml",
+        "inputs/marketing-cta.yaml",
         "inputs/plan.json",
         "resolved-config.json",
         "agents/research/loop.md",

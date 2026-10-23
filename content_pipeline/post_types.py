@@ -235,6 +235,10 @@ class PostTypes:
         if slot.type != "marketing-post" or slot.format is None:
             return None
 
+        if not self.spec(slot.type).formats:
+            # A snapshot saved before marketing formats used the type's original one-unit rule.
+            return None
+
         selected = next(
             (format for format in self.spec(slot.type).formats if format.id == slot.format), None
         )

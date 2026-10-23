@@ -694,6 +694,19 @@
           "title": "Retrieved At",
           "type": "string"
         },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
+        },
         "evidence_text": {
           "title": "Evidence Text",
           "type": "string"
