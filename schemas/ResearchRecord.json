@@ -141,6 +141,22 @@
       "title": "Query",
       "type": "string"
     },
+    "query_attempts": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Query Attempts",
+      "type": "array"
+    },
+    "url_events": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Url Events",
+      "type": "array"
+    },
     "failure": {
       "anyOf": [
         {

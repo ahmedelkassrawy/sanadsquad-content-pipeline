@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 from pydantic import Field
 from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot, SourceRegistry
 from .contracts import AnglesFile
+from skills.search_kb import KnowledgeBase
 
 
 class Settings(Contract):
@@ -97,10 +98,7 @@ def load_angles(root: Path, spec: PostType):
 
     if configured_sources:
         kb_ids = {
-            entry["id"]
-            for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))[
-                "findings"
-            ]
+            entry["id"] for entry in KnowledgeBase(local_file(root, "inputs/kb.json")).entries
         }
 
         if configured_sources - kb_ids:

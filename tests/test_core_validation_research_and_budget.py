@@ -140,7 +140,7 @@ def test_normalization_keeps_original_and_numbers_before_review():
         ("Use ＃audit inside text.", "hashtag"),
         ("Let's delve into reentrancy.", "banned_phrase:delve"),
         ("Audited 40 contracts.", "unsourced_number:40"),
-        ("https://sub.example.com/path", "link_domain:sub.example.com"),
+        ("https://sub.example.com/path", "link_not_fetched:https://sub.example.com/path"),
         ("界" * 139, "length"),
         ("a" * 277, "length"),
     ],
@@ -244,8 +244,19 @@ def test_a_colon_inside_a_tweet_or_after_a_safe_fix_is_fine():
 
 
 def test_boundaries_and_url_weight_are_accepted():
-    result = validate_thread(draft("unguaranteed https://example.com/" + "x" * 400))
-    assert result.normalized.tweets[0].text == "1/5 unguaranteed https://example.com/" + "x" * 400
+    url = "https://example.com/" + "x" * 400
+    research = pack()
+    research.sources.append(
+        SourceRecord(
+            source_id="WEB-aabb",
+            kind="web",
+            title="Fetched",
+            url=url,
+            evidence_text="Fetched evidence.",
+        )
+    )
+    result = validate_thread(draft("unguaranteed " + url), research)
+    assert result.normalized.tweets[0].text == "1/5 unguaranteed " + url
     assert result.accepted is True
 
 

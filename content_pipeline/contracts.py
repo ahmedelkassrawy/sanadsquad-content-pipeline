@@ -227,6 +227,8 @@ class ResearchRecord(Trace):
     evidence: list[SourceRecord]
     action: str
     query: str = ""
+    query_attempts: list[dict] = Field(default_factory=list)
+    url_events: list[dict] = Field(default_factory=list)
     failure: str | None = None
 
 

@@ -1041,7 +1041,7 @@ def validate(
 
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))
-        errors.extend(f"tweet_{i}:{e}" for e in brand_rules.check_brand(tweet.text, rules))
+        errors.extend(f"tweet_{i}:{e}" for e in brand_rules.check_brand(tweet.text, rules, pack))
 
         parsed = parse_tweet(tweet.text)
 

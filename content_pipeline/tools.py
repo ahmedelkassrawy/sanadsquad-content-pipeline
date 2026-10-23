@@ -36,17 +36,21 @@ def research_tools(root: Path, kb: KnowledgeBase, searcher: WebSearch, *, includ
     return tools
 
 
-def configured_web_search(root: Path):
+def configured_web_search(config_root: Path, credential_root: Path | None = None):
     from dotenv import dotenv_values
     from skills.web_search import FixtureSearch
 
-    registry = load_sources(local_file(root, "inputs/sources.json"))
+    credential_root = credential_root or config_root
+    registry = load_sources(local_file(config_root, "inputs/sources.json"))
     # Fixtures are deliberately opt-in: production research is live Tavily when configured,
     # otherwise live DDGS. Environment variables take precedence over .env values.
-    key = os.environ.get("TAVILY_API_KEY") or dotenv_values(root / ".env").get("TAVILY_API_KEY")
+    key = os.environ.get("TAVILY_API_KEY") or dotenv_values(credential_root / ".env").get(
+        "TAVILY_API_KEY"
+    )
     if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture":
         search = WebSearch(
-            fixture=FixtureSearch(root / "inputs/search-fixtures"), denied_domains=registry.deny
+            fixture=FixtureSearch(config_root / "inputs/search-fixtures"),
+            denied_domains=registry.deny,
         )
         search.registry = registry
         return search
