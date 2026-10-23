@@ -48,17 +48,20 @@ def _name_pattern(name: str) -> re.Pattern[str]:
     words = re.findall(r"[A-Za-z0-9]+", name)
     if not words:
         return re.compile(r"(?!)")
-    body = r"[\s_.-]*".join(re.escape(word) for word in words)
+    body = r"[^A-Za-z0-9]*".join(re.escape(word) for word in words)
     return re.compile(r"(?<![A-Za-z0-9])(?i:" + body + r")(?=$|[^A-Za-z0-9]|[A-Z])")
 
 
 _URL = re.compile(r"https?://[^\s<>()`]+", re.IGNORECASE)
-_GITHUB_PATH = re.compile(
-    r"(?:https?://)?(?:www\.)?github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:/[^\s<>()`]*)?",
+_GITHUB_REPOSITORY = re.compile(
+    r"(?:https?://)?(?:www\.)?github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)",
     re.IGNORECASE,
 )
 _BASE58 = r"1-9A-HJ-NP-Za-km-z"
-_PROGRAM_ID = re.compile(rf"(?<![{_BASE58}])[{_BASE58}]{{32,44}}(?![{_BASE58}])")
+_SENSITIVE_ID = re.compile(
+    rf"(?<![{_BASE58}])(?:[{_BASE58}]{{32,44}}|[0-9a-f]{{40}})(?![{_BASE58}])",
+    re.IGNORECASE,
+)
 
 
 def _url_contains_name(url: str, names: tuple[str, ...]) -> bool:
@@ -66,6 +69,35 @@ def _url_contains_name(url: str, names: tuple[str, ...]) -> bool:
     parsed = urlsplit(url)
     target = unquote((parsed.hostname or "") + (parsed.path or ""))
     return any(_name_pattern(name).search(target) for name in names)
+
+
+def _strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings(item)
+
+
+@lru_cache
+def load_sensitive_kb_values(kb_path: Path = DEFAULT_KB_PATH) -> tuple[tuple[str, str], ...]:
+    """Return only identifiers and GitHub repositories disclosed by KB findings."""
+    data = json.loads(kb_path.read_text(encoding="utf-8"))
+    values: dict[str, str] = {}
+    for text in _strings(data.get("findings", data.get("entries", []))):
+        for match in _SENSITIVE_ID.finditer(text):
+            value = match.group()
+            values[value] = (
+                "<commit hash>" if re.fullmatch(r"[0-9a-f]{40}", value, re.I) else "<program id>"
+            )
+        for match in _GITHUB_REPOSITORY.finditer(text):
+            values["github.com/" + match.group(1) + "/" + match.group(2)] = (
+                "github.com/<repository>"
+            )
+    return tuple(sorted(values.items(), key=lambda item: (-len(item[0]), item[0].casefold())))
 
 
 def _redact_urls(text: str, names: tuple[str, ...]) -> str:
@@ -86,12 +118,27 @@ def _name_replacement(match: re.Match[str]) -> str:
     return "the protocol"
 
 
-def redact_kb_text(text: str, names: tuple[str, ...] | None = None) -> str:
+def _redact_sensitive_values(text: str, values: tuple[tuple[str, str], ...]) -> str:
+    for value, replacement in values:
+        text = re.sub(
+            r"(?<![A-Za-z0-9])" + re.escape(value) + r"(?![A-Za-z0-9])",
+            replacement,
+            text,
+            flags=re.IGNORECASE,
+        )
+    return text
+
+
+def redact_kb_text(
+    text: str,
+    names: tuple[str, ...] | None = None,
+    sensitive_values: tuple[tuple[str, str], ...] | None = None,
+) -> str:
     """Remove KB project identifiers from material intended for a writer."""
     names = load_redacted_names() if names is None else names
-    text = _GITHUB_PATH.sub("", text)
     text = _redact_urls(text, names)
-    text = _PROGRAM_ID.sub("<program id>", text)
+    sensitive_values = load_sensitive_kb_values() if sensitive_values is None else sensitive_values
+    text = _redact_sensitive_values(text, sensitive_values)
     for name in names:
         text = _name_pattern(name).sub(_name_replacement, text)
     return text
@@ -127,13 +174,20 @@ def redact_research_pack(pack: ResearchPack, root: Path | None = None) -> Resear
 
     kb_path, extra_names_path = _redaction_paths(root)
     names = load_redacted_names(kb_path, extra_names_path)
+    sensitive_values = load_sensitive_kb_values(kb_path)
     redacted = pack.model_copy(deep=True)
-    redacted.topic_name = redact_kb_text(redacted.topic_name, names)
+    redacted.topic_name = redact_kb_text(redacted.topic_name, names, sensitive_values)
     for source in redacted.sources:
-        source.title = redact_kb_text(source.title, names)
-        source.evidence_text = redact_kb_text(source.evidence_text, names)
+        source.title = redact_kb_text(
+            source.title, names, sensitive_values if source.kind == "kb" else ()
+        )
+        source.evidence_text = redact_kb_text(
+            source.evidence_text, names, sensitive_values if source.kind == "kb" else ()
+        )
         if source.url:
-            source.url = redact_kb_text(source.url, names)
+            source.url = redact_kb_text(
+                source.url, names, sensitive_values if source.kind == "kb" else ()
+            )
     return redacted
 
 
@@ -149,12 +203,13 @@ def redact_writer_material(
 
     kb_path, extra_names_path = _redaction_paths(root)
     names = load_redacted_names(kb_path, extra_names_path)
+    sensitive_values = load_sensitive_kb_values(kb_path)
     prior = previous_draft.model_copy(deep=True) if previous_draft else None
     if prior:
         for tweet in prior.tweets:
-            tweet.text = redact_kb_text(tweet.text, names)
+            tweet.text = redact_kb_text(tweet.text, names, sensitive_values)
     return (
         redact_research_pack(pack, root),
-        [redact_kb_text(item, names) for item in feedback],
+        [redact_kb_text(item, names, sensitive_values) for item in feedback],
         prior,
     )

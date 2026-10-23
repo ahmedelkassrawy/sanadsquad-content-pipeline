@@ -56,6 +56,7 @@ from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
     colon_feedback,
+    count_marketing_ctas,
     credit_feedback,
     is_writer_note,
     label_feedback,
@@ -980,13 +981,16 @@ class Pipeline:
             topics.append(terms)
 
             service = state.slot.service_line
-            repeat = service and service in services
+            service_count = services.get(service, 0) if service else 0
+            repeat = service_count > 0
             news_ok = state.slot.format == "news-reaction" and self._current_news(state)
-            verdict(state, "service_repeat", not repeat or news_ok)
-            if repeat and not news_ok:
+            # The dated-news exception permits only the second appearance of a service.
+            service_ok = not repeat or service_count == 1 and news_ok
+            verdict(state, "service_repeat", service_ok)
+            if not service_ok:
                 continue
             if service:
-                services[service] = services.get(service, 0) + 1
+                services[service] = service_count + 1
 
             count = formats.get(state.slot.format, 0)
             verdict(state, "format_repeat", count < 2)
@@ -1009,14 +1013,19 @@ class Pipeline:
                 if not has_link or not has_no_link:
                     break
         else:
-            warnings.append(f"weekly_mix:{phase}:set:link_diversity:pass")
+            warnings.append(
+                f"weekly_mix:{phase}:set:link_diversity:not_applicable:{len(surviving)}"
+            )
 
-        ctas = sum(state.slot.cta_allowed for state in surviving)
-        cta_ok = ctas <= max(1, len(surviving) // 3)
+        remaining_ctas = max(1, len(surviving) // 3)
         for state in surviving:
+            ctas = (
+                count_marketing_ctas(state.draft, getattr(self, "root", None)) if state.draft else 0
+            )
+            cta_ok = ctas <= remaining_ctas
             verdict(state, "cta_limit", cta_ok)
-            if not cta_ok:
-                break
+            if cta_ok:
+                remaining_ctas -= ctas
         return warnings
 
     async def select(self, week):

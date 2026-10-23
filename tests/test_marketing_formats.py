@@ -10,7 +10,14 @@ import pytest
 
 from content_pipeline.config import load_brand, load_type
 from content_pipeline.contracts import Angle, SlotState
-from content_pipeline.models import Draft, ResolvedSlot, ResearchPack, SourceRecord, Tweet
+from content_pipeline.models import (
+    Draft,
+    ResolvedSlot,
+    ResearchPack,
+    SlotOutcome,
+    SourceRecord,
+    Tweet,
+)
 from content_pipeline.pipeline import Pipeline
 from content_pipeline.post_types import PostTypes
 from content_pipeline.validation import validate
@@ -257,11 +264,41 @@ def test_marketing_requires_a_cited_fetched_web_source_even_with_a_stat_or_kb():
     assert "marketing_web_citation_required" in result.violations
 
 
+def test_marketing_requires_a_cited_fetched_web_source_without_a_format_argument():
+    draft = Draft(
+        slot_id="marketing",
+        tweets=[
+            Tweet(text="Security review covers the whole attack surface.", source_ids=["STAT-01"])
+        ],
+    )
+    sources = [
+        *pack().sources,
+        SourceRecord(
+            source_id="STAT-01",
+            kind="stat",
+            title="Service statement",
+            evidence_text="Security review covers the whole attack surface.",
+        ),
+    ]
+
+    result = validate(
+        draft,
+        ResearchPack(
+            slot_id="marketing", topic_id="ANGLE-web3-security", topic_name="web3", sources=sources
+        ),
+        SPEC,
+        RULES,
+    )
+
+    assert "marketing_web_citation_required" in result.violations
+
+
 @pytest.mark.parametrize(
     "text,allowed,expected",
     [
         ("Book a review. DM us.", True, ["marketing_cta_limit:2"]),
         ("Check your approvals before signing.", False, []),
+        ("If the agent cannot reach out to the network, egress is constrained.", False, []),
         ("Contact us for a review.", False, ["weekly_mix_cta_not_allowed"]),
     ],
 )
@@ -276,3 +313,77 @@ def test_ctas_are_data_driven_and_counted_across_one_post(text, allowed, expecte
     )
 
     assert [value for value in result.violations if "cta" in value] == expected
+
+
+def test_weekly_mix_marks_link_diversity_not_applicable_for_one_viable_slot():
+    slots = states("ANGLE-web3-security")
+    pipeline = mix_pipeline()
+    pipeline._assign_marketing_mix(slots)
+    slots[0].pack = pack(slots[0].slot.slot_id)
+
+    warnings = pipeline._enforce_marketing_mix(slots, "viable")
+
+    assert slots[0].outcome is None
+    assert "weekly_mix:viable:set:link_diversity:not_applicable:1" in warnings
+
+
+def test_weekly_mix_rejects_a_third_current_news_service_repeat():
+    real = PostTypes(ROOT)
+    extras = [
+        Angle(
+            id=f"ANGLE-agentic-security-news-{index}",
+            name=f"agentic security news {index}",
+            service_line="agentic-security",
+            stat_ids=["STAT-03"],
+        )
+        for index in range(1, 4)
+    ]
+    fake_types = SimpleNamespace(spec=real.spec, angles=lambda _: extras)
+    slots = states(*(angle.id for angle in extras))
+    pipeline = mix_pipeline(fake_types)
+    pipeline._assign_marketing_mix(slots)
+    for index, state in enumerate(slots, 1):
+        state.pack = pack(state.slot.slot_id).model_copy(
+            update={
+                "topic_name": ("runtime isolation", "payment policy", "browser extension")[
+                    index - 1
+                ]
+            }
+        )
+        state.pack.sources[0].published_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+    warnings = pipeline._enforce_marketing_mix(slots, "viable")
+
+    assert slots[0].outcome is None
+    assert slots[1].outcome is None
+    assert slots[2].outcome.value == "failed_research"
+    assert slots[2].reasons == ["weekly_mix_service_repeat"]
+    assert any("m3:service_repeat:fail" in warning for warning in warnings)
+
+
+def test_weekly_mix_counts_shipped_ctas_not_planned_cta_allowances():
+    slots = states(
+        "ANGLE-web3-security",
+        "ANGLE-pentesting",
+        "ANGLE-agentic-security",
+        "ANGLE-agentic-payments",
+    )
+    pipeline = mix_pipeline()
+    pipeline._assign_marketing_mix(slots)
+    for state in slots:
+        state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": state.slot.topic_id})
+        state.draft = Draft(
+            slot_id=state.slot.slot_id,
+            tweets=[
+                Tweet(
+                    text="A technical observation without a commercial ask.",
+                    source_ids=["WEB-abcd"],
+                )
+            ],
+        )
+        state.outcome = SlotOutcome.shipped
+    slots[1].slot.cta_allowed = True  # A six-slot plan may have retained two allowances.
+
+    pipeline._enforce_marketing_mix(slots, "shipped")
+
+    assert all(state.outcome.value == "shipped" for state in slots)

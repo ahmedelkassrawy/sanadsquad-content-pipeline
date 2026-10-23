@@ -10,17 +10,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def validate_texts(texts, post_type="tech-thread"):
-    draft = Draft(slot_id="slot", tweets=[Tweet(text=text, source_ids=["SS-01"]) for text in texts])
+    marketing = post_type == "marketing-post"
+    source_id = "WEB-abcdef12" if marketing else "SS-01"
+    draft = Draft(
+        slot_id="slot", tweets=[Tweet(text=text, source_ids=[source_id]) for text in texts]
+    )
     pack = ResearchPack(
         slot_id="slot",
         topic_id="SS-01",
         topic_name="Topic",
         sources=[
             SourceRecord(
-                source_id="SS-01", kind="kb", title="Topic", evidence_text="Source evidence."
+                source_id=source_id,
+                kind="web" if marketing else "kb",
+                url="https://example.com/evidence" if marketing else None,
+                title="Topic",
+                evidence_text="Source evidence.",
             )
         ],
-        kb_allowed=True,
+        kb_allowed=not marketing,
     )
     return validate(
         draft, pack, load_type(ROOT, post_type), load_brand(ROOT / "inputs/brand-voice.md")[0]

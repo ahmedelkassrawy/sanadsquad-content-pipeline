@@ -221,17 +221,22 @@ def check_marketing_format(
         if format.link_rule == "forbidden" and links:
             errors.append(f"format_link_forbidden:{format.id}")
 
-    ctas = sum(
-        len(pattern.findall(tweet.text))
-        for tweet in draft.tweets
-        for pattern in _cta_patterns(policy_root or _DEFAULT_POLICY_ROOT)
-    )
+    ctas = count_marketing_ctas(draft, policy_root)
     if ctas > 1:
         errors.append(f"marketing_cta_limit:{ctas}")
     elif ctas and not cta_allowed:
         errors.append("weekly_mix_cta_not_allowed")
 
     return errors
+
+
+def count_marketing_ctas(draft: Draft, policy_root: Path | None = None) -> int:
+    """Count data-loaded commercial CTA phrases in a completed marketing draft."""
+    return sum(
+        len(pattern.findall(tweet.text))
+        for tweet in draft.tweets
+        for pattern in _cta_patterns(policy_root or _DEFAULT_POLICY_ROOT)
+    )
 
 
 # These aliases are derived only when a pack source identifies the publisher in its title or URL.
@@ -1104,7 +1109,7 @@ def validate(
     )
     errors.extend(
         brand_rules.check_research_separation(
-            fixed, pack, spec, enforce_marketing_web=format is not None
+            fixed, pack, spec, enforce_marketing_web=bool(spec.formats)
         )
     )
     errors.extend(

@@ -225,3 +225,38 @@ def test_url_slug_flags_only_the_protocol_it_names():
     violations = kb_protocol_name_violations("See https://x.org/privacy-cash/post today.")
 
     assert violations == ["kb_protocol_name:Privacy Cash"]
+
+
+def test_every_stored_protocol_name_is_redacted_and_rejected_exactly_as_stored():
+    names = [
+        finding["protocol"]
+        for finding in json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))["findings"]
+    ]
+
+    for name in names:
+        assert name.casefold() not in redact_kb_text(name).casefold()
+        assert kb_protocol_name_violations(name)
+
+
+def test_kb_redaction_preserves_unrelated_web_urls_and_hashes():
+    pack = ResearchPack(
+        slot_id="slot",
+        topic_id="SS-03699",
+        topic_name="Swig finding",
+        sources=[
+            SourceRecord(source_id="SS-03699", kind="kb", title="Finding", evidence_text="Facts."),
+            SourceRecord(
+                source_id="WEB-aaaaaaaa",
+                kind="web",
+                url="https://github.com/acme/security-advisories/abcdefabcdefabcdefabcdefabcdefabcdefabcd",
+                title="Independent advisory",
+                evidence_text="Commit abcdefabcdefabcdefabcdefabcdefabcdefabcd is unrelated.",
+            ),
+        ],
+    )
+
+    redacted, _, _ = redact_writer_material(pack, [], None, ROOT)
+    web = next(source for source in redacted.sources if source.kind == "web")
+
+    assert web.url == pack.sources[1].url
+    assert web.evidence_text == pack.sources[1].evidence_text

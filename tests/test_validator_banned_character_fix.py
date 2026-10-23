@@ -118,3 +118,60 @@ def test_whitespace_and_markdown_fixes_remain_available(rules):
         "tweet_1:trailing_hashtags",
         "tweet_1:markdown",
     ]
+
+
+@pytest.mark.parametrize(
+    "text,post_type,expected_suffix",
+    [
+        ("\u2014word", "marketing-post", "\u2014word"),
+        ("word\u2014", "marketing-post", "word\u2014"),
+        ("word\u2014\u2014word", "marketing-post", "word\u2014\u2014word"),
+        ("word\u2014.", "marketing-post", "word\u2014."),
+        ("\u2014word", "tech-thread", "\u2014word"),
+        ("\u2014", "marketing-post", "\u2014"),
+        ("\u2011", "marketing-post", "-"),
+        (" \t\u2014\u2014 word \u2014\u2014 ", "marketing-post", "\u2014\u2014 word \u2014\u2014"),
+        ("word \u2014 \u2014 word", "marketing-post", "word \u2014 \u2014 word"),
+        ("\u2014", "tech-thread", "\u2014"),
+        ("\u2011", "tech-thread", "-"),
+        ("...", "marketing-post", "..."),
+    ],
+)
+def test_restored_boundary_matrix_keeps_rejected_characters_visible(
+    rules, text, post_type, expected_suffix
+):
+    result = check(text, rules, post_type)
+
+    assert not result.accepted
+    assert result.normalized.tweets[0].text.endswith(expected_suffix)
+
+
+@pytest.mark.parametrize("punctuation", list(",.;:!?)(\"'\u2018\u2019\u201c\u201d"))
+@pytest.mark.parametrize("side", ["left", "right"])
+def test_restored_punctuation_matrix_rejects_em_dash(rules, punctuation, side):
+    text = f"word{punctuation} \u2014 word" if side == "left" else f"word \u2014 {punctuation}word"
+
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert "ai_text:em_dash" in result.violations
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        'He said "word\u2014".',
+        "He said \u201cword\u2014\u201d.",
+        "[word\u2014]",
+        "{word\u2014}",
+        'word\u2014 "quote"',
+        "word\u2014 \u201cquote\u201d",
+        "v1.2/3\u2014word",
+    ],
+)
+def test_restored_dash_run_matrix_rejects_without_rewriting(rules, text):
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert result.normalized.tweets[0].text == text
+    assert "ai_text:em_dash" in result.violations
