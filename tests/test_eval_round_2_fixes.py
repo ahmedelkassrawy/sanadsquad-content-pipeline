@@ -24,8 +24,10 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 
 
-def education_slot():
-    return ResolvedSlot(slot_id="marketing_3", type="marketing-post", topic_id="ANGLE-education")
+def vulnerability_slot():
+    return ResolvedSlot(
+        slot_id="marketing_3", type="marketing-post", topic_id="ANGLE-vulnerability-class"
+    )
 
 
 def test_vulnerability_class_angle_does_not_select_retired_kb_candidates():
@@ -33,14 +35,14 @@ def test_vulnerability_class_angle_does_not_select_retired_kb_candidates():
 
     # Marketing angle routing is service-line based; the one permitted KB source is declared,
     # not selected from a legacy pick-one KB list.
-    assert types.choose_angle_source(education_slot(), {"SS-03699", "ANGLE-service"}) is None
-    assert types.choose_angle_source(education_slot(), set()) is None
+    assert types.choose_angle_source(vulnerability_slot(), {"SS-03699", "ANGLE-web3-security"}) is None
+    assert types.choose_angle_source(vulnerability_slot(), set()) is None
 
 
 def test_chosen_education_source_is_the_only_kb_record_in_its_pack():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    slot = education_slot()
+    slot = vulnerability_slot()
     slot.angle_source = "SS-03699"
 
     kb_ids = [s.source_id for s in types.assigned_pack(slot, kb).sources if s.kind == "kb"]
@@ -50,7 +52,9 @@ def test_chosen_education_source_is_the_only_kb_record_in_its_pack():
 
 def test_angle_source_choice_skips_slots_that_are_not_pick_one_angles():
     types = PostTypes(ROOT)
-    service = ResolvedSlot(slot_id="marketing_1", type="marketing-post", topic_id="ANGLE-service")
+    service = ResolvedSlot(
+        slot_id="marketing_1", type="marketing-post", topic_id="ANGLE-web3-security"
+    )
     focused = ResolvedSlot(slot_id="x", type="marketing-post", topic_id="SS-01", focus="reentrancy")
     thread = ResolvedSlot(slot_id="thread_1", type="tech-thread", topic_id="SS-01")
 
@@ -139,12 +143,12 @@ def test_card_style_takes_code_and_label_from_the_approved_post():
         ["1/2 Order matters.", "2/2 Clear it first: `balances[msg.sender] = 0;` then call."],
     )
 
-    style = card_style(request, "Sentinel Grove")
+    style = card_style(request, "SanadSquad")
 
     assert style.template == "technical"
     assert style.code == "balances[msg.sender] = 0;"
     assert style.label == "Reentrancy"
-    assert card_style(visual_request("marketing-post", ["A post."]), "Sentinel Grove").code is None
+    assert card_style(visual_request("marketing-post", ["A post."]), "SanadSquad").code is None
 
 
 def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
@@ -160,7 +164,7 @@ def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
     plain, styled = tmp_path / "plain.png", tmp_path / "styled.png"
 
     render_card(spec, plain)
-    render_card(spec, styled, style=card_style(request, "Sentinel Grove"))
+    render_card(spec, styled, style=card_style(request, "SanadSquad"))
 
     with Image.open(styled) as image:
         assert image.size == (1200, 675)
@@ -177,7 +181,7 @@ def test_vulnerability_class_angle_needs_no_runtime_kb_source_selection():
 
     types = PostTypes(ROOT)
     threads = [SlotState(slot=ResolvedSlot(slot_id="t0", type="tech-thread", topic_id="SS-03699"))]
-    education = SlotState(slot=education_slot())
+    education = SlotState(slot=vulnerability_slot())
     host = SimpleNamespace(types=types)
 
     warnings = Pipeline._choose_angle_sources(host, threads + [education])

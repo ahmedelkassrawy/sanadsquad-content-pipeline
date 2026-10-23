@@ -26,16 +26,19 @@ RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 def stat_pack():
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm completed 2 reviews.",
+                }[id],
             )
-            for id in ("STAT-01", "STAT-02", "STAT-03", "STAT-05")
+            for id in ("STAT-01", "STAT-02")
         ],
     )
 
@@ -120,25 +123,25 @@ def test_capitalized_lead_ins_do_not_make_ordinary_prose_a_credit():
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove's 12 auditors review every audit.",
-        "Our 12 auditors have run audits for years.",
-        "12 audit firms trust us.",
+        "Example Firm's 4 reviewers review every assessment.",
+        "Our 4 reviewers have run assessments for years.",
+        "4 assessment firms trust us.",
     ],
 )
 def test_a_stat_number_on_another_head_noun_is_flagged(text):
     violations = check_stat_claims(text, stat_pack())
 
-    assert len(violations) == 1 and violations[0].startswith("stat_misbound:12")
+    assert len(violations) == 1 and violations[0].startswith("stat_misbound:4")
 
 
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has completed 12 smart contract audits.",
-        "Sentinel Grove has 3 auditors.",
-        "A 3-auditor team.",
-        "A 3-auditor team reviews the code.",
-        "12 completed smart contract audits.",
+        "Example Firm completed 4 assessments.",
+        "Example Firm completed 2 reviews.",
+        "A 2-review team.",
+        "A 2-review team checks the code.",
+        "4 completed assessments.",
     ],
 )
 def test_a_stat_number_on_its_own_noun_passes(text):
@@ -146,7 +149,7 @@ def test_a_stat_number_on_its_own_noun_passes(text):
 
 
 def test_a_stat_joined_across_two_sentences_is_left_to_the_reviewer():
-    text = "Sentinel Grove completed 12 smart contract audits. All 3 auditors worked on each one."
+    text = "Example Firm completed 4 assessments. All 2 reviews were documented."
 
     assert check_stat_claims(text, stat_pack()) == []
 

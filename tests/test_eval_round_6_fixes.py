@@ -73,18 +73,21 @@ def test_publishers_beyond_the_pack_are_credits_too(texts, name):
 
 
 def stat_pack():
-    ids = ("STAT-01", "STAT-02", "STAT-03", "STAT-05")
+    ids = ("STAT-01", "STAT-02")
 
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm completed 2 reviews.",
+                }[id],
             )
             for id in ids
         ],
@@ -94,17 +97,17 @@ def stat_pack():
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has 12 engineers.",
-        "Our 12 security researchers review your code.",
-        "Sentinel Grove has 3 reviewers.",
-        "Our auditors number 12.",
-        "We have completed 12.",
-        "Up to 12 smart contract audits completed.",
-        "About 12 smart contract audits completed.",
-        "Roughly 12 smart contract audits completed.",
-        "Sentinel Grove has completed 12+ smart contract audits.",
-        "All 12 audits uncovered critical bugs.",
-        "Every one of our 12 audits found critical bugs.",
+        "Example Firm has 4 engineers.",
+        "Our 4 security researchers review your code.",
+        "Example Firm has 2 auditors.",
+        "Our auditors number 4.",
+        "We have completed 4.",
+        "Up to 4 assessments completed.",
+        "About 4 assessments completed.",
+        "Roughly 4 assessments completed.",
+        "Example Firm has completed 4+ assessments.",
+        "All 4 assessments uncovered critical bugs.",
+        "Every one of our 4 assessments found critical bugs.",
     ],
 )
 def test_a_stat_number_on_another_firm_noun_or_qualified_is_flagged(text):
@@ -114,11 +117,11 @@ def test_a_stat_number_on_another_firm_noun_or_qualified_is_flagged(text):
 @pytest.mark.parametrize(
     "text",
     [
-        "12 smart contract audits per our records.",
+        "4 assessments per our records.",
         "Requires Solidity 0.8.12 or later.",
         "The vault has 3 functions.",
         "Step 3 of the audit.",
-        "Sentinel Grove has completed 12 smart contract audits.",
+        "Example Firm completed 4 assessments.",
     ],
 )
 def test_attribution_versions_and_technical_counts_pass(text):
@@ -190,7 +193,7 @@ def test_post_limit_notes_use_the_configured_limits_and_brand():
 
 
 def test_stat_note_does_not_mention_a_stat_no_pack_carries():
-    [note] = stat_feedback(result_with(["tweet_1:stat_misbound:12 engineers"]))
+    [note] = stat_feedback(result_with(["tweet_1:stat_misbound:4 engineers"]))
 
     assert "team size" not in note
 
@@ -265,11 +268,11 @@ def test_plural_labels_with_any_preposition_are_flagged(label):
 @pytest.mark.parametrize(
     "text",
     [
-        "Book a review before March 12.",
+        "Book a review before March 4.",
         "Book a call at 3 pm.",
         "Pick three.",
         "A 3 minute read.",
-        "Runs on Node 12+ only.",
+        "Runs on Node 4+ only.",
     ],
 )
 def test_dates_times_and_bare_picks_are_not_firm_claims(text):
@@ -299,9 +302,9 @@ def test_labels_ending_in_a_verb_like_noun_stay_flagged(label):
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has done 12 so far.",
-        "We have conducted 12.",
-        "Sentinel Grove: 12 and counting.",
+        "Example Firm has done 4 so far.",
+        "We have conducted 4.",
+        "Example Firm: 4 and counting.",
     ],
 )
 def test_a_bare_number_in_a_sentence_about_the_firm_is_a_firm_claim(text):

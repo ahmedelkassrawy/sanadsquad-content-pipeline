@@ -17,17 +17,20 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 
 
-def stat_pack(ids=("STAT-01", "STAT-02", "STAT-03", "STAT-05")):
+def stat_pack(ids=("STAT-01", "STAT-02")):
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm completed 2 reviews.",
+                }[id],
             )
             for id in ids
         ],
@@ -36,19 +39,19 @@ def stat_pack(ids=("STAT-01", "STAT-02", "STAT-03", "STAT-05")):
 
 def test_two_stats_joined_in_one_sentence_are_rejected():
     # The sentence the evaluator flagged in the round-2 sample.
-    text = "12 smart contract audits completed, by a team of 3 auditors."
+    text = "Example Firm completed 4 assessments and 2 reviews."
 
     assert check_stat_claims(text, stat_pack()) == ["joined_stats:STAT-01+STAT-02"]
 
 
 def test_a_stat_number_moved_to_another_noun_is_rejected():
-    assert check_stat_claims("Sentinel Grove has 12 auditors.", stat_pack()) == [
-        "stat_misbound:12 auditors"
+    assert check_stat_claims("Example Firm has 4 reviewers.", stat_pack()) == [
+        "stat_misbound:4 reviewers"
     ]
 
 
 def test_each_stat_in_its_own_sentence_passes():
-    text = "12 smart contract audits completed. Sentinel Grove has 3 auditors. Request a review."
+    text = "Example Firm completed 4 assessments. Example Firm completed 2 reviews."
 
     assert check_stat_claims(text, stat_pack()) == []
 
@@ -74,7 +77,7 @@ def test_joined_stats_fail_validation_with_a_writer_note():
         slot_id="marketing_2",
         tweets=[
             Tweet(
-                text="12 smart contract audits completed, by a team of 3 auditors.",
+                text="Example Firm completed 4 assessments and 2 reviews.",
                 source_ids=["STAT-01", "STAT-02"],
             )
         ],
@@ -101,15 +104,26 @@ def test_only_credibility_describes_the_firm():
         firm[angle.name] = "STAT-01" in ids
         offer[angle.name] = "STAT-05" in ids
 
-    assert firm == {"service": False, "credibility": True, "vulnerability-class": False}
-    # The vulnerability-class post ends on its own question, so only two posts carry the offer.
-    assert offer == {"service": True, "credibility": True, "vulnerability-class": False}
+    assert firm == {
+        "web3-security": True,
+        "web2-pentesting": False,
+        "agentic-security-and-red-teaming": False,
+        "agentic-payments-x402-vs-mpp": False,
+        "vulnerability-class": False,
+    }
+    assert offer == {
+        "web3-security": True,
+        "web2-pentesting": True,
+        "agentic-security-and-red-teaming": True,
+        "agentic-payments-x402-vs-mpp": True,
+        "vulnerability-class": False,
+    }
 
 
 def test_an_empty_stat_list_means_the_angle_uses_no_firm_stats():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id="ANGLE-education")
+    slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id="ANGLE-vulnerability-class")
 
     kinds = {s.kind for s in types.assigned_pack(slot, kb).sources}
 
@@ -131,13 +145,13 @@ def test_natural_rewordings_of_a_joined_or_misbound_stat_are_caught():
     pack = stat_pack()
 
     assert check_stat_claims(
-        "Our three auditors have completed 12 smart contract audits.", pack
+        "Example Firm completed 2 reviews and 4 assessments.", pack
     ) == ["joined_stats:STAT-01+STAT-02"]
     assert check_stat_claims(
-        "Sentinel Grove has completed twelve smart contract audits with 3 auditors.", pack
+        "Example Firm completed two reviews and 4 assessments.", pack
     ) == ["joined_stats:STAT-01+STAT-02"]
-    assert check_stat_claims("Sentinel Grove has 12 smart contract auditors.", pack) == [
-        "stat_misbound:12 smart"
+    assert check_stat_claims("Example Firm has 4 reviewers.", pack) == [
+        "stat_misbound:4 reviewers"
     ]
 
 
@@ -145,9 +159,9 @@ def test_reordered_or_linked_stat_numbers_are_not_false_positives():
     pack = stat_pack()
 
     for text in [
-        "12 completed smart contract audits.",
-        "A 3-auditor team.",
-        "See https://example.com/12 for details.",
+        "4 completed assessments.",
+        "A 2-function process.",
+        "See https://example.com/4 for details.",
     ]:
         assert check_stat_claims(text, pack) == [], text
 

@@ -51,6 +51,10 @@ def _redaction_paths(root: Path | None) -> tuple[Path, Path]:
     if root is None:
         return DEFAULT_KB_PATH, DEFAULT_EXTRA_NAMES_PATH
     kb_path = root / "inputs" / "kb.json"
+    # AI-policy-only fixtures and pre-redaction run snapshots have no KB copy.  They retain the
+    # legacy live policy, while complete current snapshots remain fully self-contained.
+    if not kb_path.is_file():
+        return DEFAULT_KB_PATH, DEFAULT_EXTRA_NAMES_PATH
     return kb_path, kb_path.with_name("redacted-names.txt")
 
 

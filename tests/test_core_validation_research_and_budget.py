@@ -86,7 +86,7 @@ def test_loaded_inputs_and_invalid_configuration(tmp_path):
     assert resolve_model(Settings(), agent) == "openai:agent-choice"
     prompt = load_prompt(ROOT, "thread_writer", "tech-thread")
     assert "Return unnumbered text" in prompt
-    assert "Sentinel Grove" in prompt
+    assert "SanadSquad" in prompt
     assert "Shared by writers" in prompt
 
 
@@ -303,22 +303,22 @@ def test_kb_alias_and_batch_assignment():
         {
             "thread_2": topic_id,
             "thread_3": topic_id,
-            "marketing_1": "ANGLE-service",
-            "marketing_2": "ANGLE-service",
+            "marketing_1": "ANGLE-web3-security",
+            "marketing_2": "ANGLE-web3-security",
         },
         kb,
     )
     assert assigned["thread_1"] == topic_id
     assert len(set(assigned.values())) == 6
     assert [assigned[f"marketing_{i}"] for i in range(1, 4)] == [
-        "ANGLE-service",
-        "ANGLE-credibility",
-        "ANGLE-education",
+        "ANGLE-web3-security",
+        "ANGLE-pentesting",
+        "ANGLE-agentic-security",
     ]
     assert warnings == [
         f"topic_proposal_rejected:thread_2:{topic_id}",
         f"topic_proposal_rejected:thread_3:{topic_id}",
-        "topic_proposal_rejected:marketing_2:ANGLE-service",
+        "topic_proposal_rejected:marketing_2:ANGLE-web3-security",
     ]
     slots[1].focus = "oracle manipulation"
     slots[1].topic_id = topic_id
