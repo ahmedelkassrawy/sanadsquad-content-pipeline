@@ -38,6 +38,8 @@ class ValidationInput(Contract):
     research: ResearchPack
     post_type: PostType
     max_tweet_chars: int
+    # Older saved inputs did not include a policy digest and remain parseable.
+    ai_policy_sha256: str | None = None
 
 
 @dataclass(frozen=True)

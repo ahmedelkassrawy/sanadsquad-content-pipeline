@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from pathlib import Path
 from functools import partial
 from itertools import combinations
 from twitter_text import parse_tweet
@@ -985,6 +986,7 @@ def validate(
     rules: BrandRules,
     limit: int = 280,
     focus: str | None = None,
+    ai_policy_root: Path | None = None,
 ) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
@@ -995,7 +997,9 @@ def validate(
     unsourced = []
     dangling = []
     claims = []
-    ai_violations = _ai_text.check_ai_text("\n".join(tweet.text for tweet in draft.tweets))
+    ai_violations = _ai_text.check_ai_text(
+        "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
+    )
 
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
