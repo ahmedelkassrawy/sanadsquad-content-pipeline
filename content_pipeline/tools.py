@@ -41,7 +41,8 @@ def configured_web_search(config_root: Path, credential_root: Path | None = None
     from skills.web_search import FixtureSearch
 
     credential_root = credential_root or config_root
-    registry = load_sources(local_file(config_root, "inputs/sources.json"))
+    sources = config_root / "inputs/sources.json"
+    registry = load_sources(sources) if sources.is_file() else None
     # Fixtures are deliberately opt-in: production research is live Tavily when configured,
     # otherwise live DDGS. Environment variables take precedence over .env values.
     key = os.environ.get("TAVILY_API_KEY") or dotenv_values(credential_root / ".env").get(
@@ -50,7 +51,7 @@ def configured_web_search(config_root: Path, credential_root: Path | None = None
     if os.environ.get("SEARCH_BACKEND", "").lower() == "fixture":
         search = WebSearch(
             fixture=FixtureSearch(config_root / "inputs/search-fixtures"),
-            denied_domains=registry.deny,
+            denied_domains=registry.deny if registry else (),
         )
         search.registry = registry
         return search
@@ -59,7 +60,9 @@ def configured_web_search(config_root: Path, credential_root: Path | None = None
     from tavily import TavilyClient
 
     search = WebSearch(
-        tavily=TavilyClient(api_key=key) if key else None, ddgs=DDGS(), denied_domains=registry.deny
+        tavily=TavilyClient(api_key=key) if key else None,
+        ddgs=DDGS(),
+        denied_domains=registry.deny if registry else (),
     )
     search.registry = registry
     return search

@@ -1,6 +1,8 @@
 """Task M coverage for data-loaded marketing formats and the weekly mix."""
 
 import re
+import shutil
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -148,22 +150,74 @@ def test_weekly_mix_drops_a_third_service_repeat_without_stopping_other_slots():
         "ANGLE-agentic-security-extra",
     )
 
-    warnings = mix_pipeline(fake_types)._assign_marketing_mix(slots)
+    pipeline = mix_pipeline(fake_types)
+    pipeline._assign_marketing_mix(slots)
+    for state in slots:
+        state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": state.slot.topic_id})
+    warnings = pipeline._enforce_marketing_mix(slots, "viable")
 
     assert slots[2].outcome.value == "failed_research"
-    assert slots[2].reasons == ["weekly_mix_service_repeat"]
-    assert warnings == ["weekly_mix_drop_service:m3"]
-    assert all(slot.outcome is None for slot in slots[:2])
+    assert slots[2].reasons == ["weekly_mix_similar_topic"]
+    assert any("m3:similar_topic:fail" in warning for warning in warnings)
+    assert slots[0].outcome is None
+    assert slots[1].outcome.value == "failed_research"
 
 
 def test_weekly_mix_drops_a_duplicate_resolved_topic():
     slots = states("ANGLE-web3-security", "ANGLE-web3-security")
 
-    warnings = mix_pipeline()._assign_marketing_mix(slots)
+    pipeline = mix_pipeline()
+    pipeline._assign_marketing_mix(slots)
+    for state in slots:
+        state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": "same topic"})
+    warnings = pipeline._enforce_marketing_mix(slots, "viable")
 
     assert slots[1].outcome.value == "failed_research"
     assert slots[1].reasons == ["weekly_mix_similar_topic"]
-    assert warnings == ["weekly_mix_drop_similar:m2"]
+    assert any("m2:similar_topic:fail" in warning for warning in warnings)
+
+
+def test_weekly_mix_allows_a_repeated_service_only_with_recent_dated_news():
+    slots = states("ANGLE-agentic-security", "ANGLE-vulnerability-class")
+    pipeline = mix_pipeline()
+    pipeline._assign_marketing_mix(slots)
+    for state in slots:
+        state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": state.slot.topic_id})
+    slots[1].pack.sources[0].published_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+    warnings = pipeline._enforce_marketing_mix(slots, "viable")
+
+    assert all(state.outcome is None for state in slots)
+    assert any("m2:service_repeat:pass" in warning for warning in warnings)
+
+
+def test_interrupted_legacy_marketing_snapshot_without_later_inputs_keeps_legacy_format(tmp_path):
+    """A pre-format snapshot resumes with its old one-unit marketing contract."""
+    root = tmp_path / "legacy_marketing_snapshot"
+    shutil.copytree(ROOT / "post_types", root / "post_types")
+    shutil.copytree(ROOT / "agents", root / "agents")
+    type_path = root / "post_types/marketing-post/type.yaml"
+    type_path.write_text(
+        "\n".join(
+            line
+            for line in type_path.read_text(encoding="utf-8").splitlines()
+            if not line.startswith("formats:")
+            and not line.startswith("- id:")
+            and not line.startswith("  units:")
+            and not line.startswith("  link_rule:")
+            and not line.startswith("  length_hint:")
+            and not line.startswith("  numbering:")
+            and not line.startswith("weekly_topic_similarity:")
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    legacy_types = PostTypes(root)
+    slot = ResolvedSlot(slot_id="legacy", type="marketing-post", format="short-tip")
+
+    assert legacy_types.spec("marketing-post").formats == []
+    assert legacy_types.format(slot) is None
+    assert mix_pipeline(legacy_types)._assign_marketing_mix([SlotState(slot=slot)]) == []
 
 
 def test_brand_voice_has_no_placeholder_or_numeric_firm_figures():
@@ -172,3 +226,53 @@ def test_brand_voice_has_no_placeholder_or_numeric_firm_figures():
     assert "Sentinel Grove" not in text
     assert all(not re.search(r"\b\d+\b", statement) for statement in RULES.approved_stats.values())
     assert RULES.brand_name == "SanadSquad"
+
+
+def test_marketing_requires_a_cited_fetched_web_source_even_with_a_stat_or_kb():
+    draft = Draft(
+        slot_id="marketing",
+        tweets=[
+            Tweet(text="Security review covers the whole attack surface.", source_ids=["STAT-01"])
+        ],
+    )
+    sources = [
+        *pack().sources,
+        SourceRecord(
+            source_id="STAT-01",
+            kind="stat",
+            title="Service statement",
+            evidence_text="Security review covers the whole attack surface.",
+        ),
+    ]
+    result = validate(
+        draft,
+        ResearchPack(
+            slot_id="marketing", topic_id="ANGLE-web3-security", topic_name="web3", sources=sources
+        ),
+        SPEC,
+        RULES,
+        format=next(format for format in SPEC.formats if format.id == "short-tip"),
+    )
+
+    assert "marketing_web_citation_required" in result.violations
+
+
+@pytest.mark.parametrize(
+    "text,allowed,expected",
+    [
+        ("Book a review. DM us.", True, ["marketing_cta_limit:2"]),
+        ("Check your approvals before signing.", False, []),
+        ("Contact us for a review.", False, ["weekly_mix_cta_not_allowed"]),
+    ],
+)
+def test_ctas_are_data_driven_and_counted_across_one_post(text, allowed, expected):
+    result = validate(
+        Draft(slot_id="marketing", tweets=[Tweet(text=text, source_ids=["WEB-abcd"])]),
+        pack(),
+        SPEC,
+        RULES,
+        cta_allowed=allowed,
+        ai_policy_root=ROOT,
+    )
+
+    assert [value for value in result.violations if "cta" in value] == expected

@@ -180,8 +180,13 @@ class ResearchAgent(Agent):
             if not slot.service_line:
                 raise ModelFailure("failed_research", "marketing_service_line_missing")
             if self.searcher.registry is None:
-                self.searcher.registry = load_sources(local_file(self.root, "inputs/sources.json"))
-            self.searcher.allowed_domains = self.searcher.registry.domains_for(slot.service_line)
+                sources = self.root / "inputs/sources.json"
+                if sources.is_file():
+                    self.searcher.registry = load_sources(sources)
+            if self.searcher.registry is not None:
+                self.searcher.allowed_domains = self.searcher.registry.domains_for(
+                    slot.service_line
+                )
             self.searcher.service_line = slot.service_line
 
         assigned = None if marketing else self.types.assigned_pack(slot, self.kb)

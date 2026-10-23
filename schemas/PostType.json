@@ -235,6 +235,13 @@
       },
       "title": "Formats",
       "type": "array"
+    },
+    "weekly_topic_similarity": {
+      "default": 0.6,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Weekly Topic Similarity",
+      "type": "number"
     }
   },
   "required": [

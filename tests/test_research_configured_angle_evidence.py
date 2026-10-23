@@ -51,7 +51,7 @@ async def test_configured_vulnerability_angle_merges_web_and_kb_evidence_with_wr
         {
             "education": {
                 "writer_text": "Agent tools need restrictions before they can spend.",
-                "writer_source_ids": ["SS-03699"],
+                "writer_source_ids": ["SS-03699", "WEB-8693fe686cbfdb80"],
             }
         }
     )

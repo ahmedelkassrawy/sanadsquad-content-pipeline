@@ -19,11 +19,12 @@ def rules():
 
 def check(text: str, rules: BrandRules, post_type="marketing-post"):
     spec = load_type(ROOT, post_type)
+    source_id = "WEB-abcdef12" if post_type == "marketing-post" else "SS-01"
     draft = Draft(
         slot_id="s9",
-        tweets=[Tweet(text=text, source_ids=["SS-01"])]
+        tweets=[Tweet(text=text, source_ids=[source_id])]
         + [
-            Tweet(text="Update state before external calls.", source_ids=["SS-01"])
+            Tweet(text="Update state before external calls.", source_ids=[source_id])
             for _ in range(spec.units.min - 1)
         ],
     )
@@ -33,13 +34,14 @@ def check(text: str, rules: BrandRules, post_type="marketing-post"):
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="SS-01",
-                kind="kb",
+                source_id=source_id,
+                kind="web" if post_type == "marketing-post" else "kb",
+                url="https://example.com/evidence" if post_type == "marketing-post" else None,
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is finalized.",
             )
         ],
-        kb_allowed=True,
+        kb_allowed=post_type != "marketing-post",
     )
     return validate(draft, pack, spec, rules)
 
@@ -74,6 +76,36 @@ def test_protected_url_is_not_rewritten(rules):
     assert result.normalized.tweets[0].text == "See https://example.com/non\u2011breaking"
     assert not result.accepted
     assert "tweet_1:banned_character:\u2011" in result.violations
+
+
+@pytest.mark.parametrize("text", ["word \u2014 word", "word, \u2014 word", "word \u2014, word"])
+def test_em_dash_is_rejected_at_punctuation_boundaries(rules, text):
+    result = check(text, rules)
+
+    assert "ai_text:em_dash" in result.violations
+    assert result.normalized.tweets[0].text == text
+
+
+@pytest.mark.parametrize(
+    "text,violation",
+    [
+        ("https://example.com/a\u2014b", "ai_text:em_dash"),
+        ("See https://example.com/non\u2011breaking", "tweet_1:banned_character:\u2011"),
+    ],
+)
+def test_banned_characters_inside_urls_are_rejected_without_rewriting(rules, text, violation):
+    result = check(text, rules)
+
+    assert violation in result.violations
+    assert result.normalized.tweets[0].text == text
+
+
+@pytest.mark.parametrize("text", ["\u2014", "\u2013", "\u201c\u201d"])
+def test_rejected_banned_characters_cannot_become_empty_content(rules, text):
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert result.normalized.tweets[0].text == text
 
 
 def test_whitespace_and_markdown_fixes_remain_available(rules):

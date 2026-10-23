@@ -4,7 +4,7 @@ import json
 import re
 import shutil
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, TypedDict
 from uuid import uuid4
@@ -322,6 +322,7 @@ def snapshot(root, run_dir, slots, settings):
         "inputs/sources.json",
         "inputs/ai-vocabulary.txt",
         "inputs/ai-constructions.yaml",
+        "inputs/marketing-cta.yaml",
     ]:
         source = local_file(root, name)
         destination = target / name
@@ -864,12 +865,13 @@ class Pipeline:
         formats = {format.id: format for format in spec.formats}
         order = [id for id in MARKETING_FORMAT_ORDER if id in formats]
         order += [id for id in formats if id not in order]
+        # Snapshots written before marketing formats retain the original one-unit behaviour.
+        # They have no marketing-rules/sources files and must remain resumable.
         if not order:
-            raise ValueError("marketing-post needs a format table")
+            return []
 
         warnings = []
         services = {}
-        topics = set()
         format_counts = {}
 
         for index, state in enumerate(marketing):
@@ -885,37 +887,19 @@ class Pipeline:
                 angle.service_line if angle else None
             )
 
-            if state.slot.topic_id in topics:
-                state.outcome = SlotOutcome.failed_research
-                state.reasons = ["weekly_mix_similar_topic"]
-                warnings.append("weekly_mix_drop_similar:" + state.slot.slot_id)
-                continue
-            topics.add(state.slot.topic_id)
-
             service_count = (
                 services.get(state.slot.service_line, 0) if state.slot.service_line else 0
             )
-            if service_count >= 2:
-                state.outcome = SlotOutcome.failed_research
-                state.reasons = ["weekly_mix_service_repeat"]
-                warnings.append("weekly_mix_drop_service:" + state.slot.slot_id)
-                continue
 
-            # The first occurrence uses the next unused format whenever possible. A second
-            # occurrence of a service is allowed only as the one news-reaction exception.
+            # Repeated services are provisionally shaped as news reactions. The fetched,
+            # dated evidence decides whether that exception actually applies below.
             preferred = "news-reaction" if service_count else order[index % len(order)]
             choices = [preferred] + [id for id in order if id != preferred]
-            format_id = next((id for id in choices if format_counts.get(id, 0) < 2), None)
+            format_id = next((id for id in choices if format_counts.get(id, 0) < 2), preferred)
             if format_id is None:
                 state.outcome = SlotOutcome.failed_research
                 state.reasons = ["weekly_mix_format_exhausted"]
                 warnings.append("weekly_mix_drop_format:" + state.slot.slot_id)
-                continue
-
-            if service_count and format_id != "news-reaction":
-                state.outcome = SlotOutcome.failed_research
-                state.reasons = ["weekly_mix_service_repeat"]
-                warnings.append("weekly_mix_drop_service:" + state.slot.slot_id)
                 continue
 
             state.slot.format = format_id
@@ -928,6 +912,110 @@ class Pipeline:
         for index, state in enumerate(viable):
             state.slot.cta_allowed = index < cta_slots
 
+        return warnings
+
+    @staticmethod
+    def _topic_terms(state):
+        text = " ".join(
+            value
+            for value in [state.slot.focus, state.pack.topic_name if state.pack else None]
+            if value
+        ).casefold()
+        return set(re.findall(r"[a-z0-9]{3,}", text))
+
+    @staticmethod
+    def _current_news(state):
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        return any(
+            source.kind == "web"
+            and source.status == "ok"
+            and source.published_at is not None
+            and source.published_at >= cutoff
+            for source in (state.pack.sources if state.pack else [])
+        )
+
+    def _enforce_marketing_mix(self, states, phase):
+        """Check the viable/shipped set and fail only the latest offending marketing slot."""
+        marketing = [
+            state
+            for state in states
+            if state.slot.type == "marketing-post"
+            and state.pack is not None
+            and (
+                phase == "viable"
+                and state.outcome is None
+                or phase == "shipped"
+                and state.outcome == SlotOutcome.shipped
+            )
+        ]
+        if not marketing:
+            return []
+
+        spec = self.types.spec("marketing-post")
+        warnings = []
+        services = {}
+        topics = []
+        formats = {}
+
+        def verdict(state, rule, passed):
+            warnings.append(
+                f"weekly_mix:{phase}:{state.slot.slot_id}:{rule}:{'pass' if passed else 'fail'}"
+            )
+            if not passed:
+                state.outcome = SlotOutcome.failed_research
+                state.reasons = ["weekly_mix_" + rule]
+
+        for state in marketing:
+            terms = self._topic_terms(state)
+            similar = any(
+                terms
+                and earlier
+                and len(terms & earlier) / len(terms | earlier) >= spec.weekly_topic_similarity
+                for earlier in topics
+            )
+            verdict(state, "similar_topic", not similar)
+            if similar:
+                continue
+            topics.append(terms)
+
+            service = state.slot.service_line
+            repeat = service and service in services
+            news_ok = state.slot.format == "news-reaction" and self._current_news(state)
+            verdict(state, "service_repeat", not repeat or news_ok)
+            if repeat and not news_ok:
+                continue
+            if service:
+                services[service] = services.get(service, 0) + 1
+
+            count = formats.get(state.slot.format, 0)
+            verdict(state, "format_repeat", count < 2)
+            if count >= 2:
+                continue
+            formats[state.slot.format] = count + 1
+
+        surviving = [
+            state
+            for state in marketing
+            if state.outcome is None or phase == "shipped" and state.outcome == SlotOutcome.shipped
+        ]
+        if len(surviving) >= 2:
+            has_link = any(
+                state.slot.format in {"news-reaction", "learning-resource"} for state in surviving
+            )
+            has_no_link = any(state.slot.format == "short-tip" for state in surviving)
+            for state in surviving:
+                verdict(state, "link_diversity", has_link and has_no_link)
+                if not has_link or not has_no_link:
+                    break
+        else:
+            warnings.append(f"weekly_mix:{phase}:set:link_diversity:pass")
+
+        ctas = sum(state.slot.cta_allowed for state in surviving)
+        cta_ok = ctas <= max(1, len(surviving) // 3)
+        for state in surviving:
+            verdict(state, "cta_limit", cta_ok)
+            if not cta_ok:
+                break
         return warnings
 
     async def select(self, week):
@@ -1007,7 +1095,16 @@ class Pipeline:
             }
         )
 
-        self._save_resolved_plan(states, changed, warnings, accepted)
+        resolved_states = [
+            SlotState.model_validate(changed.get(state.slot.slot_id, state.model_dump(mode="json")))
+            for state in states
+        ]
+        warnings.extend(self._enforce_marketing_mix(resolved_states, "viable"))
+        changed.update(
+            {state.slot.slot_id: state.model_dump(mode="json") for state in resolved_states}
+        )
+
+        self._save_resolved_plan(resolved_states, changed, warnings, accepted)
 
         return {"slots": changed, "warnings": warnings}
 
@@ -1489,6 +1586,13 @@ class Pipeline:
     async def export(self, week):
         """Export shipped posts in plan order."""
         states = [SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
+        mix_warnings = self._enforce_marketing_mix(states, "shipped")
+        if mix_warnings:
+            path = self.context.run_dir / "plan.resolved.json"
+            if path.exists():
+                plan = json.loads(path.read_text(encoding="utf-8"))
+                plan["warnings"] = [*plan.get("warnings", []), *mix_warnings]
+                path.write_text(json.dumps(plan, indent=2), encoding="utf-8")
         accepted = []
 
         for state in states:
@@ -1508,7 +1612,7 @@ class Pipeline:
 
         export_posts(self.context.run_dir, accepted)
 
-        return {}
+        return {"slots": {state.slot.slot_id: state.model_dump(mode="json") for state in states}}
 
     async def _record_advice(self, status, reason, output, patch, input_hash, keep_saved=False):
         # With the advisor off there is no advice, so no empty advice files ship.

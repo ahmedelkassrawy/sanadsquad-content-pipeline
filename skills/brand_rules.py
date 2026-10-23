@@ -47,7 +47,7 @@ def check_brand(text: str, rules: BrandRules, pack: ResearchPack | None = None) 
     return errors
 
 
-def check_research_separation(draft, pack, spec) -> list[str]:
+def check_research_separation(draft, pack, spec, *, enforce_marketing_web=True) -> list[str]:
     """Enforce source separation after writing, independent of the prompt."""
     cited = {source_id for tweet in draft.tweets for source_id in tweet.source_ids}
     usable_kb = {
@@ -67,6 +67,11 @@ def check_research_separation(draft, pack, spec) -> list[str]:
                 return ["marketing_kb_source_required"]
             if not cited.intersection(usable_kb):
                 return ["marketing_kb_citation_required"]
+        if enforce_marketing_web:
+            if not usable_web:
+                return ["marketing_web_source_required"]
+            if not cited.intersection(usable_web):
+                return ["marketing_web_citation_required"]
     if spec.name == "tech-thread":
         if cited.intersection(usable_kb):
             return []

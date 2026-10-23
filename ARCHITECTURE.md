@@ -233,12 +233,15 @@ angles) and brand rules, each read once per run.
 ### Marketing formats and weekly mix
 
 `post_types/marketing-post/type.yaml` owns the format table: each format has its own unit range,
-link rule, length hint, and optional numbering. During topic selection, `Pipeline._assign_marketing_mix()`
-assigns a distinct format while formats remain, reserves one required-link and one forbidden-link shape,
-and records the selected format, service line, and CTA allowance in `plan.resolved.json` and `run.log`.
-A service line may repeat once only when the repeated slot is a news reaction; a further repeat or a
-duplicate resolved topic fails that slot before research, never the run. The validator enforces the
-selected format's units, links, numbering, at-most-one CTA, and planned CTA allowance after writing.
+link rule, length hint, optional numbering, and the data-loaded topic-overlap threshold. Planning assigns
+the shapes and CTA allowance; after research, and again immediately before export, the viable/shipped
+marketing set is checked explicitly. The run log records every pass/fail verdict with its slot. Similar
+topics use normalized token overlap, and a repeated service line is allowed only for a news reaction with
+a successfully fetched web source that has a publish date within seven days. The link/no-link diversity
+rule applies only when at least two slots are viable. A failure drops only the latest offending slot,
+never the whole run. CTA patterns are data-loaded from `inputs/marketing-cta.yaml` and are counted over
+the whole piece. Pre-format snapshots with no format table or later marketing inputs retain their original
+one-unit behavior when resumed.
 
 ### Records, budget and retries
 
