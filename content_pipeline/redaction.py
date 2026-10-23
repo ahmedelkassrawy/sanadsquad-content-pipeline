@@ -24,7 +24,11 @@ def load_redacted_names(
     """Load KB protocol variants and operator-supplied names once per file set."""
     data = json.loads(kb_path.read_text(encoding="utf-8"))
     entries = data.get("findings", data.get("entries", []))
-    names = [variant for entry in entries for variant in name_variants(entry["protocol"])]
+    names = [
+        variant
+        for entry in entries
+        for variant in name_variants(entry.get("protocol", ""))
+    ]
 
     if extra_names_path.exists():
         names.extend(

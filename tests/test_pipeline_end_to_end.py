@@ -102,7 +102,7 @@ class OfflineModels:
                     if source_id.startswith("STAT-")
                     else (
                         f"Read {payload['research']['sources'][0]['url']} for source evidence."
-                        if (payload.get("format") or {}).get("link_rule") == "required"
+                        if payload["research"]["sources"][0].get("url")
                         else "Source evidence supports this topic."
                     )
                 )
@@ -643,10 +643,10 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
 
 
 async def test_topic_pool_exhaustion_is_slot_local(tmp_path):
-    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(4)]
+    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(6)]
     summary = await run(tmp_path, OfflineModels(), slots)
     assert summary.shipped == 3
-    assert summary.slots["marketing_3"].outcome.value == "failed_research"
+    assert summary.slots["marketing_5"].outcome.value == "failed_research"
 
 
 @pytest.mark.parametrize("slot_id", ["../escape", "C:escape", "CON", "unsafe/name"])
