@@ -985,6 +985,7 @@ class Pipeline:
             research=state.pack,
             post_type=self.types.spec(state.slot.type),
             max_tweet_chars=self.context.settings.max_tweet_chars,
+            ai_policy_sha256=ai_text.policy_digest(self.root),
         )
 
     async def validation(self, raw):
@@ -1003,6 +1004,7 @@ class Pipeline:
             self.rules,
             self.context.settings.max_tweet_chars,
             state.slot.focus,
+            self.root,
         )
 
         state.audit = DraftAudit(

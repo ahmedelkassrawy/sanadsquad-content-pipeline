@@ -16,9 +16,10 @@ from pathlib import Path
 
 import pytest
 
-from content_pipeline.ai_text import check_ai_text, sentence_length_stats
+from content_pipeline.ai_text import check_ai_text, policy_digest, sentence_length_stats
 from content_pipeline.config import load_brand, load_type
 from content_pipeline.models import BrandRules, Draft, ResearchPack, SourceRecord, Tweet
+from content_pipeline.stage_replay import ValidationInput
 from content_pipeline.validation import validate
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -168,7 +169,16 @@ class TestBannedWords:
         We instead verify the positive case still works.
         """
         # 'leverage' as a standalone word should be caught
-        assert "ai_text:banned_word:leverage" in check_ai_text("leverage is the key.")
+        violations = check_ai_text("The leverages and understatement are unrelated terms.")
+        assert "ai_text:banned_word:leverage" not in violations
+        assert "ai_text:banned_word:underscore" not in violations
+
+    def test_code_spans_and_urls_are_not_lexical_prose(self):
+        violations = check_ai_text(
+            "Use `leverage` as the local variable. https://example.com/robust/details"
+        )
+        assert "ai_text:banned_word:leverage" not in violations
+        assert "ai_text:banned_word:robust" not in violations
 
     def test_unrelated_word_not_flagged(self):
         assert not any(
@@ -228,10 +238,10 @@ class TestFillerOpener:
             "External calls can reenter before state is updated."
         )
 
-    def test_filler_opener_not_at_start_not_flagged(self):
-        """Filler phrase in a later line is not the opener."""
+    def test_filler_opener_in_later_tweet_is_flagged(self):
+        """Every tweet has its own opening, not only the first tweet."""
         text = "First tweet.\nIn today's fast-paced world, security matters."
-        assert "ai_text:filler_opener" not in check_ai_text(text)
+        assert "ai_text:filler_opener" in check_ai_text(text)
 
 
 class TestRuleOfThree:
@@ -275,6 +285,10 @@ class TestHedgingDensity:
         payload = hedge_violations[0].split(":", 2)[2]
         assert ">" in payload
 
+    def test_mid_sentence_month_may_is_not_a_hedge(self):
+        violations = check_ai_text("The patch shipped in May after the audit.")
+        assert not any(v.startswith("ai_text:hedging_density:") for v in violations)
+
 
 # ===========================================================================
 # Part A: sentence_length_stats()
@@ -301,6 +315,54 @@ class TestSentenceLengthStats:
     def test_returns_dict_with_required_keys(self):
         stats = sentence_length_stats("Hello world.")
         assert set(stats.keys()) == {"count", "mean", "stdev"}
+
+    def test_newlines_are_sentence_boundaries(self):
+        stats = sentence_length_stats("One short tweet\nA second longer tweet")
+        assert stats["count"] == 2
+
+
+class TestEmojiPresentation:
+    @pytest.mark.parametrize("symbol", ["™", "✓", "⌘", "⌨"])
+    def test_text_symbols_are_not_emoji(self, symbol):
+        assert "ai_text:emoji" not in check_ai_text(f"Use {symbol} in technical prose.")
+
+    @pytest.mark.parametrize("emoji", ["🚀", "✅"])
+    def test_emoji_presentation_is_rejected(self, emoji):
+        assert "ai_text:emoji" in check_ai_text(f"Ship {emoji} now.")
+
+
+class TestSnapshotPolicy:
+    def test_policy_root_controls_validation_and_replay_identity(self, tmp_path):
+        inputs = tmp_path / "inputs"
+        inputs.mkdir()
+        vocabulary = inputs / "ai-vocabulary.txt"
+        constructions = inputs / "ai-constructions.yaml"
+        vocabulary.write_text("snapshot-only\n", encoding="utf-8")
+        constructions.write_text(
+            (ROOT / "inputs/ai-constructions.yaml").read_text(encoding="utf-8"), encoding="utf-8"
+        )
+
+        result = validate(
+            Draft(
+                slot_id="s1", tweets=[Tweet(text="snapshot-only wording", source_ids=["SS-03699"])]
+            ),
+            _pack(),
+            load_type(ROOT, "marketing-post"),
+            _rules(),
+            ai_policy_root=tmp_path,
+        )
+
+        assert "ai_text:banned_word:snapshot-only" in result.violations
+        digest = policy_digest(tmp_path)
+        assert digest is not None
+        replay_input = ValidationInput(
+            draft=result.original,
+            research=_pack(),
+            post_type=load_type(ROOT, "marketing-post"),
+            max_tweet_chars=280,
+            ai_policy_sha256=digest,
+        )
+        assert replay_input.ai_policy_sha256 == digest
 
 
 # ===========================================================================
