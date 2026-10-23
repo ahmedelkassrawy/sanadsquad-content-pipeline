@@ -8,6 +8,7 @@ import pytest
 from content_pipeline.config import load_brand, load_type
 from content_pipeline.models import Draft, ResearchPack, ResolvedSlot, SourceRecord, Tweet
 from content_pipeline.redaction import (
+    kb_protocol_name_violations,
     load_redacted_names,
     redact_kb_text,
     redact_writer_material,
@@ -218,3 +219,9 @@ def test_kb_json_has_no_replacement_characters():
                 yield from strings(item)
 
     assert all("\ufffd" not in value for value in strings(data))
+
+
+def test_url_slug_flags_only_the_protocol_it_names():
+    violations = kb_protocol_name_violations("See https://x.org/privacy-cash/post today.")
+
+    assert violations == ["kb_protocol_name:Privacy Cash"]

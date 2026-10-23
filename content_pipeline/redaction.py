@@ -116,7 +116,7 @@ def kb_protocol_name_violations(text: str, root: Path | None = None) -> list[str
         f"kb_protocol_name:{name}"
         for name in names
         if _name_pattern(name).search(text)
-        or any(_url_contains_name(url, names) for url in _URL.findall(text))
+        or any(_url_contains_name(url, (name,)) for url in _URL.findall(text))
     ]
 
 
