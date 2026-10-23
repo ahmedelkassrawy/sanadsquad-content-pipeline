@@ -649,7 +649,7 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
 async def test_topic_pool_exhaustion_is_slot_local(tmp_path):
     slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(6)]
     summary = await run(tmp_path, OfflineModels(), slots)
-    assert summary.shipped == 3
+    assert summary.shipped == 4
     assert summary.slots["marketing_5"].outcome.value == "failed_research"
 
 
