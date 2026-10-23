@@ -100,6 +100,19 @@
           "default": true,
           "title": "Cta Allowed",
           "type": "boolean"
+        },
+        "marketing_week": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-W(?:0[1-9]|[1-4]\\d|5[0-3])$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Marketing Week"
         }
       },
       "required": [

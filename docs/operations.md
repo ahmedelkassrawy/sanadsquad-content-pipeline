@@ -21,6 +21,8 @@ current folder. Run from the repo root, with the venv Python:
 & .\.venv\Scripts\python.exe run_piece.py --type tech-thread --topic "reentrancy"
 ```
 
+For a reproducible marketing-format rotation, set an optional top-level `week` in the plan, such as `"week": "2026-W42"`; otherwise the run records its current ISO week and reuses it on resume.
+
 With one `OPENROUTER_API_KEY` only, add
 `--model-override openrouter:openai/gpt-4.1-mini`.
 

@@ -155,6 +155,13 @@
           "title": "Formats",
           "type": "array"
         },
+        "format_order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Format Order",
+          "type": "array"
+        },
         "weekly_topic_similarity": {
           "default": 0.6,
           "maximum": 1,

@@ -34,6 +34,8 @@ class Angle(Contract):
     seed_query: StrictStr | None = None
     kb_allowed: bool = False
     subject: StrictStr | None = None
+    # A format that best serves this angle, used if it does not break the weekly limits.
+    preferred_format: StrictStr | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
@@ -286,6 +288,7 @@ class ResolvedPlan(Trace):
     warnings: list[str]
     # slot id -> the model's one-line reason, only for picks that code accepted as proposed.
     topic_reasons: dict[str, str] = Field(default_factory=dict)
+    marketing_week: str | None = None
 
 
 class ExternalUsage(Contract):
@@ -408,3 +411,5 @@ class RunIdentity(Contract):
     thread_id: str
     run_id: str
     snapshot_files: dict[str, str]
+    # None is a run saved before weekly marketing rotation; it retains offset zero on resume.
+    marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")

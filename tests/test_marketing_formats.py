@@ -1,5 +1,6 @@
 """Task M coverage for data-loaded marketing formats and the weekly mix."""
 
+import json
 import re
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -7,9 +8,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
 from content_pipeline.config import load_brand, load_type
-from content_pipeline.contracts import Angle, SlotState
+from content_pipeline.contracts import Angle, RunIdentity, SlotState
 from content_pipeline.models import (
     Draft,
     ResolvedSlot,
@@ -110,9 +112,17 @@ def states(*topic_ids):
     ]
 
 
-def mix_pipeline(types=None):
+def mix_pipeline(types=None, week="2024-W02"):
     pipeline = Pipeline.__new__(Pipeline)
     pipeline.types = types or PostTypes(ROOT)
+    pipeline.context = SimpleNamespace(
+        identity=RunIdentity(
+            thread_id="test-thread",
+            run_id="test-run",
+            snapshot_files={},
+            marketing_week=week,
+        )
+    )
     return pipeline
 
 
@@ -127,6 +137,67 @@ def test_weekly_mix_assigns_different_formats_and_both_link_shapes():
         "differentiation",
     ]
     assert [slot.slot.cta_allowed for slot in slots] == [True, False, False]
+
+
+def assigned_formats(week, *topic_ids):
+    slots = states(*topic_ids)
+    mix_pipeline(week=week)._assign_marketing_mix(slots)
+    return [slot.slot.format for slot in slots]
+
+
+def test_marketing_format_rotation_is_deterministic_and_saved_with_the_run_week():
+    topics = ("ANGLE-web3-security", "ANGLE-pentesting", "ANGLE-agentic-security")
+    first_week = assigned_formats("2026-W01", *topics)
+    next_week = assigned_formats("2026-W02", *topics)
+
+    assert first_week != next_week
+    assert assigned_formats("2026-W01", *topics) == first_week
+
+    resumed_identity = RunIdentity.model_validate_json(
+        json.dumps(
+            RunIdentity(
+                thread_id="test-thread",
+                run_id="test-run",
+                snapshot_files={},
+                marketing_week="2026-W01",
+            ).model_dump()
+        )
+    )
+    resumed = mix_pipeline(week=resumed_identity.marketing_week)
+    resumed_slots = states(*topics)
+    resumed._assign_marketing_mix(resumed_slots)
+
+    assert [slot.slot.format for slot in resumed_slots] == first_week
+
+
+@pytest.mark.parametrize("week", [f"2026-W{number:02d}" for number in range(1, 7)])
+@pytest.mark.parametrize("count", [2, 3])
+def test_every_rotation_offset_preserves_required_and_forbidden_link_shapes(week, count):
+    formats = assigned_formats(
+        week,
+        *("ANGLE-web3-security", "ANGLE-pentesting", "ANGLE-agentic-security")[:count],
+    )
+    by_id = {format.id: format for format in SPEC.formats}
+
+    assert any(by_id[format].link_rule == "required" for format in formats)
+    assert any(by_id[format].link_rule == "forbidden" for format in formats)
+
+
+def test_agentic_payments_prefers_the_thread_format():
+    assert assigned_formats("2026-W01", "ANGLE-agentic-payments") == ["thread"]
+
+
+def test_unknown_format_order_id_fails_when_the_type_loads(tmp_path):
+    root = tmp_path / "invalid-format-order"
+    shutil.copytree(ROOT / "post_types", root / "post_types")
+    shutil.copytree(ROOT / "agents", root / "agents")
+    path = root / "post_types/marketing-post/type.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data["format_order"] = ["short-tip", "not-a-format"]
+    path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unknown marketing format in format_order"):
+        load_type(root, "marketing-post")
 
 
 def test_weekly_mix_allows_one_service_repeat_only_as_news_reaction():
@@ -198,33 +269,32 @@ def test_weekly_mix_allows_a_repeated_service_only_with_recent_dated_news():
     assert any("m2:service_repeat:pass" in warning for warning in warnings)
 
 
-def test_interrupted_legacy_marketing_snapshot_without_later_inputs_keeps_legacy_format(tmp_path):
-    """A pre-format snapshot resumes with its old one-unit marketing contract."""
+def test_legacy_snapshot_without_format_order_keeps_the_original_offset_zero_behavior(tmp_path):
+    """A snapshot before format_order resumes its original hard-coded order at offset zero."""
     root = tmp_path / "legacy_marketing_snapshot"
     shutil.copytree(ROOT / "post_types", root / "post_types")
     shutil.copytree(ROOT / "agents", root / "agents")
+    shutil.copytree(ROOT / "inputs", root / "inputs")
     type_path = root / "post_types/marketing-post/type.yaml"
-    type_path.write_text(
-        "\n".join(
-            line
-            for line in type_path.read_text(encoding="utf-8").splitlines()
-            if not line.startswith("formats:")
-            and not line.startswith("- id:")
-            and not line.startswith("  units:")
-            and not line.startswith("  link_rule:")
-            and not line.startswith("  length_hint:")
-            and not line.startswith("  numbering:")
-            and not line.startswith("weekly_topic_similarity:")
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    data = yaml.safe_load(type_path.read_text(encoding="utf-8"))
+    data.pop("format_order")
+    type_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
     legacy_types = PostTypes(root)
-    slot = ResolvedSlot(slot_id="legacy", type="marketing-post", format="short-tip")
+    slots = [
+        SlotState(
+            slot=ResolvedSlot(slot_id=f"legacy-{index}", type="marketing-post", topic_id=topic)
+        )
+        for index, topic in enumerate(
+            ("ANGLE-web3-security", "ANGLE-pentesting", "ANGLE-agentic-security"), 1
+        )
+    ]
 
-    assert legacy_types.spec("marketing-post").formats == []
-    assert legacy_types.format(slot) is None
-    assert mix_pipeline(legacy_types)._assign_marketing_mix([SlotState(slot=slot)]) == []
+    assert mix_pipeline(legacy_types, week=None)._assign_marketing_mix(slots) == []
+    assert [state.slot.format for state in slots] == [
+        "short-tip",
+        "learning-resource",
+        "differentiation",
+    ]
 
 
 def test_brand_voice_has_no_placeholder_or_numeric_firm_figures():

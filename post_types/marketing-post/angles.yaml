@@ -33,6 +33,7 @@ angles:
   stat_ids:
   - STAT-04
   - STAT-05
+  preferred_format: thread
 - id: ANGLE-vulnerability-class
   name: vulnerability-class
   subject: vulnerability-class

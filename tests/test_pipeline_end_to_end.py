@@ -127,7 +127,9 @@ class OfflineModels:
                     "attempt": attempt,
                     "tweets": [
                         {"text": text, "source_ids": source_ids}
-                        for _ in range(payload["post_type"]["units"]["min"])
+                        for _ in range(
+                            (payload.get("format") or payload["post_type"])["units"]["min"]
+                        )
                     ],
                 }
             elif schema.__name__ == "ReviewAssessment":

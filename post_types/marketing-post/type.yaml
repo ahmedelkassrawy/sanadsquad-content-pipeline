@@ -44,6 +44,13 @@ formats:
   link_rule: optional
   length_hint: A concise comparison or argument that needs steps.
   numbering: true
+format_order:
+- short-tip
+- learning-resource
+- differentiation
+- service-overview
+- thread
+- news-reaction
 weekly_topic_similarity: 0.6
 # Whole-post credibility guards. Other post types leave these unset.
 max_approved_stats: 2

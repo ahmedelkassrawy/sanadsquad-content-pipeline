@@ -104,14 +104,29 @@ def load_angles(root: Path, spec: PostType):
         if configured_sources - kb_ids:
             raise ValueError("angle evidence references an unknown knowledge-base source")
 
+    format_ids = {format.id for format in spec.formats}
+    unknown_preferences = {
+        angle.preferred_format
+        for angle in angles
+        if angle.preferred_format is not None and angle.preferred_format not in format_ids
+    }
+    if unknown_preferences:
+        raise ValueError("angle preferred_format references an unknown marketing format")
+
     return angles
 
 
 def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
-    slots = [
-        ResolvedSlot.model_validate(x)
-        for x in json.loads(path.read_text(encoding="utf-8"))["slots"]
-    ]
+    plan = json.loads(path.read_text(encoding="utf-8"))
+    week = plan.get("week")
+    slots = []
+    for raw_slot in plan["slots"]:
+        slot = ResolvedSlot.model_validate(raw_slot)
+        if week is not None:
+            if slot.marketing_week is not None and slot.marketing_week != week:
+                raise ValueError("plan week conflicts with slot marketing_week")
+            slot.marketing_week = week
+        slots.append(slot)
 
     if not slots or len({s.slot_id for s in slots}) != len(slots):
         raise ValueError("plan needs unique slots")

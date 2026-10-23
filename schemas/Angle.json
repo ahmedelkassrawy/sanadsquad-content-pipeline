@@ -98,6 +98,18 @@
       ],
       "default": null,
       "title": "Subject"
+    },
+    "preferred_format": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Preferred Format"
     }
   },
   "required": [

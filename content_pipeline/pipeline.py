@@ -83,14 +83,6 @@ from .stage_replay import (
 MAX_CONTENT_ATTEMPTS = 2
 HISTORY_RUN_LIMIT = 4
 TOPIC_REASON_LIMIT = 200
-MARKETING_FORMAT_ORDER = (
-    "short-tip",
-    "learning-resource",
-    "differentiation",
-    "service-overview",
-    "thread",
-    "news-reaction",
-)
 ESTIMATED_INPUT_TOKENS = 16000
 ESTIMATED_OUTPUT_MULTIPLIER = 1.5
 ESTIMATED_CALL_ALLOWANCE = 8
@@ -367,6 +359,18 @@ def snapshot(root, run_dir, slots, settings):
     )
 
     return target
+
+
+def marketing_week(slots):
+    """Resolve one immutable ISO week for a new run from its optional plan override."""
+    configured = {slot.marketing_week for slot in slots if slot.marketing_week is not None}
+    if len(configured) > 1:
+        raise ValueError("plan needs one marketing week")
+    if configured:
+        return configured.pop()
+
+    year, week, _ = datetime.now(timezone.utc).isocalendar()
+    return f"{year:04d}-W{week:02d}"
 
 
 def _snapshot_files(types, slots):
@@ -822,6 +826,7 @@ class Pipeline:
             slots=resolved,
             warnings=warnings,
             topic_reasons=reasons,
+            marketing_week=self.context.identity.marketing_week if self.context.identity else None,
         )
 
         (self.context.run_dir / "plan.resolved.json").write_text(
@@ -865,16 +870,29 @@ class Pipeline:
 
         spec = self.types.spec("marketing-post")
         formats = {format.id: format for format in spec.formats}
-        order = [id for id in MARKETING_FORMAT_ORDER if id in formats]
-        order += [id for id in formats if id not in order]
-        # Snapshots written before marketing formats retain the original one-unit behaviour.
-        # They have no marketing-rules/sources files and must remain resumable.
+        # Snapshots written before this field retain the original selection order and offset.
+        # The literal is intentionally local: current configuration is wholly data-loaded.
+        order = spec.format_order or [
+            "short-tip",
+            "learning-resource",
+            "differentiation",
+            "service-overview",
+            "thread",
+            "news-reaction",
+        ]
+        order = [format_id for format_id in order if format_id in formats]
         if not order:
             return []
 
         warnings = []
         services = {}
         format_counts = {}
+        saved_week = self.context.identity.marketing_week if self.context.identity else None
+        if saved_week is None:
+            offset = 0
+        else:
+            year, week = (int(part) for part in saved_week.replace("-W", "-").split("-"))
+            offset = (year * 53 + week) % len(order)
 
         for index, state in enumerate(marketing):
             angle = next(
@@ -895,7 +913,13 @@ class Pipeline:
 
             # Repeated services are provisionally shaped as news reactions. The fetched,
             # dated evidence decides whether that exception actually applies below.
-            preferred = "news-reaction" if service_count else order[index % len(order)]
+            preferred = (
+                "news-reaction"
+                if service_count
+                else angle.preferred_format
+                if angle and angle.preferred_format
+                else order[(offset + index) % len(order)]
+            )
             choices = [preferred] + [id for id in order if id != preferred]
             format_id = next((id for id in choices if format_counts.get(id, 0) < 2), preferred)
             if format_id is None:
@@ -910,6 +934,51 @@ class Pipeline:
                 services[state.slot.service_line] = service_count + 1
 
         viable = [state for state in marketing if not state.outcome]
+        if len(viable) >= 2:
+
+            def has_link_rule(rule):
+                return any(formats[state.slot.format].link_rule == rule for state in viable)
+
+            def adjust(rule, format_id):
+                if has_link_rule(rule):
+                    return
+                other_rule = "forbidden" if rule == "required" else "required"
+                for state in reversed(viable):
+                    current = state.slot.format
+                    # A news reaction may be the only format that makes a repeated service
+                    # eligible for its existing current-news exception below.
+                    if (
+                        current == format_id
+                        or current == "news-reaction"
+                        or format_counts.get(format_id, 0) >= 2
+                    ):
+                        continue
+                    if (
+                        formats[current].link_rule == other_rule
+                        and sum(
+                            formats[other.slot.format].link_rule == other_rule for other in viable
+                        )
+                        == 1
+                    ):
+                        continue
+                    format_counts[current] -= 1
+                    format_counts[format_id] = format_counts.get(format_id, 0) + 1
+                    state.slot.format = format_id
+                    warnings.append(
+                        f"weekly_mix:planning:{state.slot.slot_id}:link_diversity_adjusted:{format_id}"
+                    )
+                    return
+                raise ValueError("marketing formats cannot satisfy link diversity")
+
+            adjust(
+                "required",
+                next(format.id for format in spec.formats if format.link_rule == "required"),
+            )
+            adjust(
+                "forbidden",
+                next(format.id for format in spec.formats if format.link_rule == "forbidden"),
+            )
+
         cta_slots = max(1, len(viable) // 3)
         for index, state in enumerate(viable):
             state.slot.cta_allowed = index < cta_slots
@@ -1900,6 +1969,7 @@ def _initialize_new_run(root, run_dir, slots, settings):
         thread_id=uuid4().hex,
         run_id=run_dir.name,
         snapshot_files=snapshot_hashes(snapshot_root),
+        marketing_week=marketing_week(slots),
     )
 
     atomic_json(run_dir / "run_identity.json", identity.model_dump())

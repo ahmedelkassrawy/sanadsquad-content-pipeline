@@ -59,6 +59,8 @@ class ResolvedSlot(Contract):
     format: str | None = None
     service_line: str | None = None
     cta_allowed: bool = True
+    # Set from a plan's optional top-level `week` and copied into snapshots for operators.
+    marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")
 
 
 class SourceRecord(Contract):
@@ -263,6 +265,9 @@ class PostType(Contract):
     closing_styles: list[str] = Field(default_factory=list)
     # Marketing uses this table to select the effective unit, link and numbering rules.
     formats: list[MarketingFormat] = Field(default_factory=list)
+    # Deliberately separate from `formats`: content can add a format without changing rotation.
+    # An absent value is the compatibility signal for pre-rotation snapshots.
+    format_order: list[str] = Field(default_factory=list)
     weekly_topic_similarity: float = Field(default=0.6, ge=0, le=1)
 
     @model_validator(mode="after")
@@ -272,6 +277,13 @@ class PostType(Contract):
 
         if len({format.id for format in self.formats}) != len(self.formats):
             raise ValueError("duplicate marketing format")
+
+        unknown_format_order = set(self.format_order) - {format.id for format in self.formats}
+        if unknown_format_order:
+            raise ValueError("unknown marketing format in format_order")
+
+        if len(self.format_order) != len(set(self.format_order)):
+            raise ValueError("duplicate marketing format in format_order")
 
         if self.formats and any(
             format.units.min < self.units.min or format.units.max > self.units.max
