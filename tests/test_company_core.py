@@ -30,8 +30,7 @@ def test_new_kb_schema_builds_ss_source_with_required_evidence():
     assert entry["protocol"] not in source.title
     assert entry["protocol"] not in source.evidence_text
     assert (
-        redact_kb_text(entry["content"]["description"], kb.redacted_names)
-        in source.evidence_text
+        redact_kb_text(entry["content"]["description"], kb.redacted_names) in source.evidence_text
     )
     assert (
         redact_kb_text(entry["content"]["recommendation"], kb.redacted_names)

@@ -331,7 +331,9 @@ def validated_files(source):
         ):
             raise ValueError("sample result mismatch")
 
-        suffix = {"pillow_card": ".png", "cloudflare_flux": ".png", "spec_json": ".json"}.get(final.image.backend)
+        suffix = {"pillow_card": ".png", "cloudflare_flux": ".png", "spec_json": ".json"}.get(
+            final.image.backend
+        )
 
         if suffix is None or post.image != f"images/slot-{post.slot_id}{suffix}":
             raise ValueError("unsafe sample image reference")

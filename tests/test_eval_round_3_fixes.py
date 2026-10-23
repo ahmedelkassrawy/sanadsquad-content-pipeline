@@ -144,15 +144,13 @@ async def test_research_failures_say_why():
 def test_natural_rewordings_of_a_joined_or_misbound_stat_are_caught():
     pack = stat_pack()
 
-    assert check_stat_claims(
-        "Example Firm completed 2 reviews and 4 assessments.", pack
-    ) == ["joined_stats:STAT-01+STAT-02"]
-    assert check_stat_claims(
-        "Example Firm completed two reviews and 4 assessments.", pack
-    ) == ["joined_stats:STAT-01+STAT-02"]
-    assert check_stat_claims("Example Firm has 4 reviewers.", pack) == [
-        "stat_misbound:4 reviewers"
+    assert check_stat_claims("Example Firm completed 2 reviews and 4 assessments.", pack) == [
+        "joined_stats:STAT-01+STAT-02"
     ]
+    assert check_stat_claims("Example Firm completed two reviews and 4 assessments.", pack) == [
+        "joined_stats:STAT-01+STAT-02"
+    ]
+    assert check_stat_claims("Example Firm has 4 reviewers.", pack) == ["stat_misbound:4 reviewers"]
 
 
 def test_reordered_or_linked_stat_numbers_are_not_false_positives():

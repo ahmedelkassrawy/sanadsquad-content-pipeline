@@ -35,7 +35,9 @@ def test_vulnerability_class_angle_does_not_select_retired_kb_candidates():
 
     # Marketing angle routing is service-line based; the one permitted KB source is declared,
     # not selected from a legacy pick-one KB list.
-    assert types.choose_angle_source(vulnerability_slot(), {"SS-03699", "ANGLE-web3-security"}) is None
+    assert (
+        types.choose_angle_source(vulnerability_slot(), {"SS-03699", "ANGLE-web3-security"}) is None
+    )
     assert types.choose_angle_source(vulnerability_slot(), set()) is None
 
 
