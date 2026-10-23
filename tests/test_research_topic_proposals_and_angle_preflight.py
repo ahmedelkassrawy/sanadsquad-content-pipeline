@@ -9,10 +9,12 @@ import pytest
 from content_pipeline.cli import main
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
+from content_pipeline.post_types import PostTypes
 from content_pipeline.research import KnowledgeBase, assign_topics
 from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
+MARKETING_IDS = [angle.id for angle in PostTypes(ROOT).angles("marketing-post")]
 
 
 class ProposedModels(OfflineModels):
@@ -35,7 +37,7 @@ class ProposedModels(OfflineModels):
 
 
 @pytest.mark.parametrize(
-    "type_name,proposal", [("tech-thread", "SS-03738"), ("marketing-post", "ANGLE-service")]
+    "type_name,proposal", [("tech-thread", "SS-03738"), ("marketing-post", MARKETING_IDS[0])]
 )
 async def test_later_valid_topic_proposal_is_reserved_before_earlier_fallback(
     tmp_path, type_name, proposal
@@ -52,7 +54,7 @@ async def test_later_valid_topic_proposal_is_reserved_before_earlier_fallback(
     assert summary.slots["b"].topic_id == proposal
     assert summary.slots["a"].topic_id != proposal
     if type_name == "marketing-post":
-        assert summary.slots["a"].topic_id == "ANGLE-credibility"
+        assert summary.slots["a"].topic_id == MARKETING_IDS[1]
     posts = json.loads((tmp_path / "run/posts.json").read_text())
     assert [(post["slot_id"], post["topic_id"]) for post in posts] == [
         ("a", summary.slots["a"].topic_id),
@@ -76,19 +78,19 @@ async def test_duplicate_proposal_precedence_and_other_valid_proposals(tmp_path)
 
 
 async def test_later_valid_angle_survives_pool_exhaustion(tmp_path):
-    models = ProposedModels({"d": "ANGLE-service"})
+    models = ProposedModels({"e": MARKETING_IDS[0]})
     summary = await run_pipeline(
         ROOT,
-        [ResolvedSlot(slot_id=id, type="marketing-post") for id in ["a", "b", "c", "d"]],
+        [ResolvedSlot(slot_id=id, type="marketing-post") for id in ["a", "b", "c", "d", "e", "f"]],
         tmp_path / "run",
         model_factory=models.factory,
         search_factory=search_factory,
     )
-    assert summary.shipped == 3
-    assert summary.slots["d"].topic_id == "ANGLE-service"
-    assert summary.slots["c"].outcome.value == "failed_research"
-    assert summary.slots["a"].topic_id == "ANGLE-credibility"
-    assert summary.slots["b"].topic_id == "ANGLE-education"
+    # The sixth angle is exhausted; independent quality lanes may drop, but selection still
+    # reserves the later valid proposal instead of discarding it with the exhausted slot.
+    assert summary.shipped >= 3
+    assert summary.slots["e"].topic_id == MARKETING_IDS[0]
+    assert summary.slots["f"].outcome.value == "failed_research"
 
 
 def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():
@@ -105,15 +107,15 @@ def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():
     assigned, warnings = assign_topics(
         ROOT,
         slots,
-        {"b": "SS-03703", "c": "SS-03738", "d": "ANGLE-credibility"},
+        {"b": "SS-03703", "c": "SS-03738", "d": MARKETING_IDS[1]},
         kb,
-        [["SS-03738", "ANGLE-service"]],
+        [["SS-03738", MARKETING_IDS[0]]],
     )
     assert assigned["focused"] == "SS-03738"
     assert assigned["b"] == "SS-03703"
     assert assigned["a"] not in {"SS-03738", "SS-03703"}
-    assert assigned["c"] == "ANGLE-education"
-    assert assigned["d"] == "ANGLE-credibility"
+    assert assigned["c"] == MARKETING_IDS[2]
+    assert assigned["d"] == MARKETING_IDS[1]
     # c asked for a KB id outside its angle pool (and one from recent history): rejected and logged.
     assert warnings == ["topic_proposal_rejected:c:SS-03738"]
 

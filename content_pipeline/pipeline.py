@@ -80,6 +80,14 @@ from .stage_replay import (
 MAX_CONTENT_ATTEMPTS = 2
 HISTORY_RUN_LIMIT = 4
 TOPIC_REASON_LIMIT = 200
+MARKETING_FORMAT_ORDER = (
+    "short-tip",
+    "learning-resource",
+    "differentiation",
+    "service-overview",
+    "thread",
+    "news-reaction",
+)
 ESTIMATED_INPUT_TOKENS = 16000
 ESTIMATED_OUTPUT_MULTIPLIER = 1.5
 ESTIMATED_CALL_ALLOWANCE = 8
@@ -308,6 +316,7 @@ def snapshot(root, run_dir, slots, settings):
 
     for name in [
         "inputs/brand-voice.md",
+        "inputs/marketing-rules.md",
         "inputs/kb.json",
         "inputs/sources.json",
         "inputs/ai-vocabulary.txt",
@@ -619,6 +628,11 @@ class Pipeline:
             atomic_json(self.context.run_dir / "external-usage.json", self.external.model_dump())
 
     def _research_request(self, slot):
+        if slot.type == "marketing-post":
+            slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
+            if not slot.service_line:
+                raise ModelFailure("failed_research", "marketing_service_line_missing")
+
         request = ResearchRequest(slot=slot, hints=self.types.hints(slot.type))
 
         return request
@@ -814,6 +828,89 @@ class Pipeline:
 
         return warnings
 
+    def _assign_marketing_mix(self, states):
+        """Assign the week's marketing shapes and reject only irreconcilable repeat slots.
+
+        Service and format diversity are planning decisions, before research and writing. Link
+        diversity follows from a forbidden-link short tip and required-link learning resource.
+        CTA allowance is also planned here, then enforced by validation in each independent lane.
+        """
+        marketing = [
+            state for state in states if not state.outcome and state.slot.type == "marketing-post"
+        ]
+        if not marketing:
+            return []
+
+        spec = self.types.spec("marketing-post")
+        formats = {format.id: format for format in spec.formats}
+        order = [id for id in MARKETING_FORMAT_ORDER if id in formats]
+        order += [id for id in formats if id not in order]
+        if not order:
+            raise ValueError("marketing-post needs a format table")
+
+        warnings = []
+        services = {}
+        topics = set()
+        format_counts = {}
+
+        for index, state in enumerate(marketing):
+            angle = next(
+                (
+                    angle
+                    for angle in self.types.angles("marketing-post")
+                    if angle.id == state.slot.topic_id
+                ),
+                None,
+            )
+            state.slot.service_line = state.slot.service_line or (
+                angle.service_line if angle else None
+            )
+
+            if state.slot.topic_id in topics:
+                state.outcome = SlotOutcome.failed_research
+                state.reasons = ["weekly_mix_similar_topic"]
+                warnings.append("weekly_mix_drop_similar:" + state.slot.slot_id)
+                continue
+            topics.add(state.slot.topic_id)
+
+            service_count = (
+                services.get(state.slot.service_line, 0) if state.slot.service_line else 0
+            )
+            if service_count >= 2:
+                state.outcome = SlotOutcome.failed_research
+                state.reasons = ["weekly_mix_service_repeat"]
+                warnings.append("weekly_mix_drop_service:" + state.slot.slot_id)
+                continue
+
+            # The first occurrence uses the next unused format whenever possible. A second
+            # occurrence of a service is allowed only as the one news-reaction exception.
+            preferred = "news-reaction" if service_count else order[index % len(order)]
+            choices = [preferred] + [id for id in order if id != preferred]
+            format_id = next((id for id in choices if format_counts.get(id, 0) < 2), None)
+            if format_id is None:
+                state.outcome = SlotOutcome.failed_research
+                state.reasons = ["weekly_mix_format_exhausted"]
+                warnings.append("weekly_mix_drop_format:" + state.slot.slot_id)
+                continue
+
+            if service_count and format_id != "news-reaction":
+                state.outcome = SlotOutcome.failed_research
+                state.reasons = ["weekly_mix_service_repeat"]
+                warnings.append("weekly_mix_drop_service:" + state.slot.slot_id)
+                continue
+
+            state.slot.format = format_id
+            format_counts[format_id] = format_counts.get(format_id, 0) + 1
+            if state.slot.service_line:
+                services[state.slot.service_line] = service_count + 1
+
+        viable = [state for state in marketing if not state.outcome]
+        cta_slots = max(1, len(viable) // 3)
+        for index, state in enumerate(viable):
+            state.slot.cta_allowed = index < cta_slots
+
+        return warnings
+
     async def select(self, week):
         """Assign remaining topics and research the resulting slots."""
         states = [SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
@@ -871,6 +968,7 @@ class Pipeline:
             else:
                 await self._record_topic_exhaustion(state)
 
+        warnings.extend(self._assign_marketing_mix(states))
         warnings.extend(self._choose_angle_sources(states))
 
         results = await asyncio.gather(
@@ -880,6 +978,15 @@ class Pipeline:
         results.extend(state.model_dump(mode="json") for state in empty if state.outcome)
 
         changed = {state["slot"]["slot_id"]: state for state in results}
+        # Format and CTA assignment also changes focused marketing slots, which did not pass
+        # through the research fan-out in this node.
+        changed.update(
+            {
+                state.slot.slot_id: state.model_dump(mode="json")
+                for state in states
+                if state.slot.focus
+            }
+        )
 
         self._save_resolved_plan(states, changed, warnings, accepted)
 
@@ -936,6 +1043,8 @@ class Pipeline:
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
             style=self.types.writing_style(state.slot, self.plan),
+            format=self.types.format(state.slot),
+            cta_allowed=state.slot.cta_allowed,
         )
 
         saved = self.replay.reuse(
@@ -972,6 +1081,8 @@ class Pipeline:
             research=state.pack,
             post_type=self.types.spec(state.slot.type),
             max_tweet_chars=self.context.settings.max_tweet_chars,
+            format=self.types.format(state.slot),
+            cta_allowed=state.slot.cta_allowed,
         )
 
     async def validation(self, raw):
@@ -990,6 +1101,8 @@ class Pipeline:
             self.rules,
             self.context.settings.max_tweet_chars,
             state.slot.focus,
+            self.types.format(state.slot),
+            state.slot.cta_allowed,
         )
 
         state.audit = DraftAudit(

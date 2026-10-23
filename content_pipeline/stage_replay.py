@@ -12,7 +12,7 @@ from .contracts import FinalPiece, ResearchRecord, WeekSnapshot
 from .durability import atomic_json
 from .images import CARD_SIZE, overlay_errors
 from .model_client import ModelFailure
-from .models import Contract, Draft, PostType, ResearchPack
+from .models import Contract, Draft, MarketingFormat, PostType, ResearchPack
 
 MISMATCH = "saved stage input mismatch"
 
@@ -38,6 +38,8 @@ class ValidationInput(Contract):
     research: ResearchPack
     post_type: PostType
     max_tweet_chars: int
+    format: MarketingFormat | None = None
+    cta_allowed: bool = True
 
 
 @dataclass(frozen=True)

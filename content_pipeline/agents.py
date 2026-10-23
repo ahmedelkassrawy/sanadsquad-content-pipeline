@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from pydantic import ValidationError
 from . import record_ids
-from .config import local_file
+from .config import load_sources, local_file
 from .contracts import (
     ResearchAction,
     ResearchRecord,
@@ -160,25 +160,31 @@ class ResearchAgent(Agent):
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
+        marketing = slot.type == "marketing-post"
         angle = None
         if self.types.spec(slot.type).research.topic_source == "angles" and slot.topic_id:
             angle = next((a for a in self.types.angles(slot.type) if a.id == slot.topic_id), None)
         kb_allowed = bool(angle and (angle.kb_allowed or angle.subject == "vulnerability-class"))
-        # A marketing slot is never handed a KB callable unless its declared angle is a
-        # vulnerability class. This also keeps the KB file out of that normal code path.
+        # Marketing always grounds its point in allowlisted web research. A vulnerability-class
+        # angle receives its configured KB finding only after a web source has been selected.
         self.tools = {
             tool.name: tool
             for tool in research_tools(
                 self.root,
                 self.kb,
                 self.searcher,
-                include_kb=slot.type != "marketing-post" or kb_allowed,
+                include_kb=not marketing,
             )
         }
-        if angle and angle.service_line and self.searcher.registry is not None:
-            self.searcher.allowed_domains = self.searcher.registry.domains_for(angle.service_line)
-            self.searcher.service_line = angle.service_line
-        assigned = self.types.assigned_pack(slot, self.kb)
+        if marketing:
+            if not slot.service_line:
+                raise ModelFailure("failed_research", "marketing_service_line_missing")
+            if self.searcher.registry is None:
+                self.searcher.registry = load_sources(local_file(self.root, "inputs/sources.json"))
+            self.searcher.allowed_domains = self.searcher.registry.domains_for(slot.service_line)
+            self.searcher.service_line = slot.service_line
+
+        assigned = None if marketing else self.types.assigned_pack(slot, self.kb)
 
         if assigned is not None:
             if (
@@ -252,7 +258,12 @@ class ResearchAgent(Agent):
             )
 
         await search(
-            "search_kb" if "search_kb" in self.tools else "web_search", slot.focus or request.hints
+            "web_search"
+            if marketing
+            else "search_kb"
+            if "search_kb" in self.tools
+            else "web_search",
+            slot.focus or request.hints,
         )
 
         instructions = local_file(self.root / "agents/research", "loop.md").read_text(
@@ -302,8 +313,32 @@ class ResearchAgent(Agent):
                     else slot.focus or selected[0].title
                 )
 
+                if marketing:
+                    if not any(
+                        source.kind == "web" and source.status == "ok" for source in selected
+                    ):
+                        raise ModelFailure("failed_research", "marketing_web_source_required")
+
+                    additions = self.types.assigned_pack(
+                        slot.model_copy(update={"focus": None}), self.kb
+                    )
+                    if additions is not None:
+                        selected = list(
+                            {
+                                source.source_id: source
+                                for source in [*selected, *additions.sources]
+                            }.values()
+                        )
+                    if angle is not None:
+                        topic = angle.id
+                        title = angle.name
+
                 return ResearchPack(
-                    slot_id=slot.slot_id, topic_id=topic, topic_name=title, sources=selected
+                    slot_id=slot.slot_id,
+                    topic_id=topic,
+                    topic_name=title,
+                    sources=selected,
+                    kb_allowed=kb_allowed,
                 )
 
             if not action.query.strip():

@@ -32,7 +32,9 @@ def pack(slot_id, evidence, source_id="SS-01"):
     )
 
 
-def marketing(text, evidence="Sentinel Grove has completed 12 smart contract audits."):
+def marketing(
+    text, evidence="SanadSquad provides smart contract audits across EVM and Solana/SVM."
+):
     research = pack("marketing_1", evidence, "STAT-01")
     draft = Draft(slot_id="marketing_1", tweets=[Tweet(text=text, source_ids=["STAT-01"])])
 
@@ -51,8 +53,8 @@ def test_marketing_type_loads_its_claim_words():
 def test_filler_quality_claims_are_rejected_before_review():
     # A real free-model draft that the reviewer dropped twice.
     result = marketing(
-        "Smart contract security starts with a thorough review. With 12 completed audits and a "
-        "team of 3 specialized auditors, Sentinel Grove provides the expertise needed."
+        "Smart contract security starts with a thorough review. SanadSquad provides specialized "
+        "expertise."
     )
 
     assert result.accepted is False
@@ -65,8 +67,7 @@ def test_filler_quality_claims_are_rejected_before_review():
 
 def test_plain_firm_facts_pass_the_claim_word_check():
     result = marketing(
-        "Who reads your smart contract code before it ships? Sentinel Grove has completed 12 "
-        "smart contract audits. Request a review of your code."
+        "SanadSquad provides smart contract audits across EVM and Solana/SVM. Request a review."
     )
 
     assert not [v for v in result.violations if "claim_word" in v]
@@ -86,7 +87,9 @@ def test_claim_words_are_allowed_when_the_evidence_uses_them():
 
 
 def test_claim_words_match_whole_words_and_phrases_after_folding():
-    research = pack("marketing_1", "Sentinel Grove has 3 auditors.")
+    research = pack(
+        "marketing_1", "SanadSquad provides smart contract audits across EVM and Solana/SVM."
+    )
 
     assert check_claim_words("A catchy line.", research, ["catch"]) == []
     assert check_claim_words("Get ＴＨＯＲＯＵＧＨ checks.", research, ["thorough"]) == [
@@ -196,13 +199,15 @@ def test_each_angle_pack_holds_only_its_configured_stats():
 
         assert stats == set(angle.stat_ids), angle.id
 
-    # Service and credibility differ, so the two posts cannot be built from the same facts.
-    assert packs["service"] != packs["credibility"]
-    assert "STAT-04" in packs["service"]
+    # Each service angle is scoped to its own statement and the review offer.
+    assert packs["web3-security"] != packs["web2-pentesting"]
+    assert "STAT-01" in packs["web3-security"]
 
 
 def test_claim_words_inside_code_spans_are_not_claims():
-    research = pack("marketing_1", "Sentinel Grove has 3 auditors.")
+    research = pack(
+        "marketing_1", "SanadSquad provides smart contract audits across EVM and Solana/SVM."
+    )
 
     assert check_claim_words("Wrap it in `try/expert` first.", research, ["expert"]) == []
     assert check_claim_words("Our expert team.", research, ["expert"]) == [
@@ -243,7 +248,9 @@ def test_code_fences_become_inline_code():
 
 
 def test_a_stray_backtick_does_not_hide_claim_words():
-    research = pack("marketing_1", "Sentinel Grove has 3 auditors.")
+    research = pack(
+        "marketing_1", "SanadSquad provides smart contract audits across EVM and Solana/SVM."
+    )
 
     assert check_claim_words("It`s an expert team.", research, ["expert"]) == [
         "unsupported_claim_word:expert"

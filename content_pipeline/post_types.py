@@ -15,7 +15,15 @@ from .config import (
     read_utf8,
 )
 from .contracts import Rubric, TopicInfo, WriteStyle
-from .models import AgentConfig, BrandRules, PostType, ResearchPack, ResolvedSlot, SourceRecord
+from .models import (
+    AgentConfig,
+    BrandRules,
+    MarketingFormat,
+    PostType,
+    ResearchPack,
+    ResolvedSlot,
+    SourceRecord,
+)
 
 
 def load_rubric(root: Path, spec: PostType, read=read_utf8) -> Rubric:
@@ -221,6 +229,38 @@ class PostTypes:
         closing = pick(spec.closing_styles)
 
         return WriteStyle(hook=hook, closing=closing) if hook or closing else None
+
+    def format(self, slot: ResolvedSlot) -> MarketingFormat | None:
+        """Return the selected marketing format, refusing stale or invented ids."""
+        if slot.type != "marketing-post" or slot.format is None:
+            return None
+
+        selected = next(
+            (format for format in self.spec(slot.type).formats if format.id == slot.format), None
+        )
+
+        if selected is None:
+            raise ValueError("unknown marketing format: " + slot.format)
+
+        return selected
+
+    def marketing_service_line(self, slot: ResolvedSlot) -> str | None:
+        """Resolve an angle or focused marketing request to one configured service line."""
+        if slot.type != "marketing-post":
+            return None
+
+        angles = self.angles(slot.type)
+        configured = next((angle for angle in angles if angle.id == slot.topic_id), None)
+        if configured and configured.service_line:
+            return configured.service_line
+
+        focus = (slot.focus or "").casefold()
+        matches = {
+            angle.service_line
+            for angle in angles
+            if angle.service_line and any(term.casefold() in focus for term in angle.focus_terms)
+        }
+        return next(iter(matches)) if len(matches) == 1 else None
 
     def assigned_pack(self, slot: ResolvedSlot, kb) -> ResearchPack | None:
         """Return the pack for an already-assigned topic, or None when research must search."""

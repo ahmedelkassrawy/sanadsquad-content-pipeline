@@ -193,6 +193,9 @@ def build_prompt(
     for skill in agent.skills:
         parts.append(read(local_file(root / "skills", skill + ".md")))
 
+    if spec and spec.name == "marketing-post":
+        parts.append(read(local_file(root / "inputs", "marketing-rules.md")))
+
     parts.append(read(local_file(root / "inputs", "brand-voice.md")))
 
     return "\n\n".join(parts)

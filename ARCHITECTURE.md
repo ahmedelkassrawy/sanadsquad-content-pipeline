@@ -230,6 +230,16 @@ angles) and brand rules, each read once per run.
   thread 2 the second, wrapping) as the write request's `style`. This keeps a week's threads from sharing one
   opening and ending.
 
+### Marketing formats and weekly mix
+
+`post_types/marketing-post/type.yaml` owns the format table: each format has its own unit range,
+link rule, length hint, and optional numbering. During topic selection, `Pipeline._assign_marketing_mix()`
+assigns a distinct format while formats remain, reserves one required-link and one forbidden-link shape,
+and records the selected format, service line, and CTA allowance in `plan.resolved.json` and `run.log`.
+A service line may repeat once only when the repeated slot is a news reaction; a further repeat or a
+duplicate resolved topic fails that slot before research, never the run. The validator enforces the
+selected format's units, links, numbering, at-most-one CTA, and planned CTA allowance after writing.
+
 ### Records, budget and retries
 
 - **Record ids** (`record_ids.py`): the stable id `slot_id/node/attempt/call_n` of every record and model call.
