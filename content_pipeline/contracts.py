@@ -30,6 +30,8 @@ class Angle(Contract):
     ) = None
     # Terms used only to resolve the service line of an explicitly focused marketing slot.
     focus_terms: list[StrictStr] = Field(default_factory=list)
+    # The short, data-loaded first web query for an open marketing angle.
+    seed_query: StrictStr | None = None
     kb_allowed: bool = False
     subject: StrictStr | None = None
 
@@ -48,6 +50,9 @@ class Angle(Contract):
 
         if self.kb_allowed and self.subject != "vulnerability-class":
             raise ValueError("kb_allowed angles must be vulnerability-class")
+
+        if self.seed_query is not None and not self.seed_query.strip():
+            raise ValueError("angle seed query must be nonempty")
 
         # An empty list is allowed: the angle uses no firm stats at all.
         if self.stat_ids is not None and len(self.stat_ids) != len(set(self.stat_ids)):
@@ -86,6 +91,10 @@ class ResearchTurn(Contract):
     request: ResearchRequest
     evidence: list[SourceRecord]
     searches_remaining: int
+    # Defaults keep research turns serialized by earlier runs loadable.
+    available_actions: list[Literal["search_kb", "web_search", "finish"]] = Field(
+        default_factory=list
+    )
 
 
 class TopicInfo(Contract):

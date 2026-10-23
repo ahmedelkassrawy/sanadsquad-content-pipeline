@@ -200,6 +200,18 @@
     "searches_remaining": {
       "title": "Searches Remaining",
       "type": "integer"
+    },
+    "available_actions": {
+      "items": {
+        "enum": [
+          "search_kb",
+          "web_search",
+          "finish"
+        ],
+        "type": "string"
+      },
+      "title": "Available Actions",
+      "type": "array"
     }
   },
   "required": [

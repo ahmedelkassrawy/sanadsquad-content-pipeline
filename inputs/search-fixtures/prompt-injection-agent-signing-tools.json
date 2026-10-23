@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+    "title": "OWASP GenAI: Prompt injection",
+    "raw_content": "OWASP documents prompt injection as untrusted input that can change an AI system's instructions. Agent tools with authority should enforce policy outside the model output before signing or taking action."
+  }
+]

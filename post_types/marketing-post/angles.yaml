@@ -4,6 +4,7 @@ angles:
 - id: ANGLE-web3-security
   name: web3-security
   service_line: web3-security
+  seed_query: web3 security audits deployed-code drift
   focus_terms: [web3, smart contract, evm, solana, svm, protocol design]
   stat_ids:
   - STAT-01
@@ -11,6 +12,7 @@ angles:
 - id: ANGLE-pentesting
   name: web2-pentesting
   service_line: pentesting
+  seed_query: supply chain key compromise losses
   focus_terms: [web2, pentest, api, cloud, ci/cd, dependency, frontend, infrastructure]
   stat_ids:
   - STAT-02
@@ -18,6 +20,7 @@ angles:
 - id: ANGLE-agentic-security
   name: agentic-security-and-red-teaming
   service_line: agentic-security
+  seed_query: prompt injection agent signing tools
   focus_terms: [agent, ai, prompt injection, tool abuse, red team, wallet, spending policy]
   stat_ids:
   - STAT-03
@@ -25,6 +28,7 @@ angles:
 - id: ANGLE-agentic-payments
   name: agentic-payments-x402-vs-mpp
   service_line: agentic-payments
+  seed_query: x402 MPP volume facilitators
   focus_terms: [x402, mpp, payment, facilitator, payment policy]
   stat_ids:
   - STAT-04
@@ -34,6 +38,7 @@ angles:
   subject: vulnerability-class
   kb_allowed: true
   service_line: agentic-security
+  seed_query: agent tool authorization vulnerability class
   focus_terms: [vulnerability, exploit, weakness, incident]
   source_ids:
   - SS-03699

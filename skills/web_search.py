@@ -159,7 +159,7 @@ class WebSearch:
                 self.fetch_url(url, service_line)
                 continue
 
-            raw = hit.get("raw_content") if provider == "tavily" else None
+            raw = hit.get("raw_content") if provider in {"tavily", "fixture"} else None
             status = "ok"
             evidence = raw
 

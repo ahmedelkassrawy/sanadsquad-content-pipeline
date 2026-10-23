@@ -39,6 +39,7 @@ class OfflineModels:
 
     def factory(self, name, slot_id, context):
         review_count = 0
+        research_action_index = 0
 
         async def transport(messages, schema, max_tokens):
             nonlocal review_count
@@ -55,6 +56,7 @@ class OfflineModels:
             self.calls.append((name, slot_id, schema.__name__, payload, max_tokens))
             mode = self.behavior.get(slot_id, {})
             if schema.__name__ == "ResearchAction":
+                nonlocal research_action_index
                 request = payload["request"]
                 focus = request["slot"]["focus"] or ""
                 evidence = payload["evidence"]
@@ -83,6 +85,12 @@ class OfflineModels:
                     "source_ids": selected,
                     "topic_id": selected[0] if selected and selected[0].startswith("SS-") else None,
                 }
+                scripted_actions = mode.get("research_actions")
+                if scripted_actions:
+                    action = scripted_actions[research_action_index]
+                    research_action_index += 1
+                    parsed["action"] = action
+                    parsed["query"] = mode.get("research_query", focus)
                 if mode.get("research_mismatch"):
                     parsed["slot_id"] = "other"
             elif schema.__name__ == "TopicChoices":

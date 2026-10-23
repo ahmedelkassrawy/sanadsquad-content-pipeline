@@ -265,6 +265,24 @@ class ResearchAgent(Agent):
             query_start = len(self.searcher.query_log)
             url_start = len(self.searcher.url_log)
 
+            if name not in self.tools:
+                self.records.append(
+                    ResearchRecord(
+                        record_id=record_ids.record_id(
+                            slot.slot_id, "research_search", request.attempt, searches
+                        ),
+                        slot_id=slot.slot_id,
+                        attempt=request.attempt,
+                        evidence=[],
+                        action=name,
+                        query=query,
+                        query_attempts=self.searcher.query_log[query_start:],
+                        url_events=self.searcher.url_log[url_start:],
+                        failure=f"tool_unavailable:{name}",
+                    )
+                )
+                return
+
             try:
                 data = await asyncio.to_thread(self.tools[name].invoke, {"query": query})
             finally:
@@ -294,14 +312,24 @@ class ResearchAgent(Agent):
                 )
             )
 
-        await search(
-            "web_search"
-            if marketing
-            else "search_kb"
-            if "search_kb" in self.tools
-            else "web_search",
-            slot.focus or request.hints,
-        )
+        if marketing:
+            initial_query = slot.focus or (angle.seed_query if angle and angle.seed_query else "")
+            initial_query = initial_query or (
+                f"{angle.name} {slot.service_line}"
+                if angle
+                else slot.service_line or "security research"
+            )
+            initial_tool = "web_search"
+        else:
+            topic_name = (
+                self.kb.source(slot.topic_id).title
+                if slot.topic_id and any(entry["id"] == slot.topic_id for entry in self.kb.entries)
+                else slot.topic_id
+            )
+            initial_query = slot.focus or topic_name or "technical security research"
+            initial_tool = "search_kb" if "search_kb" in self.tools else "web_search"
+
+        await search(initial_tool, initial_query)
 
         instructions = local_file(self.root / "agents/research", "loop.md").read_text(
             encoding="utf-8"
@@ -314,6 +342,7 @@ class ResearchAgent(Agent):
                     request=request,
                     evidence=list(evidence.values()),
                     searches_remaining=4 - searches,
+                    available_actions=[*self.tools, "finish"],
                 ),
                 slot.slot_id,
                 request.attempt,
