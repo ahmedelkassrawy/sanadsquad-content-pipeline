@@ -48,6 +48,7 @@ from .model_client import (
 )
 from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .post_types import PostTypes
+from .redaction import redact_research_pack, redact_writer_material
 from .research import KnowledgeBase, assign_topics, open_topics, recent_topic_ids
 from .run_log import render_run_index, render_run_log
 from .tools import configured_web_search
@@ -661,7 +662,7 @@ class Pipeline:
             state.outcome = failure(ModelFailure(saved.failure or "failed_research"), research=True)
             state.reasons = [state.outcome.value]
         else:
-            state.pack = saved.pack
+            state.pack = redact_research_pack(saved.pack, self.root)
             state.slot.topic_id = saved.pack.topic_id
 
     async def _record_research_outcome(self, state):
@@ -717,7 +718,7 @@ class Pipeline:
             if pack.slot_id != slot.slot_id:
                 raise ModelFailure("failed_output")
 
-            state.pack = pack
+            state.pack = redact_research_pack(pack, self.root)
             state.slot.topic_id = pack.topic_id
         except Exception as error:
             state.outcome = failure(error, research=True)
@@ -1053,12 +1054,16 @@ class Pipeline:
         state.audit = None
         state.review = None
 
+        writer_pack, writer_feedback, previous_draft = redact_writer_material(
+            state.pack, state.feedback, previous_draft, self.root
+        )
+
         request = WriteRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
-            research=state.pack,
+            research=writer_pack,
             post_type=self.types.spec(state.slot.type),
-            feedback=state.feedback,
+            feedback=writer_feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
             style=self.types.writing_style(state.slot, self.plan),

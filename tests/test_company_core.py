@@ -1,11 +1,12 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
 
 from content_pipeline.config import load_sources
 from content_pipeline.models import Draft, ResearchPack, SourceRecord, Tweet
-from content_pipeline.redaction import redact_kb_text
+from content_pipeline.redaction import name_variants, redact_kb_text
 from content_pipeline.tools import configured_web_search, research_tools
 from content_pipeline.validation import validate
 from skills.brand_rules import check_brand
@@ -19,23 +20,28 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_new_kb_schema_builds_ss_source_with_required_evidence():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    entry = kb.entries[0]
-    source = kb.source(entry["id"])
+    def normalize(value):
+        return re.sub(r"[\s_.-]+", "", value).casefold()
 
-    assert source.source_id == entry["id"]
-    assert source.kind == "kb"
-    assert source.url is None
-    assert source.title
-    assert source.evidence_text
-    assert entry["protocol"] not in source.title
-    assert entry["protocol"] not in source.evidence_text
-    assert (
-        redact_kb_text(entry["content"]["description"], kb.redacted_names) in source.evidence_text
-    )
-    assert (
-        redact_kb_text(entry["content"]["recommendation"], kb.redacted_names)
-        in source.evidence_text
-    )
+    for entry in kb.entries:
+        source = kb.source(entry["id"])
+
+        assert source.source_id == entry["id"]
+        assert source.kind == "kb"
+        assert source.url is None
+        assert source.title
+        assert source.evidence_text
+        writer_visible = normalize(source.title + "\n" + source.evidence_text)
+        for name in name_variants(entry["protocol"]):
+            assert normalize(name) not in writer_visible
+        assert (
+            redact_kb_text(entry["content"]["description"], kb.redacted_names)
+            in source.evidence_text
+        )
+        assert (
+            redact_kb_text(entry["content"]["recommendation"], kb.redacted_names)
+            in source.evidence_text
+        )
 
 
 def test_source_record_accepts_ss_ids_for_kb():
