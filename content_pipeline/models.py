@@ -99,7 +99,11 @@ class ResearchPack(Contract):
     @property
     def fetched_urls(self) -> set[str]:
         """URLs fetched successfully for this run and therefore safe to publish."""
-        return {source.url for source in self.sources if source.status == "ok" and source.url}
+        return {
+            source.url
+            for source in self.sources
+            if source.kind == "web" and source.status == "ok" and source.url
+        }
 
 
 class Tweet(Contract):

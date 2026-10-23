@@ -195,16 +195,44 @@ class ResearchAgent(Agent):
             and slot.focus.startswith(("http://", "https://"))
         ):
             url = slot.focus
-            self.searcher.check_url(url)
-            evidence = self.searcher.fetch(url)
-            if not evidence:
+            url_start = len(self.searcher.url_log)
+            evidence, final_url, status = self.searcher.fetch_url(url)
+            if status != "ok":
+                self.records.append(
+                    ResearchRecord(
+                        record_id=record_ids.record_id(
+                            slot.slot_id, "research_search", request.attempt, 1
+                        ),
+                        slot_id=slot.slot_id,
+                        attempt=request.attempt,
+                        evidence=[],
+                        action="web_fetch",
+                        query=url,
+                        url_events=self.searcher.url_log[url_start:],
+                        failure="external_fetch_failed",
+                    )
+                )
                 raise ModelFailure("failed_research", "external_fetch_failed")
             record = SourceRecord(
-                source_id="WEB-" + __import__("hashlib").sha256(url.encode()).hexdigest()[:16],
+                source_id="WEB-"
+                + __import__("hashlib").sha256(final_url.encode()).hexdigest()[:16],
                 kind="web",
-                url=url,
-                title=url,
+                url=final_url,
+                title=final_url,
                 evidence_text=evidence,
+            )
+            self.records.append(
+                ResearchRecord(
+                    record_id=record_ids.record_id(
+                        slot.slot_id, "research_search", request.attempt, 1
+                    ),
+                    slot_id=slot.slot_id,
+                    attempt=request.attempt,
+                    evidence=[record],
+                    action="web_fetch",
+                    query=url,
+                    url_events=self.searcher.url_log[url_start:],
+                )
             )
             return ResearchPack(
                 slot_id=slot.slot_id,
@@ -223,6 +251,8 @@ class ResearchAgent(Agent):
                 raise ModelFailure("failed_research", "search_limit_reached:4_searches")
 
             searches += 1
+            query_start = len(self.searcher.query_log)
+            url_start = len(self.searcher.url_log)
 
             try:
                 data = await asyncio.to_thread(self.tools[name].invoke, {"query": query})
@@ -248,6 +278,8 @@ class ResearchAgent(Agent):
                     evidence=records,
                     action=name,
                     query=query,
+                    query_attempts=self.searcher.query_log[query_start:],
+                    url_events=self.searcher.url_log[url_start:],
                 )
             )
 

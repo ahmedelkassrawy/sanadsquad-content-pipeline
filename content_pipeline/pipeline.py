@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import re
 import shutil
@@ -320,6 +321,10 @@ def snapshot(root, run_dir, slots, settings):
 
         shutil.copyfile(source, destination)
 
+    fixtures = root / "inputs/search-fixtures"
+    if fixtures.is_dir():
+        shutil.copytree(fixtures, target / "inputs/search-fixtures")
+
     files = _snapshot_files(PostTypes(root), slots)
 
     # Older run folders have no price file, so it is optional rather than required.
@@ -577,6 +582,14 @@ class Pipeline:
         """Create a model client for an agent and slot."""
         return self.model_factory(name, slot_id, self.context)
 
+    def _new_searcher(self):
+        """Load policy/fixtures from the snapshot and credentials from the live root."""
+        try:
+            inspect.signature(self.search_factory).bind(self.root, self.context.credential_root)
+        except TypeError:
+            return self.search_factory(self.root)
+        return self.search_factory(self.root, self.context.credential_root)
+
     async def record(self, name, record):
         """Append a stage record to its durable trail."""
         await self.trails[name].append(
@@ -666,7 +679,7 @@ class Pipeline:
 
                 return state.model_dump(mode="json")
 
-            searcher = self.search_factory(self.context.credential_root)
+            searcher = self._new_searcher()
 
             self.searchers.append(searcher)
 

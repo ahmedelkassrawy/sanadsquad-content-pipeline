@@ -42,6 +42,7 @@ class WebSearch:
         self.service_line = service_line
         self.query_log = []
         self.fetch_log = []
+        self.url_log = []
         self.tavily_credits_estimated = False
 
     def _permitted(self, url: str) -> bool:
@@ -54,6 +55,44 @@ class WebSearch:
         )
         return allowed and not denied
 
+    def fetch_url(self, url: str, service_line=None) -> tuple[str, str, str]:
+        """Fetch one permitted URL, retaining the final redirect target for publication."""
+        service_line = service_line or self.service_line
+        if not self._permitted(url):
+            self.url_log.append(
+                {"url": url, "service_line": service_line, "reason": "policy_rejected"}
+            )
+            return "", url, "fetch_failed"
+        try:
+            self.check_url(url)
+        except (ValueError, OSError):
+            self.url_log.append(
+                {"url": url, "service_line": service_line, "reason": "public_url_rejected"}
+            )
+            return "", url, "fetch_failed"
+
+        self.fetch_calls += 1
+        self.fetch_log.append({"url": url, "service_line": service_line})
+        try:
+            if self.fetch is fetch_page:
+                evidence, final_url = self.fetch(url, allow_url=self._permitted, return_url=True)
+            else:
+                evidence = self.fetch(url)
+                final_url = url
+            status = "ok" if evidence else "fetch_failed"
+        except Exception:
+            evidence, final_url, status = "", url, "fetch_failed"
+
+        self.url_log.append(
+            {
+                "url": url,
+                "final_url": final_url,
+                "service_line": service_line,
+                "reason": "fetched" if status == "ok" else "fetch_failed",
+            }
+        )
+        return evidence, final_url, status
+
     def search(self, query: str, service_line=None):
         """Run one search step and return the retained source records."""
         if self.calls >= 4:
@@ -62,9 +101,14 @@ class WebSearch:
         self.calls += 1
         hits = []
         provider = "fixture" if self.fixture else "ddgs"
+        attempts = []
 
         if self.fixture:
-            hits = self.fixture.text(query)
+            try:
+                hits = self.fixture.text(query)
+                attempts.append(("fixture", None))
+            except Exception as error:
+                attempts.append(("fixture", type(error).__name__))
         elif self.tavily:
             self.tavily_calls += 1
 
@@ -85,16 +129,23 @@ class WebSearch:
 
                 hits = response.get("results", [])
                 provider = "tavily"
-            except Exception:
+                attempts.append(("tavily", None))
+            except Exception as error:
                 self.tavily_credits += 1
                 self.tavily_credits_estimated = True
                 hits = []
+                attempts.append(("tavily", type(error).__name__))
 
         if not hits and self.ddgs:
             self.ddgs_calls += 1
             provider = "ddgs"
             sites = " OR ".join("site:" + domain for domain in sorted(self.allowed_domains))
-            hits = list(self.ddgs.text(f"({sites}) {query}" if sites else query, max_results=5))
+            try:
+                hits = list(self.ddgs.text(f"({sites}) {query}" if sites else query, max_results=5))
+                attempts.append(("ddgs", None))
+            except Exception as error:
+                hits = []
+                attempts.append(("ddgs", type(error).__name__))
 
         records = []
 
@@ -105,11 +156,7 @@ class WebSearch:
                 continue
 
             if not self._permitted(url):
-                continue
-
-            try:
-                self.check_url(url)
-            except (ValueError, OSError):
+                self.fetch_url(url, service_line)
                 continue
 
             raw = hit.get("raw_content") if provider == "tavily" else None
@@ -117,40 +164,41 @@ class WebSearch:
             evidence = raw
 
             if not evidence:
-                self.fetch_calls += 1
-                self.fetch_log.append(
-                    {"url": url, "service_line": service_line or self.service_line}
+                evidence, final_url, status = self.fetch_url(url, service_line)
+
+            else:
+                final_url = url
+                self.url_log.append(
+                    {
+                        "url": url,
+                        "final_url": final_url,
+                        "service_line": service_line or self.service_line,
+                        "reason": "fetched",
+                    }
                 )
-
-                try:
-                    evidence = self.fetch(url)
-
-                    if not evidence:
-                        status = "fetch_failed"
-                except Exception:
-                    status = "fetch_failed"
-                    evidence = ""
 
             records.append(
                 SourceRecord(
-                    source_id="WEB-" + hashlib.sha256(url.encode()).hexdigest()[:16],
+                    source_id="WEB-" + hashlib.sha256(final_url.encode()).hexdigest()[:16],
                     kind="web",
-                    url=url,
-                    title=hit.get("title", url),
+                    url=final_url,
+                    title=hit.get("title", final_url),
                     evidence_text=(evidence or "")[: self.evidence_limit],
                     status=status,
                 )
             )
 
         records = list({r.source_id: r for r in records}.values())
-        self.query_log.append(
-            {
+        for index, (backend, failure) in enumerate(attempts):
+            entry = {
                 "query": query,
                 "service_line": service_line or self.service_line,
-                "backend": provider,
-                "result_count": len(records),
+                "backend": backend,
+                "result_count": len(records) if index == len(attempts) - 1 else 0,
             }
-        )
+            if failure:
+                entry["failure"] = failure
+            self.query_log.append(entry)
         return records
 
 
