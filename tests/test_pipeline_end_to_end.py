@@ -102,7 +102,10 @@ class OfflineModels:
                     if source_id.startswith("STAT-")
                     else (
                         f"Read {payload['research']['sources'][0]['url']} for source evidence."
-                        if payload["research"]["sources"][0].get("url")
+                        if payload["research"]["sources"][0].get("url") and (
+                            payload["post_type"]["name"] == "tech-thread"
+                            or (payload.get("format") or {}).get("link_rule") == "required"
+                        )
                         else "Source evidence supports this topic."
                     )
                 )
