@@ -1097,6 +1097,8 @@ def link_feedback(result: ValidationResult) -> list[str]:
 
     for violation in result.violations:
         _, separator, domain = violation.partition(":link_domain:")
+        if not separator:
+            _, separator, domain = violation.partition(":link_not_fetched:")
 
         if separator:
             notes.append(

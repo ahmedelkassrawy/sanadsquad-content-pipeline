@@ -84,7 +84,7 @@ def test_brand_rules_skill_is_the_mechanical_brand_check():
 def test_validator_calls_the_brand_rules_skill(monkeypatch):
     seen = []
 
-    def fake_check_brand(text, rules):
+    def fake_check_brand(text, rules, pack):
         seen.append(text)
         return ["banned_phrase:synergy"]
 

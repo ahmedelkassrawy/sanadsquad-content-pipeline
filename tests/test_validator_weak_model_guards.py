@@ -174,10 +174,10 @@ def test_link_feedback_explains_how_to_rewrite_code_that_x_would_link():
     result = thread(["Then it calls `target.call` with the amount."] + [SHORT] * 4)
     notes = link_feedback(result)
 
-    assert "tweet_1:link_domain:target.call" in result.violations
+    assert "tweet_1:link_not_fetched:target.call" in result.violations
     assert len(notes) == 1 and "a low-level call to target" in notes[0]
     assert is_writer_note(notes[0])
-    assert not is_writer_note("tweet_1:link_domain:target.call")
+    assert not is_writer_note("tweet_1:link_not_fetched:target.call")
 
 
 def test_each_angle_pack_holds_only_its_configured_stats():

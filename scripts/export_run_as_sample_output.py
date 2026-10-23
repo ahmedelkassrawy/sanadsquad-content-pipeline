@@ -118,6 +118,20 @@ def expected_snapshot(contents):
     if "config/prices.yaml" in contents:
         expected.add("config/prices.yaml")
 
+    fixture_prefix = "inputs/search-fixtures/"
+    fixture_names = {
+        name for name in contents if name.startswith(fixture_prefix) and name.endswith(".json")
+    }
+    for name in fixture_names:
+        suffix = name.removeprefix(fixture_prefix)
+        if not suffix or "/" in suffix or suffix.startswith("."):
+            raise ValueError("invalid search fixture path")
+        try:
+            json.loads(contents[name])
+        except (TypeError, json.JSONDecodeError):
+            raise ValueError("invalid search fixture") from None
+    expected.update(fixture_names)
+
     slots = [
         ResolvedSlot.model_validate(slot)
         for slot in json.loads(contents["inputs/plan.json"])["slots"]

@@ -345,7 +345,8 @@ async def test_shared_content_retry_drops_after_mixed_rejections(tmp_path, first
         call[3] for call in models.calls if call[2] == "Draft" and call[3]["attempt"] == 2
     )
     assert (
-        second["feedback"] == [f"tweet_{i}:citation:SS-99" for i in range(1, 6)]
+        second["feedback"]
+        == [f"tweet_{i}:citation:SS-99" for i in range(1, 6)] + ["thread_citation_required"]
         if first_validator
         else second["feedback"] == ["Unsupported claim must be removed."]
     )
