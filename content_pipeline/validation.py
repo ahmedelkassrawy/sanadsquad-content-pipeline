@@ -4,6 +4,7 @@ from functools import partial
 from itertools import combinations
 from twitter_text import parse_tweet
 from skills import brand_rules
+from .redaction import kb_protocol_name_violations
 from .models import BrandRules, Draft, PostType, ResearchPack, SourceRecord, ValidationResult
 from .x_format import (
     CODE_SPAN,
@@ -996,6 +997,7 @@ def validate(
     dangling = []
     claims = []
     ai_violations = _ai_text.check_ai_text("\n".join(tweet.text for tweet in draft.tweets))
+    protocol_names = kb_protocol_name_violations("\n".join(tweet.text for tweet in draft.tweets))
 
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
@@ -1022,7 +1024,13 @@ def validate(
         tweet.text = numbering(spec, i, len(fixed.tweets)) + text
 
     errors = (
-        ai_violations + check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+        ai_violations
+        + protocol_names
+        + check_citations(fixed, pack)
+        + empty_content
+        + unsourced
+        + dangling
+        + claims
     )
     errors.extend(brand_rules.check_research_separation(fixed, pack, spec))
     errors.extend(

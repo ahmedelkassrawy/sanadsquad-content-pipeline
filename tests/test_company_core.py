@@ -23,9 +23,11 @@ def test_new_kb_schema_builds_ss_source_with_required_evidence():
 
     assert source.source_id == entry["id"]
     assert source.kind == "kb"
-    assert source.title == entry["title"]
-    assert entry["content"]["description"] in source.evidence_text
-    assert entry["content"]["recommendation"] in source.evidence_text
+    assert source.url is None
+    assert source.title
+    assert source.evidence_text
+    assert entry["protocol"] not in source.title
+    assert entry["protocol"] not in source.evidence_text
 
 
 def test_source_record_accepts_ss_ids_for_kb():
