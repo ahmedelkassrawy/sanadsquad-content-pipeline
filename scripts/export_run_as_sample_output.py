@@ -103,6 +103,7 @@ def inventory(root):
 def expected_snapshot(contents):
     expected = {
         "inputs/brand-voice.md",
+        "inputs/marketing-rules.md",
         "inputs/kb.json",
         "inputs/sources.json",
         "inputs/ai-vocabulary.txt",
@@ -117,6 +118,8 @@ def expected_snapshot(contents):
 
     if "config/prices.yaml" in contents:
         expected.add("config/prices.yaml")
+    if "inputs/redacted-names.txt" in contents:
+        expected.add("inputs/redacted-names.txt")
 
     fixture_prefix = "inputs/search-fixtures/"
     fixture_names = {

@@ -82,6 +82,24 @@ def test_extra_redacted_names_file_is_honoured(tmp_path):
     assert load_redacted_names(kb_path, extra_path) == ("Private Project", "Known Project")
 
 
+def test_validation_uses_the_run_snapshot_redaction_files(tmp_path):
+    root = tmp_path / "snapshot"
+    inputs = root / "inputs"
+    inputs.mkdir(parents=True)
+    (inputs / "kb.json").write_text(json.dumps({"findings": []}), encoding="utf-8")
+    (inputs / "redacted-names.txt").write_text("Snapshot Name\n", encoding="utf-8")
+
+    result = validate(
+        _draft("Snapshot Name is affected."),
+        _pack(),
+        load_type(ROOT, "marketing-post"),
+        load_brand(ROOT / "inputs/brand-voice.md")[0],
+        ai_policy_root=root,
+    )
+
+    assert "kb_protocol_name:Snapshot Name" in result.violations
+
+
 def test_kb_json_has_no_replacement_characters():
     data = json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))
 

@@ -1046,7 +1046,9 @@ def validate(
     ai_violations = _ai_text.check_ai_text(
         "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
     )
-    protocol_names = kb_protocol_name_violations("\n".join(tweet.text for tweet in draft.tweets))
+    protocol_names = kb_protocol_name_violations(
+        "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
+    )
 
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)

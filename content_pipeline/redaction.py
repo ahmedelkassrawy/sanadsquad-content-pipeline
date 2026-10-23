@@ -47,10 +47,18 @@ def redact_kb_text(text: str, names: tuple[str, ...] | None = None) -> str:
     return text
 
 
-def kb_protocol_name_violations(text: str) -> list[str]:
+def _redaction_paths(root: Path | None) -> tuple[Path, Path]:
+    if root is None:
+        return DEFAULT_KB_PATH, DEFAULT_EXTRA_NAMES_PATH
+    kb_path = root / "inputs" / "kb.json"
+    return kb_path, kb_path.with_name("redacted-names.txt")
+
+
+def kb_protocol_name_violations(text: str, root: Path | None = None) -> list[str]:
     """Return the public violation ids for protocol names in a proposed post."""
+    kb_path, extra_names_path = _redaction_paths(root)
     return [
         f"kb_protocol_name:{name}"
-        for name in load_redacted_names()
+        for name in load_redacted_names(kb_path, extra_names_path)
         if _name_pattern(name).search(text)
     ]

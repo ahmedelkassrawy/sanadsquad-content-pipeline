@@ -330,6 +330,12 @@ def snapshot(root, run_dir, slots, settings):
 
         shutil.copyfile(source, destination)
 
+    redacted_names = root / "inputs/redacted-names.txt"
+    if redacted_names.is_file():
+        destination = target / "inputs/redacted-names.txt"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(redacted_names, destination)
+
     fixtures = root / "inputs/search-fixtures"
     if fixtures.is_dir():
         shutil.copytree(fixtures, target / "inputs/search-fixtures")

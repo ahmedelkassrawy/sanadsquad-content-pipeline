@@ -5,6 +5,7 @@ import pytest
 
 from content_pipeline.config import load_sources
 from content_pipeline.models import Draft, ResearchPack, SourceRecord, Tweet
+from content_pipeline.redaction import redact_kb_text
 from content_pipeline.tools import configured_web_search, research_tools
 from content_pipeline.validation import validate
 from skills.brand_rules import check_brand
@@ -28,6 +29,14 @@ def test_new_kb_schema_builds_ss_source_with_required_evidence():
     assert source.evidence_text
     assert entry["protocol"] not in source.title
     assert entry["protocol"] not in source.evidence_text
+    assert (
+        redact_kb_text(entry["content"]["description"], kb.redacted_names)
+        in source.evidence_text
+    )
+    assert (
+        redact_kb_text(entry["content"]["recommendation"], kb.redacted_names)
+        in source.evidence_text
+    )
 
 
 def test_source_record_accepts_ss_ids_for_kb():

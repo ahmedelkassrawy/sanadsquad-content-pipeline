@@ -346,6 +346,35 @@
           ],
           "default": null,
           "title": "Angle Source"
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Format"
+        },
+        "service_line": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Line"
+        },
+        "cta_allowed": {
+          "default": true,
+          "title": "Cta Allowed",
+          "type": "boolean"
         }
       },
       "required": [

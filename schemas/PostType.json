@@ -1,5 +1,46 @@
 {
   "$defs": {
+    "MarketingFormat": {
+      "additionalProperties": false,
+      "description": "One data-loaded shape a marketing slot may use.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "units": {
+          "$ref": "#/$defs/Units"
+        },
+        "link_rule": {
+          "enum": [
+            "required",
+            "forbidden",
+            "optional"
+          ],
+          "title": "Link Rule",
+          "type": "string"
+        },
+        "length_hint": {
+          "minLength": 1,
+          "title": "Length Hint",
+          "type": "string"
+        },
+        "numbering": {
+          "default": false,
+          "title": "Numbering",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "units",
+        "link_rule",
+        "length_hint"
+      ],
+      "title": "MarketingFormat",
+      "type": "object"
+    },
     "ResearchConfig": {
       "additionalProperties": false,
       "properties": {
@@ -186,6 +227,13 @@
         "type": "string"
       },
       "title": "Closing Styles",
+      "type": "array"
+    },
+    "formats": {
+      "items": {
+        "$ref": "#/$defs/MarketingFormat"
+      },
+      "title": "Formats",
       "type": "array"
     }
   },

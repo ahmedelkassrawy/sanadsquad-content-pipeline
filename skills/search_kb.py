@@ -7,7 +7,7 @@ from pathlib import Path
 from rank_bm25 import BM25Okapi
 
 from content_pipeline.models import SourceRecord
-from content_pipeline.redaction import redact_kb_text
+from content_pipeline.redaction import load_redacted_names, redact_kb_text
 
 
 def words(text):
@@ -19,6 +19,8 @@ class KnowledgeBase:
     """One SanadSquad finding file, ranked by title, tags and evidence text."""
 
     def __init__(self, path: Path):
+        self.path = path
+        self.redacted_names = load_redacted_names(path, path.with_name("redacted-names.txt"))
         data = json.loads(path.read_text(encoding="utf-8"))
         legacy = "findings" not in data
         self.entries = data["entries"] if legacy else data["findings"]
@@ -99,12 +101,12 @@ class KnowledgeBase:
         return SourceRecord(
             source_id=entry["id"],
             kind="kb",
-            title=redact_kb_text(entry["title"]),
+            title=redact_kb_text(entry["title"], self.redacted_names),
             # Locations commonly include the audited project's GitHub org/repository. They are
             # not needed as writer evidence, so omit them rather than expose another name path.
             url=None,
             evidence_text="\n".join(
-                redact_kb_text(value)
+                redact_kb_text(value, self.redacted_names)
                 for value in (
                     entry["title"],
                     entry["content"]["description"],

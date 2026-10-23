@@ -65,6 +65,13 @@
           "default": null,
           "title": "Service Line"
         },
+        "focus_terms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Focus Terms",
+          "type": "array"
+        },
         "kb_allowed": {
           "default": false,
           "title": "Kb Allowed",
