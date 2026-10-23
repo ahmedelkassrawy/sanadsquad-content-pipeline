@@ -23,7 +23,11 @@ filler_openers:
 
 rule_of_three:
   # Three-item parallel lists are only a signal when this pattern repeats.
-  pattern: '\b\w+(?:\s+\w+){0,3}(?:,\s+\w+(?:\s+\w+){0,3})+,?\s+and\s+\w+(?:\s+\w+){0,3}\b'
+  # Each item is a short noun/adjective phrase. Two commas keep introductory clauses and
+  # two-verb predicates ("In x402, a facilitator verifies and settles") out of the match.
+  pattern: '\b\w+(?:\s+\w+){0,3}\s*,\s*\w+(?:\s+\w+){0,3}\s*,?\s+and\s+\w+(?:\s+\w+){0,3}\b'
+  introductory_prefixes:
+    - '^(?:in|for|on)\s+\w+(?:\s+\w+){0,2}\s*,'
   minimum_matches: 2
 
 hedge_words:

@@ -295,6 +295,19 @@ _PUBLISHER_ONLY_CREDIT = re.compile(
     r"(?=" + _NAME + r"(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:calls|flags|catalogs|ranks|names)\b)"
 )
 _ACRONYM = re.compile(r"^[A-Z]{2,}[A-Z0-9]*$")
+_DEFAULT_POLICY_ROOT = Path(__file__).resolve().parents[1]
+
+
+@lru_cache(maxsize=None)
+def _technical_acronyms(root: Path) -> frozenset[str]:
+    path = root / "inputs" / "technical-acronyms.txt"
+    if not path.is_file():
+        path = _DEFAULT_POLICY_ROOT / "inputs" / "technical-acronyms.txt"
+    return frozenset(
+        line.strip().upper()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    )
 
 
 def _credit_key(name: str) -> str:
@@ -308,7 +321,9 @@ def _credit_key(name: str) -> str:
     return key
 
 
-def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
+def check_repeated_credits(
+    texts: list[str], pack: ResearchPack, policy_root: Path | None = None
+) -> list[str]:
     """Report a source credited in more than one tweet of a thread.
 
     A credit is a source's name in crediting phrasing, not any mention of it. Only a source's
@@ -318,6 +333,7 @@ def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
     """
     prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
     publishers = _KNOWN_PUBLISHERS | _credit_source_names(pack)
+    technical_acronyms = _technical_acronyms(policy_root or _DEFAULT_POLICY_ROOT)
     tweets_by_name = {}
 
     for index, text in enumerate(prose):
@@ -334,7 +350,10 @@ def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
                 raw = match.group(1)
                 key = _credit_key(raw)
 
-                if key in publishers or _ACRONYM.match(raw.rstrip(".")):
+                if key in publishers or (
+                    _ACRONYM.match(raw.rstrip("."))
+                    and raw.rstrip(".").upper() not in technical_acronyms
+                ):
                     names.add(key)
 
         for name in names:
@@ -1068,7 +1087,9 @@ def validate(
     dangling = []
     claims = []
     ai_violations = _ai_text.check_ai_text(
-        "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
+        "\n".join(tweet.text for tweet in draft.tweets),
+        ai_policy_root,
+        (source.evidence_text for source in pack.sources if source.kind == "stat"),
     )
     protocol_names = kb_protocol_name_violations(
         "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
@@ -1119,7 +1140,7 @@ def validate(
     if len(fixed.tweets) > 1:
         texts = [tweet.text for tweet in fixed.tweets]
         errors.extend(check_repeated_openings(texts))
-        errors.extend(check_repeated_credits(texts, pack))
+        errors.extend(check_repeated_credits(texts, pack, ai_policy_root))
         errors.extend(check_repeated_points(texts))
         errors.extend(check_section_labels(texts))
 

@@ -237,10 +237,12 @@ link rule, length hint, optional numbering, and the data-loaded topic-overlap th
 the shapes and CTA allowance; after research, and again immediately before export, the viable/shipped
 marketing set is checked explicitly. The run log records every pass/fail verdict with its slot. Similar
 topics use normalized token overlap, and a repeated service line is allowed only for a news reaction with
-a successfully fetched web source that has a publish date within seven days. The link/no-link diversity
-rule applies only when at least two slots are viable. A failure drops only the latest offending slot,
-never the whole run. CTA patterns are data-loaded from `inputs/marketing-cta.yaml` and are counted over
-the whole piece. Pre-format snapshots with no format table or later marketing inputs retain their original
+a successfully fetched web source that has a publish date within seven days. Link/no-link diversity is
+assigned during planning whenever two or more marketing slots exist; export only logs an unmet link
+shape (for example, when no unlinked post shipped), so losing a valid post cannot drop another. A
+failure drops only the latest offending slot, never the whole run. CTA patterns are data-loaded from
+`inputs/marketing-cta.yaml` and are counted over the whole piece.
+Pre-format snapshots with no format table or later marketing inputs retain their original
 one-unit behavior when resumed.
 
 ### Records, budget and retries

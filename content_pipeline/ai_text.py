@@ -6,6 +6,7 @@ import hashlib
 import math
 import re
 import unicodedata
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
 
@@ -195,15 +196,29 @@ def _filler_opener_violation(text: str, root: Path) -> list[str]:
     return []
 
 
-def _rule_of_three_violation(text: str, root: Path) -> list[str]:
+def _normalized_phrase(text: str) -> str:
+    """Compare phrasing without case or punctuation differences."""
+    return " ".join(re.findall(r"\w+", unicodedata.normalize("NFKC", text).casefold()))
+
+
+def _rule_of_three_violation(
+    text: str, root: Path, approved_stat_texts: Iterable[str] = ()
+) -> list[str]:
     rule = _load_constructions(root).get("rule_of_three", {})
     pattern = rule.get("pattern")
-    return (
-        ["ai_text:rule_of_three"]
+    approved = tuple(_normalized_phrase(stat) for stat in approved_stat_texts)
+    introductory_prefixes = tuple(rule.get("introductory_prefixes", []))
+    matches = (
+        [
+            match.group()
+            for match in re.finditer(pattern, text.casefold())
+            if not any(re.match(prefix, match.group()) for prefix in introductory_prefixes)
+            and not any(_normalized_phrase(match.group()) in stat for stat in approved)
+        ]
         if pattern
-        and len(re.findall(pattern, text.casefold())) >= int(rule.get("minimum_matches", 2))
         else []
     )
+    return ["ai_text:rule_of_three"] if len(matches) >= int(rule.get("minimum_matches", 2)) else []
 
 
 def _hedging_density_violation(text: str, root: Path) -> list[str]:
@@ -242,7 +257,9 @@ def sentence_length_stats(text: str) -> dict:
     return {"count": len(lengths), "mean": round(mean, 2), "stdev": round(math.sqrt(variance), 2)}
 
 
-def check_ai_text(text: str, policy_root: Path | None = None) -> list[str]:
+def check_ai_text(
+    text: str, policy_root: Path | None = None, approved_stat_texts: Iterable[str] = ()
+) -> list[str]:
     """Return configured AI-text violations for a piece of tweet text."""
     violations = []
     if _EM_DASH in text:
@@ -259,6 +276,6 @@ def check_ai_text(text: str, policy_root: Path | None = None) -> list[str]:
     violations.extend(_negative_parallelism_violation(prose, root))
     violations.extend(_copula_avoidance_violations(prose, root))
     violations.extend(_filler_opener_violation(prose, root))
-    violations.extend(_rule_of_three_violation(prose, root))
+    violations.extend(_rule_of_three_violation(prose, root, approved_stat_texts))
     violations.extend(_hedging_density_violation(prose, root))
     return violations

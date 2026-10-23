@@ -262,6 +262,38 @@ class TestRuleOfThree:
             "External calls reenter before state is updated."
         )
 
+    def test_fixture_payment_post_does_not_count_intro_or_approved_stat_triad(self):
+        """The week-2 marketing_1 retry has one approved-stat triad, not two lists."""
+        text = (
+            "In x402, a facilitator verifies and settles payment requirements, so it sits inside "
+            "your trust boundary. SanadSquad reviews x402 and MPP integrations, facilitator "
+            "trust, and payment policy design. Teams can request a review."
+        )
+        stat = (
+            "SanadSquad provides agentic payment protocol review for x402 and MPP, including "
+            "integration review, facilitator trust, and payment policy design."
+        )
+
+        assert "ai_text:rule_of_three" not in check_ai_text(text, approved_stat_texts=[stat])
+
+    def test_two_genuine_triads_in_one_post_are_flagged(self):
+        assert "ai_text:rule_of_three" in check_ai_text(
+            "Keep it fast, cheap, and simple. Make the guidance clear, calm, and kind."
+        )
+
+    def test_two_genuine_triads_in_separate_tweets_are_flagged(self):
+        assert "ai_text:rule_of_three" in check_ai_text(
+            "Keep it fast, cheap, and simple.\nMake the guidance clear, calm, and kind."
+        )
+
+    def test_approved_stat_triad_does_not_contribute_to_the_match_count(self):
+        stat = "Keep the guidance clear, calm, and kind."
+
+        assert "ai_text:rule_of_three" not in check_ai_text(
+            "Keep it fast, cheap, and simple. " + stat,
+            approved_stat_texts=[stat],
+        )
+
 
 class TestHedgingDensity:
     def test_high_hedging_flagged(self):

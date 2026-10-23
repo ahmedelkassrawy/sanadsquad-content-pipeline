@@ -1,0 +1,18 @@
+# Technical abbreviations are terms, not source credits. Source registries and organizations
+# (for example SWC, EIP, OWASP, and NIST) are deliberately omitted.
+CPI
+PDA
+ATA
+SPL
+SVM
+EVM
+IDL
+RPC
+API
+ABI
+AMM
+MEV
+TVL
+NFT
+DAO
+ERC

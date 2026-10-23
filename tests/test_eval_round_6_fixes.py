@@ -56,6 +56,30 @@ def test_solidity_as_the_language_is_not_a_credit(texts):
     assert check_repeated_credits(texts, SOLIDITY) == []
 
 
+def test_fixture_cpi_calls_are_technical_terms_not_repeated_credits():
+    """The week-2 thread_2 retry uses CPI as Solana terminology, not attribution."""
+    texts = [
+        "1/8 In `sub_account_sign_v1` and `sign_v1`, a session authority can end up as a "
+        "signer in a downstream CPI call, which can unintentionally hand that account authority "
+        "in the called program.",
+        "2/8 Both functions build a `restricted_keys` list. It names accounts that must be kept "
+        "from being passed as signers when the program makes CPI calls.",
+        "3/8 Session-based authorities are never added to that list. Since nothing restricts them, "
+        "the program passes these accounts along as signers in the CPI calls it makes.",
+        "8/8 Grep your signing paths for where `restricted_keys` is filled, then confirm that every "
+        "authority type except `Secp256k1` puts both the payer and the session authority in it "
+        "before any CPI call.",
+    ]
+
+    assert check_repeated_credits(texts, OWASP) == []
+
+
+def test_owasp_remains_a_repeated_credit():
+    assert check_repeated_credits(["OWASP lists x.", "OWASP suggests y."], OWASP) == [
+        "repeated_credit:owasp"
+    ]
+
+
 @pytest.mark.parametrize(
     "texts,name",
     [

@@ -536,6 +536,7 @@
       "enum": [
         "shipped",
         "dropped_quality",
+        "dropped_weekly_mix",
         "failed_research",
         "failed_api",
         "failed_budget",

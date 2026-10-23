@@ -12,6 +12,7 @@ class Contract(BaseModel):
 class SlotOutcome(str, Enum):
     shipped = "shipped"
     dropped_quality = "dropped_quality"
+    dropped_weekly_mix = "dropped_weekly_mix"
     failed_research = "failed_research"
     failed_api = "failed_api"
     failed_budget = "failed_budget"

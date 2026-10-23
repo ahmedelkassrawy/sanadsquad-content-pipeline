@@ -899,7 +899,7 @@ class Pipeline:
             choices = [preferred] + [id for id in order if id != preferred]
             format_id = next((id for id in choices if format_counts.get(id, 0) < 2), preferred)
             if format_id is None:
-                state.outcome = SlotOutcome.failed_research
+                state.outcome = SlotOutcome.dropped_weekly_mix
                 state.reasons = ["weekly_mix_format_exhausted"]
                 warnings.append("weekly_mix_drop_format:" + state.slot.slot_id)
                 continue
@@ -964,7 +964,7 @@ class Pipeline:
                 f"weekly_mix:{phase}:{state.slot.slot_id}:{rule}:{'pass' if passed else 'fail'}"
             )
             if not passed:
-                state.outcome = SlotOutcome.failed_research
+                state.outcome = SlotOutcome.dropped_weekly_mix
                 state.reasons = ["weekly_mix_" + rule]
 
         for state in marketing:
@@ -1003,19 +1003,20 @@ class Pipeline:
             for state in marketing
             if state.outcome is None or phase == "shipped" and state.outcome == SlotOutcome.shipped
         ]
-        if len(surviving) >= 2:
+        if phase == "shipped":
             has_link = any(
                 state.slot.format in {"news-reaction", "learning-resource"} for state in surviving
             )
             has_no_link = any(state.slot.format == "short-tip" for state in surviving)
-            for state in surviving:
-                verdict(state, "link_diversity", has_link and has_no_link)
-                if not has_link or not has_no_link:
-                    break
-        else:
-            warnings.append(
-                f"weekly_mix:{phase}:set:link_diversity:not_applicable:{len(surviving)}"
+            unmet = (
+                "no_linked_post_shipped"
+                if not has_link
+                else "no_unlinked_post_shipped"
+                if not has_no_link
+                else None
             )
+            if unmet:
+                warnings.append(f"weekly_mix:shipped:set:link_diversity:unmet:{unmet}")
 
         remaining_ctas = max(1, len(surviving) // 3)
         for state in surviving:
@@ -1352,10 +1353,14 @@ class Pipeline:
         state = lane_state(raw)
 
         if state.attempt >= MAX_CONTENT_ATTEMPTS:
-            state.outcome = SlotOutcome.dropped_quality
             state.reasons = [reason for reason in state.feedback if not is_writer_note(reason)] or [
                 "quality_rejected"
             ]
+            state.outcome = (
+                SlotOutcome.dropped_weekly_mix
+                if any(reason.startswith("weekly_mix_") for reason in state.reasons)
+                else SlotOutcome.dropped_quality
+            )
 
         return state.model_dump(mode="json")
 

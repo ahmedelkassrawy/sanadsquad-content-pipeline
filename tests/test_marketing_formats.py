@@ -163,11 +163,11 @@ def test_weekly_mix_drops_a_third_service_repeat_without_stopping_other_slots():
         state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": state.slot.topic_id})
     warnings = pipeline._enforce_marketing_mix(slots, "viable")
 
-    assert slots[2].outcome.value == "failed_research"
+    assert slots[2].outcome.value == "dropped_weekly_mix"
     assert slots[2].reasons == ["weekly_mix_similar_topic"]
     assert any("m3:similar_topic:fail" in warning for warning in warnings)
     assert slots[0].outcome is None
-    assert slots[1].outcome.value == "failed_research"
+    assert slots[1].outcome.value == "dropped_weekly_mix"
 
 
 def test_weekly_mix_drops_a_duplicate_resolved_topic():
@@ -179,7 +179,7 @@ def test_weekly_mix_drops_a_duplicate_resolved_topic():
         state.pack = pack(state.slot.slot_id).model_copy(update={"topic_name": "same topic"})
     warnings = pipeline._enforce_marketing_mix(slots, "viable")
 
-    assert slots[1].outcome.value == "failed_research"
+    assert slots[1].outcome.value == "dropped_weekly_mix"
     assert slots[1].reasons == ["weekly_mix_similar_topic"]
     assert any("m2:similar_topic:fail" in warning for warning in warnings)
 
@@ -315,7 +315,7 @@ def test_ctas_are_data_driven_and_counted_across_one_post(text, allowed, expecte
     assert [value for value in result.violations if "cta" in value] == expected
 
 
-def test_weekly_mix_marks_link_diversity_not_applicable_for_one_viable_slot():
+def test_weekly_mix_leaves_link_diversity_to_planning_for_one_viable_slot():
     slots = states("ANGLE-web3-security")
     pipeline = mix_pipeline()
     pipeline._assign_marketing_mix(slots)
@@ -324,7 +324,56 @@ def test_weekly_mix_marks_link_diversity_not_applicable_for_one_viable_slot():
     warnings = pipeline._enforce_marketing_mix(slots, "viable")
 
     assert slots[0].outcome is None
-    assert "weekly_mix:viable:set:link_diversity:not_applicable:1" in warnings
+    assert not any("link_diversity" in warning for warning in warnings)
+
+
+def test_shipped_link_diversity_is_logged_as_unmet_without_dropping_the_post():
+    """The accepted week-2 learning resource stays shipped if its short tip was lost earlier."""
+    slots = states("ANGLE-agentic-payments", "ANGLE-agentic-security")
+    pipeline = mix_pipeline()
+    pipeline._assign_marketing_mix(slots)
+    slots[0].pack = pack(slots[0].slot.slot_id)
+    slots[0].outcome = SlotOutcome.dropped_quality
+    slots[1].pack = pack(slots[1].slot.slot_id)
+    slots[1].draft = Draft(
+        slot_id=slots[1].slot.slot_id,
+        tweets=[
+            Tweet(
+                text=(
+                    "A permission check that only fires when a balance changes misses everything "
+                    "else. In one Solana finding, a role limited to a token amount could still call "
+                    "SetAuthority and take over the token account."
+                ),
+                source_ids=["WEB-abcd"],
+            ),
+            Tweet(
+                text=(
+                    "OWASP's page on excessive agency makes the same point for AI agents: enforce "
+                    "tool authorization independently. https://example.com/review"
+                ),
+                source_ids=["WEB-abcd"],
+            ),
+        ],
+    )
+    slots[1].outcome = SlotOutcome.shipped
+
+    warnings = pipeline._enforce_marketing_mix(slots, "shipped")
+
+    assert slots[1].outcome is SlotOutcome.shipped
+    assert "weekly_mix:shipped:set:link_diversity:unmet:no_unlinked_post_shipped" in warnings
+
+
+async def test_weekly_mix_cta_failure_gets_the_weekly_mix_outcome():
+    state = SlotState(
+        slot=ResolvedSlot(slot_id="marketing", type="marketing-post"),
+        attempt=2,
+        feedback=["weekly_mix_cta_not_allowed"],
+    )
+
+    result = await Pipeline.__new__(Pipeline).retry(state.model_dump(mode="json"))
+
+    assert result["outcome"] == "dropped_weekly_mix"
+    assert result["reasons"] == ["weekly_mix_cta_not_allowed"]
 
 
 def test_weekly_mix_rejects_a_third_current_news_service_repeat():
@@ -356,7 +405,7 @@ def test_weekly_mix_rejects_a_third_current_news_service_repeat():
 
     assert slots[0].outcome is None
     assert slots[1].outcome is None
-    assert slots[2].outcome.value == "failed_research"
+    assert slots[2].outcome.value == "dropped_weekly_mix"
     assert slots[2].reasons == ["weekly_mix_service_repeat"]
     assert any("m3:service_repeat:fail" in warning for warning in warnings)
 
