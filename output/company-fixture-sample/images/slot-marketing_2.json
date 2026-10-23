@@ -1,0 +1,12 @@
+{
+  "concept": "Policy enforcement outside the model output for agent tools with authority",
+  "scene": "A dark navy card with a bold amber accent line and a simple geometric shield shape separating a model output block from a signing action block, clean and minimal engineering style",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "untrusted input that can change an AI system's instructions",
+  "alt_text": "Brand image card on a navy background with an amber shield icon between two blocks, with text about untrusted input that can change an AI system's instructions.",
+  "severity": null
+}

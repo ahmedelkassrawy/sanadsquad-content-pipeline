@@ -1,0 +1,751 @@
+[
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "81993acad5d00c1f117ea6da4e9202673e2fb5af21d8058cb5c2b0517f6500fb",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Deployed contract code has constraints that development code does not. OpenZeppelin's docs say review should account for initialization and upgrade paths before deployment. A contract-only view stops at the source file. SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+            "source_ids": [
+              "WEB-6f68894cae341dc2",
+              "STAT-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Deployed contract code has constraints that development code does not. OpenZeppelin's docs say review should account for initialization and upgrade paths before deployment. A contract-only view stops at the source file. SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+          "source_ids": [
+            "WEB-6f68894cae341dc2",
+            "STAT-01"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_1:invalid_text",
+        "tweet_1:length"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 10.0,
+        "stdev": 2.16
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "385e8f2a380949769dc9d6519532c3270fbe9c347a230d868cd16ad1ee8ff871",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A clean contract can still be undermined by what it trusts. Compromised dependencies and build systems affect any application that relies on them, so the review has to include dependency and CI/CD paths. SanadSquad covers that Web2 layer. Teams can request a SanadSquad review.",
+            "source_ids": [
+              "WEB-e4498adceb1abd45",
+              "STAT-02",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "A clean contract can still be undermined by what it trusts. Compromised dependencies and build systems affect any application that relies on them, so the review has to include dependency and CI/CD paths. SanadSquad covers that Web2 layer. Teams can request a SanadSquad review.",
+          "source_ids": [
+            "WEB-e4498adceb1abd45",
+            "STAT-02",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "brand_mention_limit:2/1"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 11.0,
+        "stdev": 7.79
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "01cdadff19d767f8fe1380b13ee1b998e210b9ea454d49bb59dea3a7e2552008",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "Deployed contract code has constraints that development code does not. OpenZeppelin's docs say review should cover initialization and upgrade paths before deployment. SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+            "source_ids": [
+              "WEB-6f68894cae341dc2",
+              "STAT-01"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Deployed contract code has constraints that development code does not. OpenZeppelin's docs say review should cover initialization and upgrade paths before deployment. SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+          "source_ids": [
+            "WEB-6f68894cae341dc2",
+            "STAT-01"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 3,
+        "mean": 10.33,
+        "stdev": 1.53
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "baa4e37a775f6255f1aade48bec2d636a9e0cf9f89164227b4b09d27f4f777b8",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A clean contract can still be undermined by what it trusts. Compromised dependencies and build systems affect any application that relies on them, so review has to cover dependency and CI/CD paths. SanadSquad provides Web2 pentesting for that layer. Teams can request a review.",
+            "source_ids": [
+              "WEB-e4498adceb1abd45",
+              "STAT-02",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "A clean contract can still be undermined by what it trusts. Compromised dependencies and build systems affect any application that relies on them, so review has to cover dependency and CI/CD paths. SanadSquad provides Web2 pentesting for that layer. Teams can request a review.",
+          "source_ids": [
+            "WEB-e4498adceb1abd45",
+            "STAT-02",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 11.0,
+        "stdev": 7.12
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "2f1f3a24b1ba5730bd37a03e14c87dffbb619aa669a30f2c81c6425d85bb193a",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A staking pool assumes that only funds staked over time earn yield. An attacker can make it pay out yield to funds that were never staked, because nothing charges for entering and leaving.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "The pool accrues revenue or issuance that has not been processed yet. Until someone calls the processing functions, that accumulated yield sits waiting to be split among the current depositors.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "With no deposit or withdraw fee, the attacker deposits while that yield is still unprocessed. Then they call the processing functions themselves, so the yield is distributed with their deposit counted.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "Right after processing, they withdraw again. They earned yield without contributing to it, since their funds were never really staked.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "A flashloan makes this worse. The attacker can borrow a large amount for the deposit, so they could take most of the generated yield for themselves.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "The simplest fix is a fee on deposits or withdrawals, which makes the in and out trick cost something.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "Two other options exist. Move yield processing elsewhere, or add a check on deposits that no unprocessed yield is pending. Making processing admin only is another option, but it could still be open to sandwiching.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          },
+          {
+            "text": "Before you ship, check that deposits and withdrawals carry a fee, and that a deposit cannot land while unprocessed yield is pending.",
+            "source_ids": [
+              "SS-03926"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 A staking pool assumes that only funds staked over time earn yield. An attacker can make it pay out yield to funds that were never staked, because nothing charges for entering and leaving.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "2/8 The pool accrues revenue or issuance that has not been processed yet. Until someone calls the processing functions, that accumulated yield sits waiting to be split among the current depositors.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "3/8 With no deposit or withdraw fee, the attacker deposits while that yield is still unprocessed. Then they call the processing functions themselves, so the yield is distributed with their deposit counted.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "4/8 Right after processing, they withdraw again. They earned yield without contributing to it, since their funds were never really staked.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "5/8 A flashloan makes this worse. The attacker can borrow a large amount for the deposit, so they could take most of the generated yield for themselves.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "6/8 The simplest fix is a fee on deposits or withdrawals, which makes the in and out trick cost something.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "7/8 Two other options exist. Move yield processing elsewhere, or add a check on deposits that no unprocessed yield is pending. Making processing admin only is another option, but it could still be open to sandwiching.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        },
+        {
+          "text": "8/8 Before you ship, check that deposits and withdrawals carry a fee, and that a deposit cannot land while unprocessed yield is pending.",
+          "source_ids": [
+            "SS-03926"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 15,
+        "mean": 14.4,
+        "stdev": 5.75
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "c14180a151cdefc1fcd7d4a20163f6b14d56a3eb1639dcfead86860da0a20b01",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "An attacker can call a launchpad's initialization instruction with a fake launch signer, sign as that signer, and mint arbitrary tokens or withdraw from the treasuries before the launch is ever handed over to the real one.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "In the `InitializeLaunch` instruction on Solana, the `launch_signer` account arrives as an Unchecked account. The constraints assert that this account is the authority of the `usdc_vault`, the `token_vault` and the mint.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The handler then derives the launch signer key itself and writes that derived key into the launch state account. It never compares the derived key with the key supplied in the accounts, so the two can differ.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "At the end, the handler calls the token program to mint, using the unchecked launch signer from the accounts, and passes the launch signer seeds as the signer. A signature from an attacker's fake signer is accepted alongside it, so the mint call succeeds.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The attacker builds a fake launch signer plus matching mint and token vault accounts, then calls initialization signing as that fake signer. Every authority constraint holds because they all point at the account the attacker chose.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "Afterwards they could reassign the token account owners and the mint authority to the correct launch signer, so the launchpad appears to work normally. Before that reassignment, they can mint arbitrary tokens or withdraw from the treasuries.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The fix is to check the launch signer seeds in the account constraints instead of in the handler. The supplied account is then proven to match the derived key before any handler logic runs.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "Grep your initialization instructions for authority accounts typed as Unchecked, then test that each one fails when you pass a key that does not match the seed derivation the handler computes.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 An attacker can call a launchpad's initialization instruction with a fake launch signer, sign as that signer, and mint arbitrary tokens or withdraw from the treasuries before the launch is ever handed over to the real one.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "2/8 In the `InitializeLaunch` instruction on Solana, the `launch_signer` account arrives as an Unchecked account. The constraints assert that this account is the authority of the `usdc_vault`, the `token_vault` and the mint.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "3/8 The handler then derives the launch signer key itself and writes that derived key into the launch state account. It never compares the derived key with the key supplied in the accounts, so the two can differ.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "4/8 At the end, the handler calls the token program to mint, using the unchecked launch signer from the accounts, and passes the launch signer seeds as the signer. A signature from an attacker's fake signer is accepted alongside it, so the mint call succeeds.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "5/8 The attacker builds a fake launch signer plus matching mint and token vault accounts, then calls initialization signing as that fake signer. Every authority constraint holds because they all point at the account the attacker chose.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "6/8 Afterwards they could reassign the token account owners and the mint authority to the correct launch signer, so the launchpad appears to work normally. Before that reassignment, they can mint arbitrary tokens or withdraw from the treasuries.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "7/8 The fix is to check the launch signer seeds in the account constraints instead of in the handler. The supplied account is then proven to match the derived key before any handler logic runs.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "8/8 Grep your initialization instructions for authority accounts typed as Unchecked, then test that each one fails when you pass a key that does not match the seed derivation the handler computes.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "ai_text:rule_of_three"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 14,
+        "mean": 20.5,
+        "stdev": 7.13
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "e5aceec4fd1e0e5f83e1c7fcd74104a491f6a3913ed34acb0f364d02eac66128",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A price oracle integration that accepts any account carrying the right feed ID, instead of one canonical account, lets users pick which valid price they feed into the protocol.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "The audited protocol did not enforce canonical accounts for its SOL/USD Pyth feed, stored as `sol_usd_pyth_feed`. Any account with the same feed ID could be submitted in place of the official one.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "That matters because anyone can create their own `PriceUpdateV2` account and publish historical prices into it. The protocol never checks that the account is the one Pyth manages.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "The protocol did validate publish and update times correctly. The problem is that an old price can still pass those checks, as long as it falls inside the allowed age window.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Take a 5-minute age window as an example. Transaction 1 uses the latest price t2. Transaction 2 uses an older price t1 (t1 < t2) read from a custom account. Both are valid by timestamp.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "In this case the window was configured at 60s. Even that short span lets a user choose between valid prices, which can potentially manipulate outcomes.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "One fix is to use a canonical feed account managed and sponsored by Pyth, so there is a single source of prices for that feed ID.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Another option is a personal, persistent account that you control and update yourself. Then users cannot swap in an account of their own making.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Does your program check that the price account passed in is the specific canonical account, rather than just any account matching the feed ID?",
+            "source_ids": [
+              "SS-03738"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A price oracle integration that accepts any account carrying the right feed ID, instead of one canonical account, lets users pick which valid price they feed into the protocol.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "2/9 The audited protocol did not enforce canonical accounts for its SOL/USD Pyth feed, stored as `sol_usd_pyth_feed`. Any account with the same feed ID could be submitted in place of the official one.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "3/9 That matters because anyone can create their own `PriceUpdateV2` account and publish historical prices into it. The protocol never checks that the account is the one Pyth manages.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "4/9 The protocol did validate publish and update times correctly. The problem is that an old price can still pass those checks, as long as it falls inside the allowed age window.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "5/9 Take a 5-minute age window as an example. Transaction 1 uses the latest price t2. Transaction 2 uses an older price t1 (t1 < t2) read from a custom account. Both are valid by timestamp.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "6/9 In this case the window was configured at 60s. Even that short span lets a user choose between valid prices, which can potentially manipulate outcomes.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "7/9 One fix is to use a canonical feed account managed and sponsored by Pyth, so there is a single source of prices for that feed ID.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "8/9 Another option is a personal, persistent account that you control and update yourself. Then users cannot swap in an account of their own making.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "9/9 Does your program check that the price account passed in is the specific canonical account, rather than just any account matching the feed ID?",
+          "source_ids": [
+            "SS-03738"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 17,
+        "mean": 14.94,
+        "stdev": 6.91
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "c004a457ee119267e4cc70e9be18ade6ee6bc23fe4f5a86f2e1168f5a8dc1eb5",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "OWASP GenAI documents prompt injection as untrusted input that can change an AI system's instructions. The root cause for agents with authority: model output gets treated as permission. Enforce policy outside the model before signing or acting. https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+            "source_ids": [
+              "WEB-430c5292e08d1720"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "OWASP GenAI documents prompt injection as untrusted input that can change an AI system's instructions. The root cause for agents with authority: model output gets treated as permission. Enforce policy outside the model before signing or acting. https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+          "source_ids": [
+            "WEB-430c5292e08d1720"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 9.5,
+        "stdev": 6.19
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "a96eac265453479869d3f04d326900a5e067f249f4e40b6ab2739baa68a96bfb",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "One attacker can call a launchpad's initialization instruction with a fake launch signer, sign as that signer, and mint arbitrary tokens or withdraw from the treasuries before the real launch signer takes over.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "In the `InitializeLaunch` instruction on Solana, the `launch_signer` account is passed as an Unchecked account. The constraints only assert that this account is the authority of the `usdc_vault`, the `token_vault` and the mint.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The handler derives the launch signer key on its own and stores that derived key in the launch state account. It never compares the derived key with the key supplied in the accounts, so the two can differ.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "At the end, the handler asks the token program to mint using the unchecked launch signer from the accounts, with the launch signer seeds passed as signer. An attacker's signature from a fake signer gets passed along too, so the mint call succeeds.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The attacker creates a fake launch signer account with matching mint and token vault accounts, then calls initialization while signing as that fake signer. The authority constraints hold because they all point at the account the attacker picked.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "Later the attacker could reassign the token account owners and the mint authority to the correct launch signer, so the launchpad runs without disruption. Before that reassignment, they can mint arbitrary tokens or withdraw from the treasuries.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "The fix is to check the launch signer seeds in the account constraints instead of in the handler. That way the supplied account must match the derived key before the handler body runs.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          },
+          {
+            "text": "Grep your initialization instructions for authority accounts typed as Unchecked, then test that each one is rejected when you pass a key that differs from the seed derivation the handler computes.",
+            "source_ids": [
+              "SS-03793"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 One attacker can call a launchpad's initialization instruction with a fake launch signer, sign as that signer, and mint arbitrary tokens or withdraw from the treasuries before the real launch signer takes over.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "2/8 In the `InitializeLaunch` instruction on Solana, the `launch_signer` account is passed as an Unchecked account. The constraints only assert that this account is the authority of the `usdc_vault`, the `token_vault` and the mint.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "3/8 The handler derives the launch signer key on its own and stores that derived key in the launch state account. It never compares the derived key with the key supplied in the accounts, so the two can differ.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "4/8 At the end, the handler asks the token program to mint using the unchecked launch signer from the accounts, with the launch signer seeds passed as signer. An attacker's signature from a fake signer gets passed along too, so the mint call succeeds.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "5/8 The attacker creates a fake launch signer account with matching mint and token vault accounts, then calls initialization while signing as that fake signer. The authority constraints hold because they all point at the account the attacker picked.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "6/8 Later the attacker could reassign the token account owners and the mint authority to the correct launch signer, so the launchpad runs without disruption. Before that reassignment, they can mint arbitrary tokens or withdraw from the treasuries.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "7/8 The fix is to check the launch signer seeds in the account constraints instead of in the handler. That way the supplied account must match the derived key before the handler body runs.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        },
+        {
+          "text": "8/8 Grep your initialization instructions for authority accounts typed as Unchecked, then test that each one is rejected when you pass a key that differs from the seed derivation the handler computes.",
+          "source_ids": [
+            "SS-03793"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "ai_text:rule_of_three"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 14,
+        "mean": 20.43,
+        "stdev": 6.39
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "e1a9722fbc4429874496343e43cf8055cc6cc952b3c3e39a667aa7bd77981e97",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "OWASP GenAI documents prompt injection as untrusted input that can change an AI system's instructions. For agent tools with authority, enforce policy outside the model output before signing or taking action. https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+            "source_ids": [
+              "WEB-430c5292e08d1720"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "OWASP GenAI documents prompt injection as untrusted input that can change an AI system's instructions. For agent tools with authority, enforce policy outside the model output before signing or taking action. https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+          "source_ids": [
+            "WEB-430c5292e08d1720"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 3,
+        "mean": 10.67,
+        "stdev": 8.39
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  }
+]

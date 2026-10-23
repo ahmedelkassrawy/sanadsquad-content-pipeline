@@ -1,0 +1,136 @@
+[
+  {
+    "record_id": "marketing_3/reviewer/2/1",
+    "slot_id": "marketing_3",
+    "attempt": 2,
+    "input_sha256": "d8a4656e29195c9330a96748d94f975140c6c9a348e1b1998c660fd110d60edd",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 3.0,
+        "technical_accuracy": 4.0,
+        "grounding": 5.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The opening line is supported but generic. 'Deployed contract code has constraints that development code does not' states a point without a concrete example, so it gives readers little reason to stop."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/reviewer/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "02768059fccfd8b2f9ee1608dc11ce525e5027cd22ce60edcbe2a19d8f0a5424",
+    "review": {
+      "slot_id": "marketing_1",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "e4692136e2a9db0b427a37d0c2f8bd256833a9e0a8da2db73b44a108dc09b93b",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 3.0,
+        "grounding": 2.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The OWASP definition and the mitigation (enforce policy outside the model before signing or acting) match the evidence and keep the 'agents with authority' condition. The 'root cause' sentence adds a causal claim that the evidence does not make.",
+        "Sentences 1 and 3 map directly to WEB-430c5292e08d1720. Sentence 2 ('The root cause for agents with authority: model output gets treated as permission') is an unsupported causal claim. The evidence prescribes a control but never identifies a root cause.",
+        "'The root cause for agents with authority: model output gets treated as permission' is a causal claim. The supplied OWASP evidence states only the definition and the recommendation to enforce policy outside model output; it does not name a root cause."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "9945c271c86f65385945251517d536f48421ca8818f3a80061e2a73636cf290f",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "980bd03b1155ef73d1e32600842942cfd19df8d2e5323789515cbbb19e8bf19b",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/reviewer/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "fb33eca64bf64dc9ada95009c9e28355d17009478eb208f031f44a09eb41d36a",
+    "review": {
+      "slot_id": "marketing_2",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 5.0,
+        "grounding": 5.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  }
+]

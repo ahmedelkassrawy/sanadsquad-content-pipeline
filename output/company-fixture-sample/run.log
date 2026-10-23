@@ -1,0 +1,82 @@
+marketing mix
+   marketing_1: short-tip, pentesting, CTA allowed
+   marketing_2: learning-resource, agentic-security, no CTA
+   marketing_3: differentiation, web3-security, no CTA
+   viable marketing_1: similar_topic pass
+   viable marketing_1: service_repeat pass
+   viable marketing_1: format_repeat pass
+   viable marketing_2: similar_topic pass
+   viable marketing_2: service_repeat pass
+   viable marketing_2: format_repeat pass
+   viable marketing_3: similar_topic pass
+   viable marketing_3: service_repeat pass
+   viable marketing_3: format_repeat pass
+   viable marketing_1: cta_limit pass
+   viable marketing_2: cta_limit pass
+   viable marketing_3: cta_limit pass
+   shipped marketing_1: similar_topic pass
+   shipped marketing_1: service_repeat pass
+   shipped marketing_1: format_repeat pass
+   shipped marketing_2: similar_topic pass
+   shipped marketing_2: service_repeat pass
+   shipped marketing_2: format_repeat pass
+   shipped marketing_3: similar_topic pass
+   shipped marketing_3: service_repeat pass
+   shipped marketing_3: format_repeat pass
+   shipped marketing_1: cta_limit pass
+   shipped marketing_2: cta_limit pass
+   shipped marketing_3: cta_limit pass
+
+== thread_1
+   research   search_kb 'oracle manipulation' -> SS-03738:ok, SS-03740:ok, SS-03706:ok, SS-03699:ok, SS-03703:ok
+   research   topic SS-03738 (Non-Canonical Price Feeds Allow Historical Price Manipulation) from SS-03738
+   draft 1    9 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+== thread_2
+   research   topic SS-03793 (Launch Signer not checked on initialization) from SS-03793
+   draft 1    8 tweets, rules FAILED: ai_text:rule_of_three
+   draft 2    8 tweets, rules FAILED: ai_text:rule_of_three
+   outcome    dropped_quality after 2 attempt(s): ai_text:rule_of_three
+== thread_3
+   research   topic SS-03926 (Lack of fees allow flashloan yield-stealing attack) from SS-03926
+   draft 1    8 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+== marketing_1
+   research   web_search 'supply chain key compromise losses' -> WEB-e4498adceb1abd45:ok
+   research   topic ANGLE-pentesting (web2-pentesting) from WEB-e4498adceb1abd45, STAT-02, STAT-05
+   draft 1    1 tweets, rules FAILED: brand_mention_limit:2/1
+   draft 2    1 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== marketing_2
+   research   web_search 'prompt injection agent signing tools' -> WEB-430c5292e08d1720:ok
+   research   topic ANGLE-agentic-security (agentic-security-and-red-teaming) from WEB-430c5292e08d1720, STAT-03, STAT-05
+   draft 1    1 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=3 grounding=2 voice=4 clarity=4 cta=4
+              hard fail: unsupported_claim
+              reason: The OWASP definition and the mitigation (enforce policy outside the model before signing or acting) match the evidence and keep the 'agents with authority' condition. The 'root cause' sentence adds a causal claim that the evidence does not make.
+              reason: Sentences 1 and 3 map directly to WEB-430c5292e08d1720. Sentence 2 ('The root cause for agents with authority: model output gets treated as permission') is an unsupported causal claim. The evidence prescribes a control but never identifies a root cause.
+              reason: 'The root cause for agents with authority: model output gets treated as permission' is a causal claim. The supplied OWASP evidence states only the definition and the recommendation to enforce policy outside model output; it does not name a root cause.
+   draft 2    1 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=5 grounding=5 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== marketing_3
+   research   web_search 'web3 security audits deployed-code drift' -> WEB-6f68894cae341dc2:ok
+   research   web_search 'smart contract security beyond the contract: infrastructure, access control, oracle manipulation root causes OWASP Smart Contract Top 10' -> nothing
+   research   web_search 'SWC Registry reentrancy SWC-107 root cause mitigation checks-effects-interactions' -> nothing
+   research   web_search 'smart contract security beyond the contract: access control, oracle manipulation, key management, and infrastructure compromise root causes OWASP Smart Contract Top 10' -> nothing
+   research   topic ANGLE-web3-security (web3-security) from WEB-6f68894cae341dc2, STAT-01, STAT-05
+   draft 1    1 tweets, rules FAILED: tweet_1:invalid_text, tweet_1:length
+   draft 2    1 tweets, rules ok
+   review 2   accepted  hook=3 technical_accuracy=4 grounding=5 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+
+shipped 5, dropped or failed 1
+tokens 155182, LLM cost $0.5289
+  research  8 call(s), 27707 tokens, $0.0622
+  writer    10 call(s), 61384 tokens, $0.1542
+  reviewer  6 call(s), 48495 tokens, $0.2671
+  visual    5 call(s), 17596 tokens, $0.0453
+advisor not_enabled

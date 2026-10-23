@@ -1,0 +1,12 @@
+{
+  "concept": "A clean contract can still be undermined by the dependency and CI/CD paths around it",
+  "scene": "Flat brand card on a deep navy background. A simple contract document icon in white sits at the center, with thin amber lines connecting it to small nodes for dependencies and a build pipeline. One amber node is highlighted to suggest a weak link outside the contract. Minimal, calm, precise engineering style with generous empty space around the overlay text.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "A clean contract can still be undermined",
+  "alt_text": "Brand card with a navy background and a white contract icon linked by amber lines to dependency and build pipeline nodes, with one node highlighted. Overlay text reads: A clean contract can still be undermined.",
+  "severity": null
+}

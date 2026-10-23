@@ -1,0 +1,21 @@
+Post Text,Image
+"1/9 A price oracle integration that accepts any account carrying the right feed ID, instead of one canonical account, lets users pick which valid price they feed into the protocol.
+2/9 The audited protocol did not enforce canonical accounts for its SOL/USD Pyth feed, stored as `sol_usd_pyth_feed`. Any account with the same feed ID could be submitted in place of the official one.
+3/9 That matters because anyone can create their own `PriceUpdateV2` account and publish historical prices into it. The protocol never checks that the account is the one Pyth manages.
+4/9 The protocol did validate publish and update times correctly. The problem is that an old price can still pass those checks, as long as it falls inside the allowed age window.
+5/9 Take a 5-minute age window as an example. Transaction 1 uses the latest price t2. Transaction 2 uses an older price t1 (t1 < t2) read from a custom account. Both are valid by timestamp.
+6/9 In this case the window was configured at 60s. Even that short span lets a user choose between valid prices, which can potentially manipulate outcomes.
+7/9 One fix is to use a canonical feed account managed and sponsored by Pyth, so there is a single source of prices for that feed ID.
+8/9 Another option is a personal, persistent account that you control and update yourself. Then users cannot swap in an account of their own making.
+9/9 Does your program check that the price account passed in is the specific canonical account, rather than just any account matching the feed ID?",images/slot-thread_1.png
+"1/8 A staking pool assumes that only funds staked over time earn yield. An attacker can make it pay out yield to funds that were never staked, because nothing charges for entering and leaving.
+2/8 The pool accrues revenue or issuance that has not been processed yet. Until someone calls the processing functions, that accumulated yield sits waiting to be split among the current depositors.
+3/8 With no deposit or withdraw fee, the attacker deposits while that yield is still unprocessed. Then they call the processing functions themselves, so the yield is distributed with their deposit counted.
+4/8 Right after processing, they withdraw again. They earned yield without contributing to it, since their funds were never really staked.
+5/8 A flashloan makes this worse. The attacker can borrow a large amount for the deposit, so they could take most of the generated yield for themselves.
+6/8 The simplest fix is a fee on deposits or withdrawals, which makes the in and out trick cost something.
+7/8 Two other options exist. Move yield processing elsewhere, or add a check on deposits that no unprocessed yield is pending. Making processing admin only is another option, but it could still be open to sandwiching.
+8/8 Before you ship, check that deposits and withdrawals carry a fee, and that a deposit cannot land while unprocessed yield is pending.",images/slot-thread_3.png
+"A clean contract can still be undermined by what it trusts. Compromised dependencies and build systems affect any application that relies on them, so review has to cover dependency and CI/CD paths. SanadSquad provides Web2 pentesting for that layer. Teams can request a review.",images/slot-marketing_1.png
+"OWASP GenAI documents prompt injection as untrusted input that can change an AI system's instructions. For agent tools with authority, enforce policy outside the model output before signing or taking action. https://genai.owasp.org/llmrisk/llm01-prompt-injection/",images/slot-marketing_2.png
+Deployed contract code has constraints that development code does not. OpenZeppelin's docs say review should cover initialization and upgrade paths before deployment. SanadSquad provides smart contract audits across EVM and Solana/SVM.,images/slot-marketing_3.png

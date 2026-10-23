@@ -1,0 +1,12 @@
+{
+  "concept": "Deployed contract code has different constraints than development code, so initialization and upgrade paths need review before deployment.",
+  "scene": "Clean navy background with a bold amber accent bar on the left edge. Large white overlay text sits centered, with a small amber line beneath it. Minimal, calm engineering look with no extra icons or data.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "initialization and upgrade paths before deployment",
+  "alt_text": "Navy brand card with an amber accent bar and white text reading: initialization and upgrade paths before deployment.",
+  "severity": null
+}

@@ -1,0 +1,12 @@
+{
+  "concept": "A price feed account that is not canonical lets users pick which valid price the protocol uses",
+  "scene": "Dark navy technical card. Two stacked price account blocks feed into a single protocol box: one labelled with the latest price t2 and one with an older price t1 from a custom account. A highlighted amber arrow marks the custom account path. Clean engineering diagram style with thin lines and a small HIGH severity badge.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "canonical accounts",
+  "alt_text": "Diagram of two price accounts feeding one protocol, the latest price and an older price from a custom account, with the custom account path highlighted to show a non-canonical price feed risk.",
+  "severity": "HIGH"
+}
