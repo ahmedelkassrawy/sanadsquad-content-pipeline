@@ -91,12 +91,27 @@ def test_em_dash_is_rejected_at_punctuation_boundaries(rules, text):
     [
         ("https://example.com/a\u2014b", "ai_text:em_dash"),
         ("See https://example.com/non\u2011breaking", "tweet_1:banned_character:\u2011"),
+        ("www.example.com/non\u2011breaking", "tweet_1:banned_character:\u2011"),
+        ("example.com/a\u2014b", "ai_text:em_dash"),
+        ("prefix:https://example.com/a\u2014b", "ai_text:em_dash"),
     ],
 )
 def test_banned_characters_inside_urls_are_rejected_without_rewriting(rules, text, violation):
     result = check(text, rules)
 
+    assert not result.accepted
     assert violation in result.violations
+    assert result.normalized.tweets[0].text == text
+    assert result.fixes == []
+
+
+def test_protected_url_does_not_hide_a_rejected_dash_in_surrounding_text(rules):
+    text = "word\u2014word https://example.com/non\u2011breaking"
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert "ai_text:em_dash" in result.violations
+    assert "tweet_1:banned_character:\u2011" in result.violations
     assert result.normalized.tweets[0].text == text
 
 
@@ -162,9 +177,11 @@ def test_restored_punctuation_matrix_rejects_em_dash(rules, punctuation, side):
     [
         'He said "word\u2014".',
         "He said \u201cword\u2014\u201d.",
+        'He said "word\u2014\u2014".',
         "[word\u2014]",
         "{word\u2014}",
         'word\u2014 "quote"',
+        'word \u2014"quote"',
         "word\u2014 \u201cquote\u201d",
         "v1.2/3\u2014word",
     ],
