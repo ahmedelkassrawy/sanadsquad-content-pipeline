@@ -4,7 +4,7 @@ validation.py. Nothing here adds or changes a word of the writer's content."""
 
 import re
 from twitter_text import parse_tweet
-from .models import Draft, PostType, Tweet
+from .models import Draft, MarketingFormat, PostType, Tweet
 
 
 _BARE_DOMAIN_URL = re.compile(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/\S*")
@@ -20,9 +20,11 @@ def is_url_token(token: str) -> bool:
     )
 
 
-def numbering(spec: PostType, position: int, count: int) -> str:
+def numbering(
+    spec: PostType, position: int, count: int, format: MarketingFormat | None = None
+) -> str:
     """The prefix added to a tweet of a numbered type, such as "3/7 "."""
-    return f"{position}/{count} " if spec.numbering else ""
+    return f"{position}/{count} " if (format.numbering if format else spec.numbering) else ""
 
 
 def _inside_code_span(text: str, position: int) -> bool:
@@ -61,18 +63,26 @@ def split_at_sentence(text: str, limit: int, prefix: str = "") -> tuple[str, str
     return best
 
 
-def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[str]) -> None:
+def split_overlong_tweets(
+    draft: Draft,
+    spec: PostType,
+    limit: int,
+    fixes: list[str],
+    format: MarketingFormat | None = None,
+) -> None:
     """Split tweets over the limit in place while the thread is below the type's unit maximum."""
-    if spec.units.max < 2:
+    units = format.units if format else spec.units
+
+    if units.max < 2:
         return
 
     index = 0
 
-    while index < len(draft.tweets) and len(draft.tweets) < spec.units.max:
+    while index < len(draft.tweets) and len(draft.tweets) < units.max:
         count = len(draft.tweets)
         tweet = draft.tweets[index]
 
-        numbered = numbering(spec, index + 1, count) + tweet.text
+        numbered = numbering(spec, index + 1, count, format) + tweet.text
 
         if parse_tweet(numbered).weightedLength <= limit:
             index += 1
@@ -80,11 +90,11 @@ def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[
             continue
 
         # Every later tweet is renumbered, so the halves must fit with the widest prefix.
-        widest = numbering(spec, count + 1, count + 1)
+        widest = numbering(spec, count + 1, count + 1, format)
 
         # Going from 9 to 10 tweets widens every prefix ("1/9 " to "1/10 "); refuse a split
         # that would push a tweet that already fits over the limit.
-        if len(widest) > len(numbering(spec, count, count)) and any(
+        if len(widest) > len(numbering(spec, count, count, format)) and any(
             parse_tweet(widest + other.text).weightedLength > limit
             for position, other in enumerate(draft.tweets)
             if position != index
@@ -93,7 +103,7 @@ def split_overlong_tweets(draft: Draft, spec: PostType, limit: int, fixes: list[
 
             continue
 
-        text = NUMBERING_PREFIX.sub("", tweet.text) if spec.numbering else tweet.text
+        text = NUMBERING_PREFIX.sub("", tweet.text) if numbering(spec, 1, 1, format) else tweet.text
         halves = split_at_sentence(text, limit, widest)
 
         if halves is None:

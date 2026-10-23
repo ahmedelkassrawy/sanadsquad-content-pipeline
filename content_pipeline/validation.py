@@ -6,7 +6,15 @@ from itertools import combinations
 from twitter_text import parse_tweet
 from skills import brand_rules
 from .redaction import kb_protocol_name_violations
-from .models import BrandRules, Draft, PostType, ResearchPack, SourceRecord, ValidationResult
+from .models import (
+    BrandRules,
+    Draft,
+    MarketingFormat,
+    PostType,
+    ResearchPack,
+    SourceRecord,
+    ValidationResult,
+)
 from .x_format import (
     CODE_SPAN,
     NUMBERING_PREFIX,
@@ -16,6 +24,7 @@ from .x_format import (
     strip_markdown,
 )
 from . import ai_text as _ai_text
+from twitter_text import extract_urls_with_indices
 
 
 # The brand check lives in the brand_rules skill; this alias keeps existing imports working.
@@ -170,6 +179,40 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
         for source_id in t.source_ids
         if source_id not in citable
     ]
+
+
+_CTA = re.compile(
+    r"(?i)(?:^|[.!?]\s+)(?:request|read|learn|see|compare|contact|ask|visit|try)\b[^.!?]*[.!?]?$"
+)
+
+
+def check_marketing_format(
+    draft: Draft, format: MarketingFormat | None, cta_allowed: bool
+) -> list[str]:
+    """Enforce a selected marketing format without making other post types opt in."""
+    if format is None:
+        return []
+
+    errors = []
+    count = len(draft.tweets)
+    if not format.units.min <= count <= format.units.max:
+        errors.append(f"format_units:{format.id}:{count}/{format.units.min}-{format.units.max}")
+
+    links = [
+        link["url"] for tweet in draft.tweets for link in extract_urls_with_indices(tweet.text)
+    ]
+    if format.link_rule == "required" and not links:
+        errors.append(f"format_link_required:{format.id}")
+    if format.link_rule == "forbidden" and links:
+        errors.append(f"format_link_forbidden:{format.id}")
+
+    ctas = sum(bool(_CTA.search(tweet.text.strip())) for tweet in draft.tweets)
+    if ctas > 1:
+        errors.append("marketing_cta_limit")
+    elif ctas and not cta_allowed:
+        errors.append("weekly_mix_cta_not_allowed")
+
+    return errors
 
 
 # These aliases are derived only when a pack source identifies the publisher in its title or URL.
@@ -988,6 +1031,8 @@ def validate(
     limit: int = 280,
     focus: str | None = None,
     ai_policy_root: Path | None = None,
+    format: MarketingFormat | None = None,
+    cta_allowed: bool = True,
 ) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
@@ -1006,7 +1051,7 @@ def validate(
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
 
-    split_overlong_tweets(fixed, spec, limit, fixes)
+    split_overlong_tweets(fixed, spec, limit, fixes, format)
 
     for i, tweet in enumerate(fixed.tweets, 1):
         text = tweet.text
@@ -1025,7 +1070,7 @@ def validate(
         claims.extend(f"tweet_{i}:{e}" for e in check_claim_words(text, pack, spec.claim_words))
         claims.extend(f"tweet_{i}:{e}" for e in check_stat_claims(text, pack))
 
-        tweet.text = numbering(spec, i, len(fixed.tweets)) + text
+        tweet.text = numbering(spec, i, len(fixed.tweets), format) + text
 
     errors = (
         ai_violations
@@ -1048,8 +1093,11 @@ def validate(
         errors.extend(check_repeated_points(texts))
         errors.extend(check_section_labels(texts))
 
-    if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
+    units = format.units if format else spec.units
+    if not units.min <= len(fixed.tweets) <= units.max:
         errors.append("tweet_count")
+
+    errors.extend(check_marketing_format(fixed, format, cta_allowed))
 
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))

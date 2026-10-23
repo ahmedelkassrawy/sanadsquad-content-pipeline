@@ -56,7 +56,7 @@ class OfflineModels:
             mode = self.behavior.get(slot_id, {})
             if schema.__name__ == "ResearchAction":
                 request = payload["request"]
-                focus = request["slot"]["focus"]
+                focus = request["slot"]["focus"] or ""
                 evidence = payload["evidence"]
                 if (
                     self.research_barrier
@@ -100,15 +100,21 @@ class OfflineModels:
                     if source_id.startswith("SS-")
                     else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
-                    else f"Read {payload['research']['sources'][0]['url']} for source evidence."
+                    else (
+                        f"Read {payload['research']['sources'][0]['url']} for source evidence."
+                        if (payload.get("format") or {}).get("link_rule") == "required"
+                        else "Source evidence supports this topic."
+                    )
                 )
+                text = mode.get("writer_text", text)
                 if attempt in mode.get("invalid_attempts", []):
                     source_id = "SS-99"
+                source_ids = mode.get("writer_source_ids", [source_id])
                 parsed = {
                     "slot_id": "other" if mode.get("writer_mismatch") else slot_id,
                     "attempt": attempt,
                     "tweets": [
-                        {"text": text, "source_ids": [source_id]}
+                        {"text": text, "source_ids": source_ids}
                         for _ in range(payload["post_type"]["units"]["min"])
                     ],
                 }
@@ -201,7 +207,7 @@ class OfflineSearch:
         return {
             "results": [
                 {
-                    "url": "https://example.com/evidence",
+                    "url": "https://github.com/evidence",
                     "title": "Public fixture source",
                     "raw_content": "Source evidence supports this topic.",
                 }

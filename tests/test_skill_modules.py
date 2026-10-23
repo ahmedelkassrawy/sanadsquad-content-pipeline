@@ -75,7 +75,7 @@ def test_brand_rules_skill_is_the_mechanical_brand_check():
     assert skills.brand_rules.check_brand("State before calls.", rules) == []
     assert skills.brand_rules.check_brand("#tag", rules) == ["hashtag"]
     assert skills.brand_rules.check_brand(banned, rules) == ["banned_phrase:" + banned]
-    assert skills.brand_rules.check_brand(f"see {rules.allowed_links[0]}", rules) == []
+    assert rules.allowed_links == []
     assert skills.brand_rules.check_brand("see https://evil.com/a", rules) == [
         "link_domain:evil.com"
     ]

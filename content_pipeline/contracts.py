@@ -5,6 +5,7 @@ from .models import (
     Draft,
     ImageResult,
     ImageSpec,
+    MarketingFormat,
     PostType,
     ResearchPack,
     ResolvedSlot,
@@ -27,6 +28,8 @@ class Angle(Contract):
     service_line: (
         Literal["web3-security", "pentesting", "agentic-security", "agentic-payments"] | None
     ) = None
+    # Terms used only to resolve the service line of an explicitly focused marketing slot.
+    focus_terms: list[StrictStr] = Field(default_factory=list)
     kb_allowed: bool = False
     subject: StrictStr | None = None
 
@@ -131,6 +134,9 @@ class WriteRequest(Contract):
     previous_draft: Draft | None = None
     # The slot's assigned hook and closing, so threads of one week are written differently.
     style: WriteStyle | None = None
+    # The data-loaded marketing shape selected during planning, if this is a marketing slot.
+    format: MarketingFormat | None = None
+    cta_allowed: bool = True
 
 
 class Rubric(Contract):

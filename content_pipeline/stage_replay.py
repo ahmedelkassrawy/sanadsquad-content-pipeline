@@ -12,7 +12,7 @@ from .contracts import FinalPiece, ResearchRecord, WeekSnapshot
 from .durability import atomic_json
 from .images import CARD_SIZE, overlay_errors
 from .model_client import ModelFailure
-from .models import Contract, Draft, PostType, ResearchPack
+from .models import Contract, Draft, MarketingFormat, PostType, ResearchPack
 
 MISMATCH = "saved stage input mismatch"
 
@@ -40,6 +40,8 @@ class ValidationInput(Contract):
     max_tweet_chars: int
     # Older saved inputs did not include a policy digest and remain parseable.
     ai_policy_sha256: str | None = None
+    format: MarketingFormat | None = None
+    cta_allowed: bool = True
 
 
 @dataclass(frozen=True)

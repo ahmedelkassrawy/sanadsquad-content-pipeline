@@ -53,6 +53,11 @@ class ResolvedSlot(Contract):
     topic_id: str | None = None
     # For an angle that picks one of several sources: the source code chose for this week.
     angle_source: str | None = None
+    # Marketing-only planning data. These fields are persisted with the resolved plan so the
+    # writer, validator and run log agree on the week's assigned shape.
+    format: str | None = None
+    service_line: str | None = None
+    cta_allowed: bool = True
 
 
 class SourceRecord(Contract):
@@ -192,6 +197,16 @@ class Units(Contract):
         return self
 
 
+class MarketingFormat(Contract):
+    """One data-loaded shape a marketing slot may use."""
+
+    id: str = Field(min_length=1)
+    units: Units
+    link_rule: Literal["required", "forbidden", "optional"]
+    length_hint: str = Field(min_length=1)
+    numbering: bool = False
+
+
 class ResearchConfig(Contract):
     hints: str
     topic_source: Literal["kb", "angles"]
@@ -243,11 +258,22 @@ class PostType(Contract):
     # end the same way. Empty means the writer is free.
     hook_styles: list[str] = Field(default_factory=list)
     closing_styles: list[str] = Field(default_factory=list)
+    # Marketing uses this table to select the effective unit, link and numbering rules.
+    formats: list[MarketingFormat] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def styles_not_blank(self):
         if any(not style.strip() for style in self.hook_styles + self.closing_styles):
             raise ValueError("hook and closing styles cannot be blank")
+
+        if len({format.id for format in self.formats}) != len(self.formats):
+            raise ValueError("duplicate marketing format")
+
+        if self.formats and any(
+            format.units.min < self.units.min or format.units.max > self.units.max
+            for format in self.formats
+        ):
+            raise ValueError("format units outside post type units")
 
         return self
 

@@ -1,4 +1,4 @@
-"""The marketing writer request includes the angle quality scaffold."""
+"""The marketing writer receives its assigned format and the compact quality scaffold."""
 
 from pathlib import Path
 
@@ -14,85 +14,45 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CapturingClient:
-    def __init__(self):
-        self.messages = None
-
     async def call(
         self, schema, messages, slot_id, node, attempt, max_tokens, output_validator=None
     ):
         self.messages = messages
-        return Draft(
-            slot_id=slot_id, attempt=attempt, tweets=[Tweet(text="Captured draft", source_ids=[])]
-        )
+        return Draft(slot_id=slot_id, attempt=attempt, tweets=[Tweet(text="Captured draft")])
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "topic_id,source",
-    [
-        (
-            "ANGLE-service",
-            SourceRecord(
-                source_id="STAT-03",
-                kind="stat",
-                title="Sentinel Grove",
-                evidence_text="DEMO FIXTURE ONLY: fictional smart contract audit service; teams can request a review.",
-            ),
-        ),
-        (
-            "ANGLE-credibility",
-            SourceRecord(
-                source_id="STAT-01",
-                kind="stat",
-                title="Sentinel Grove",
-                evidence_text="DEMO FIXTURE ONLY: completed 12 fictional audits.",
-            ),
-        ),
-        (
-            "ANGLE-education",
-            SourceRecord(
-                source_id="SS-01",
-                kind="kb",
-                title="Reentrancy",
-                evidence_text="Use checks-effects-interactions to mitigate reentrancy.",
-            ),
-        ),
-    ],
-)
-async def test_public_marketing_writer_sends_angle_quality_scaffold(topic_id, source):
+async def test_marketing_writer_receives_assigned_format_and_sanadsquad_rules():
     client = CapturingClient()
+    spec = load_type(ROOT, "marketing-post")
+    format = next(format for format in spec.formats if format.id == "thread")
     request = WriteRequest(
-        slot_id=topic_id,
+        slot_id="ANGLE-agentic-payments",
         attempt=1,
         research=ResearchPack(
-            slot_id=topic_id, topic_id=topic_id, topic_name=topic_id, sources=[source]
+            slot_id="ANGLE-agentic-payments",
+            topic_id="ANGLE-agentic-payments",
+            topic_name="agentic payments",
+            sources=[
+                SourceRecord(
+                    source_id="STAT-04",
+                    kind="stat",
+                    title="SanadSquad",
+                    evidence_text="SanadSquad provides agentic payment protocol review for x402 and MPP.",
+                )
+            ],
         ),
-        post_type=load_type(ROOT, "marketing-post"),
+        post_type=spec,
         feedback=[],
+        format=format,
+        cta_allowed=False,
     )
 
     await Writer(ROOT, "marketing-post", client)(request)
 
     assert client.messages[1]["content"] == request.model_dump_json()
+    assert '"id":"thread"' in client.messages[1]["content"]
     prompt = client.messages[0]["content"]
-    assert (
-        "finished, reader-facing post around one supported point, not a list of brand facts"
-        in prompt
-    )
-    assert (
-        "Open with a specific question, contrast or concrete statement tied to the supplied angle and evidence"
-        in prompt
-    )
-    assert "end with a direct next step that the supplied evidence supports" in prompt
-    assert (
-        "For an education angle, keep the hook and supported mechanism or mitigation concise"
-        in prompt
-    )
-    assert "A short grounded invitation is enough" not in prompt
-    if topic_id == "ANGLE-education":
-        assert "leave room within the effective configured limit for a distinct" in prompt
-        assert "distinct, evidence-tied reader-engagement question or concrete next step" in prompt
-        assert (
-            "Merely restating or applying the mitigation is not by itself this engagement CTA"
-            in prompt
-        )
+    assert "whole attack surface, not just the contract" in prompt
+    assert "at most one CTA" in prompt
+    assert "Sentinel Grove" not in prompt
