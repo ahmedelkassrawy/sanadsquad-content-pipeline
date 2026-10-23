@@ -7,6 +7,7 @@ from pathlib import Path
 from rank_bm25 import BM25Okapi
 
 from content_pipeline.models import SourceRecord
+from content_pipeline.redaction import redact_kb_text
 
 
 def words(text):
@@ -98,10 +99,13 @@ class KnowledgeBase:
         return SourceRecord(
             source_id=entry["id"],
             kind="kb",
-            title=entry["title"],
-            url=entry["content"]["location"],
+            title=redact_kb_text(entry["title"]),
+            # Locations commonly include the audited project's GitHub org/repository. They are
+            # not needed as writer evidence, so omit them rather than expose another name path.
+            url=None,
             evidence_text="\n".join(
-                (
+                redact_kb_text(value)
+                for value in (
                     entry["title"],
                     entry["content"]["description"],
                     entry["content"]["recommendation"],

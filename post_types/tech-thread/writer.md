@@ -1,4 +1,4 @@
-Write one technical thread from the supplied research pack. Cite evidence ids per tweet. Never search. Return unnumbered text; code numbers threads.
+Write one technical thread from the supplied research pack. Cite evidence ids per tweet. Never search. Return unnumbered text; code numbers threads. Never name the audited project.
 
 ## Length
 
