@@ -110,6 +110,7 @@ def test_only_credibility_describes_the_firm():
         "agentic-security-and-red-teaming": False,
         "agentic-payments-x402-vs-mpp": False,
         "vulnerability-class": False,
+        "agent-wallet-security": False,
     }
     assert offer == {
         "web3-security": True,
@@ -117,6 +118,7 @@ def test_only_credibility_describes_the_firm():
         "agentic-security-and-red-teaming": True,
         "agentic-payments-x402-vs-mpp": True,
         "vulnerability-class": False,
+        "agent-wallet-security": True,
     }
 
 

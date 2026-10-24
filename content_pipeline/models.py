@@ -2,7 +2,14 @@ from datetime import datetime, timezone
 from enum import Enum
 import re
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 
 
 class Contract(BaseModel):
@@ -58,9 +65,36 @@ class ResolvedSlot(Contract):
     # writer, validator and run log agree on the week's assigned shape.
     format: str | None = None
     service_line: str | None = None
+    # Set only for a cross-service post: [primary, secondary]. service_line stays the primary.
+    service_lines: list[str] | None = None
     cta_allowed: bool = True
     # Set from a plan's optional top-level `week` and copied into snapshots for operators.
     marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")
+
+    @model_validator(mode="after")
+    def _cross_service_lines_shape(self):
+        if self.service_lines is not None:
+            lines = self.service_lines
+            if len(lines) != 2 or len(set(lines)) != 2 or not set(lines) <= set(SERVICE_LINES):
+                raise ValueError("service_lines needs exactly two distinct known service lines")
+            if self.service_line not in (None, lines[0]):
+                raise ValueError("service_line must be the first of service_lines")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_service_lines(self, handler: SerializerFunctionWrapHandler):
+        # Single-service slots serialize exactly as before the field existed.
+        data = handler(self)
+        if data.get("service_lines") is None:
+            data.pop("service_lines", None)
+        return data
+
+
+def slot_service_lines(slot) -> list[str]:
+    """Every service line a marketing slot counts toward: both for a cross-service post."""
+    if slot.service_lines:
+        return list(slot.service_lines)
+    return [slot.service_line] if slot.service_line else []
 
 
 class SourceRecord(Contract):
@@ -74,6 +108,16 @@ class SourceRecord(Contract):
     published_at: datetime | None = None
     evidence_text: str
     status: Literal["ok", "snippet_only", "fetch_failed"] = "ok"
+    # Service lines whose allowlist holds this web source's domain (cross-service posts only).
+    service_lines: list[str] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _omit_empty_service_lines(self, handler: SerializerFunctionWrapHandler):
+        # Keeps saved packs and replay hashes byte-identical for single-service sources.
+        data = handler(self)
+        if not data.get("service_lines"):
+            data.pop("service_lines", None)
+        return data
 
     @model_validator(mode="after")
     def source_kind(self):
@@ -351,6 +395,10 @@ class SourceRegistry(Contract):
             raise ValueError("unknown service: " + service_line)
         groups = getattr(self, service_line.replace("-", "_"))
         return {domain for group in SOURCE_GROUPS for domain in getattr(groups, group)}
+
+    def domains_by_service(self, service_lines) -> dict[str, set[str]]:
+        """Allowlisted domains for each of several service lines, keyed by line."""
+        return {line: self.domains_for(line) for line in service_lines}
 
 
 class AgentConfig(Contract):

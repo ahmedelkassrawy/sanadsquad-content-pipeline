@@ -145,7 +145,13 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
             lines.extend(
                 "   "
                 + f"{slot['slot_id']}: {slot.get('format') or 'unassigned'}"
-                + (f", {slot['service_line']}" if slot.get("service_line") else "")
+                + (
+                    ", " + " + ".join(slot["service_lines"])
+                    if slot.get("service_lines")
+                    else f", {slot['service_line']}"
+                    if slot.get("service_line")
+                    else ""
+                )
                 + (", CTA allowed" if slot.get("cta_allowed") else ", no CTA")
                 for slot in marketing
             )

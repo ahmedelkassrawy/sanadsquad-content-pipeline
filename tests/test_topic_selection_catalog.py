@@ -102,6 +102,10 @@ async def test_request_carries_catalog_and_the_weeks_taken_topics(tmp_path):
     assert "exclude" not in request
 
 
+# One slot per configured angle, so a first run uses up the whole marketing pool.
+EVERY_ANGLE_SLOT = [chr(97 + i) for i in range(len(TYPES.angles("marketing-post")))]
+
+
 async def test_prefilter_drops_the_weeks_taken_topic_and_recent_runs(tmp_path):
     first = TopicModels()
     first_run = await run(tmp_path, first, slots("a", "b"), "first")
@@ -118,9 +122,7 @@ async def test_prefilter_drops_the_weeks_taken_topic_and_recent_runs(tmp_path):
 
 
 async def test_slot_with_nothing_left_after_filtering_gets_its_whole_pool(tmp_path):
-    await run(
-        tmp_path, TopicModels(), slots("a", "b", "c", "d", "e", type="marketing-post"), "first"
-    )
+    await run(tmp_path, TopicModels(), slots(*EVERY_ANGLE_SLOT, type="marketing-post"), "first")
     models = TopicModels()
     await run(tmp_path, models, slots("x", type="marketing-post"), "second")
     assert models.topic_request()["choices"]["x"] == TYPES.topic_pool("marketing-post", KB)
@@ -211,9 +213,7 @@ def test_wire_schema_keeps_odd_slot_ids_and_folds_to_the_canonical_contract():
 
 async def test_reason_is_dropped_when_the_pick_was_rejected_even_if_fallback_lands_on_it(tmp_path):
     marketing_id = TYPES.topic_pool("marketing-post", KB)[0]
-    await run(
-        tmp_path, TopicModels(), slots("a", "b", "c", "d", "e", type="marketing-post"), "first"
-    )
+    await run(tmp_path, TopicModels(), slots(*EVERY_ANGLE_SLOT, type="marketing-post"), "first")
     # Every angle is now recent history, so the proposed id is refused; the fallback then happens
     # to choose that same id first. The model's reason must not be credited with the pick.
     models = TopicModels({"x": marketing_id}, {"x": "Service fits."})

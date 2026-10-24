@@ -28,6 +28,11 @@ class Angle(Contract):
     service_line: (
         Literal["web3-security", "pentesting", "agentic-security", "agentic-payments"] | None
     ) = None
+    # A cross-service angle declares exactly two distinct service lines instead of service_line.
+    # The first is the primary line; research may search both allowlists.
+    service_lines: (
+        list[Literal["web3-security", "pentesting", "agentic-security", "agentic-payments"]] | None
+    ) = None
     # Terms used only to resolve the service line of an explicitly focused marketing slot.
     focus_terms: list[StrictStr] = Field(default_factory=list)
     # The short, data-loaded first web query for an open marketing angle.
@@ -52,6 +57,12 @@ class Angle(Contract):
 
         if self.kb_allowed and self.subject != "vulnerability-class":
             raise ValueError("kb_allowed angles must be vulnerability-class")
+
+        if self.service_lines is not None:
+            if self.service_line is not None:
+                raise ValueError("angle sets either service_line or service_lines, not both")
+            if len(self.service_lines) != 2 or len(set(self.service_lines)) != 2:
+                raise ValueError("service_lines needs exactly two distinct service lines")
 
         if self.seed_query is not None and not self.seed_query.strip():
             raise ValueError("angle seed query must be nonempty")

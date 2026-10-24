@@ -1,4 +1,5 @@
-# Each service line has one angle. The vulnerability-class angle is the sole marketing
+# Each service line has one angle, plus cross-service angles that list two `service_lines`
+# (reached by topic_id only; they have no focus_terms, so a focus never resolves to them). The vulnerability-class angle is the sole marketing
 # exception that may use the KB, and it must cite its listed finding.
 angles:
 - id: ANGLE-web3-security
@@ -44,3 +45,10 @@ angles:
   source_ids:
   - SS-03699
   stat_ids: []
+- id: ANGLE-agent-wallet-security
+  name: agent-wallet-security
+  service_lines: [web3-security, agentic-security]
+  seed_query: AI agent wallet key custody smart contract
+  stat_ids:
+  - STAT-03
+  - STAT-05

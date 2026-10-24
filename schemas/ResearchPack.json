@@ -64,6 +64,13 @@
           ],
           "title": "Status",
           "type": "string"
+        },
+        "service_lines": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Service Lines",
+          "type": "array"
         }
       },
       "required": [

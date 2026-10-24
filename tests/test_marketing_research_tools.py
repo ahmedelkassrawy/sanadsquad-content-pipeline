@@ -64,10 +64,10 @@ def test_marketing_seed_queries_use_configured_short_query_and_fixture_results()
         assert angle.seed_query
         assert angle.seed_query != hints
         search = fixture_search(ROOT)
-        search.allowed_domains = load_sources(ROOT / "inputs/sources.json").domains_for(
-            angle.service_line
-        )
-        search.service_line = angle.service_line
+        lines = [angle.service_line] if angle.service_line else angle.service_lines
+        registry = load_sources(ROOT / "inputs/sources.json")
+        search.allowed_domains = set().union(*(registry.domains_for(line) for line in lines))
+        search.service_line = lines[0]
         results = search.search(angle.seed_query)
         assert results
         assert all(result.status == "ok" and result.url for result in results)

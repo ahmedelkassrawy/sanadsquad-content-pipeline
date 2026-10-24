@@ -1,0 +1,12 @@
+[
+  {
+    "url": "https://blog.trailofbits.com/agent-wallet-key-custody/",
+    "title": "Trail of Bits: Agent wallet key custody",
+    "raw_content": "An AI agent that can sign transactions inherits the risks of the wallet it controls. Keys, spending limits, and contract permissions should be enforced outside the model output."
+  },
+  {
+    "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+    "title": "OWASP GenAI: Prompt injection",
+    "raw_content": "OWASP documents prompt injection as untrusted input that can change an AI system's instructions. Agent tools with authority should enforce policy outside the model output before signing or taking action."
+  }
+]

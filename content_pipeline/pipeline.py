@@ -46,7 +46,7 @@ from .model_client import (
     load_price_overrides,
     valid_provider,
 )
-from .models import ImageResult, ResolvedSlot, SlotOutcome
+from .models import ImageResult, ResolvedSlot, SlotOutcome, slot_service_lines
 from .post_types import PostTypes
 from .redaction import redact_research_pack, redact_writer_material
 from .research import KnowledgeBase, assign_topics, open_topics, recent_topic_ids
@@ -655,7 +655,12 @@ class Pipeline:
 
     def _research_request(self, slot):
         if slot.type == "marketing-post":
-            slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
+            # Cross-service lines always come from the angle, never from a plan-supplied value.
+            slot.service_lines = self.types.marketing_service_lines(slot)
+            if slot.service_lines:
+                slot.service_line = slot.service_lines[0]
+            else:
+                slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
             if not slot.service_line:
                 raise ModelFailure("failed_research", "marketing_service_line_missing")
 
@@ -905,13 +910,19 @@ class Pipeline:
                 ),
                 None,
             )
-            state.slot.service_line = state.slot.service_line or (
-                angle.service_line if angle else None
+            # Cross-service lines always come from the angle, never from a plan-supplied value.
+            state.slot.service_lines = (
+                list(angle.service_lines) if angle and angle.service_lines else None
             )
+            primary = angle and (angle.service_line or (angle.service_lines or [None])[0])
+            if state.slot.service_lines:
+                state.slot.service_line = state.slot.service_lines[0]
+            else:
+                state.slot.service_line = state.slot.service_line or primary or None
 
-            service_count = (
-                services.get(state.slot.service_line, 0) if state.slot.service_line else 0
-            )
+            # A cross-service post counts toward both of its lines.
+            lines = slot_service_lines(state.slot)
+            service_count = max((services.get(line, 0) for line in lines), default=0)
 
             # Repeated services are provisionally shaped as news reactions. The fetched,
             # dated evidence decides whether that exception actually applies below.
@@ -932,8 +943,8 @@ class Pipeline:
 
             state.slot.format = format_id
             format_counts[format_id] = format_counts.get(format_id, 0) + 1
-            if state.slot.service_line:
-                services[state.slot.service_line] = service_count + 1
+            for line in lines:
+                services[line] = services.get(line, 0) + 1
 
         viable = [state for state in marketing if not state.outcome]
         if len(viable) >= 2:
@@ -1051,8 +1062,8 @@ class Pipeline:
                 continue
             topics.append(terms)
 
-            service = state.slot.service_line
-            service_count = services.get(service, 0) if service else 0
+            lines = slot_service_lines(state.slot)
+            service_count = max((services.get(line, 0) for line in lines), default=0)
             repeat = service_count > 0
             news_ok = state.slot.format == "news-reaction" and self._current_news(state)
             # The dated-news exception permits only the second appearance of a service.
@@ -1060,8 +1071,8 @@ class Pipeline:
             verdict(state, "service_repeat", service_ok)
             if not service_ok:
                 continue
-            if service:
-                services[service] = service_count + 1
+            for line in lines:
+                services[line] = services.get(line, 0) + 1
 
             count = formats.get(state.slot.format, 0)
             verdict(state, "format_repeat", count < 2)
@@ -1307,6 +1318,7 @@ class Pipeline:
             ai_policy_root=self.root,
             format=self.types.format(state.slot),
             cta_allowed=state.slot.cta_allowed,
+            service_lines=state.slot.service_lines,
         )
 
         state.audit = DraftAudit(

@@ -16,7 +16,7 @@ from .contracts import (
     VisualRequest,
     WriteRequest,
 )
-from .models import Draft, ResearchPack, Review, SourceRecord
+from .models import Draft, ResearchPack, Review, SourceRecord, slot_service_lines
 from .model_client import ModelFailure
 from .post_types import PostTypes, load_rubric
 from .research import canonical_topic_choices, topic_wire_schema
@@ -193,10 +193,15 @@ class ResearchAgent(Agent):
                 sources = self.root / "inputs/sources.json"
                 if sources.is_file():
                     self.searcher.registry = load_sources(sources)
+            lines = slot_service_lines(slot)
+            self.searcher.service_domains = {}
             if self.searcher.registry is not None:
-                self.searcher.allowed_domains = self.searcher.registry.domains_for(
-                    slot.service_line
+                self.searcher.allowed_domains = set().union(
+                    *(self.searcher.registry.domains_for(line) for line in lines)
                 )
+                if len(lines) > 1:
+                    # Cross-service: remember which line each domain belongs to.
+                    self.searcher.service_domains = self.searcher.registry.domains_by_service(lines)
             self.searcher.service_line = slot.service_line
 
         assigned = None if marketing else self.types.assigned_pack(slot, self.kb)

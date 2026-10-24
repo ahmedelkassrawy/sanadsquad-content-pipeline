@@ -12,6 +12,7 @@ from PIL import Image
 from content_pipeline.config import load_brand, load_plan
 from content_pipeline.model_client import ModelClient
 from content_pipeline.models import ResolvedSlot, UsageRecord
+from content_pipeline.post_types import PostTypes
 from content_pipeline.pipeline import run_pipeline
 from content_pipeline.research import WebSearch
 from content_pipeline import contracts
@@ -657,10 +658,12 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
 
 
 async def test_topic_pool_exhaustion_is_slot_local(tmp_path):
-    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(6)]
+    # One slot more than there are angles, so the last slot finds the pool exhausted.
+    count = len(PostTypes(ROOT).angles("marketing-post")) + 1
+    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(count)]
     summary = await run(tmp_path, OfflineModels(), slots)
     assert summary.shipped == 4
-    assert summary.slots["marketing_5"].outcome.value == "failed_research"
+    assert summary.slots[f"marketing_{count - 1}"].outcome.value == "failed_research"
 
 
 @pytest.mark.parametrize("slot_id", ["../escape", "C:escape", "CON", "unsafe/name"])
