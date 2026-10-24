@@ -71,6 +71,16 @@ class ResolvedSlot(Contract):
     # Set from a plan's optional top-level `week` and copied into snapshots for operators.
     marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")
 
+    @model_validator(mode="after")
+    def _cross_service_lines_shape(self):
+        if self.service_lines is not None:
+            lines = self.service_lines
+            if len(lines) != 2 or len(set(lines)) != 2 or not set(lines) <= set(SERVICE_LINES):
+                raise ValueError("service_lines needs exactly two distinct known service lines")
+            if self.service_line not in (None, lines[0]):
+                raise ValueError("service_line must be the first of service_lines")
+        return self
+
     @model_serializer(mode="wrap")
     def _omit_unset_service_lines(self, handler: SerializerFunctionWrapHandler):
         # Single-service slots serialize exactly as before the field existed.

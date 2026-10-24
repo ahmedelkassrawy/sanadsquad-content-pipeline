@@ -55,7 +55,7 @@ def cross_searcher(hits):
     search.registry = reg
     search.allowed_domains = reg.domains_for(CROSS[0]) | reg.domains_for(CROSS[1])
     search.service_line = CROSS[0]
-    search.service_domains = reg.domains_by_service(CROSS)
+    search.service_domains = {line: reg.domains_for(line) for line in CROSS}
     return search
 
 
@@ -113,7 +113,7 @@ def test_angles_file_without_the_new_field_loads_unchanged(tmp_path):
 def test_shipped_angle_declares_web3_plus_agentic_security_and_slot_snapshot_stays_loadable():
     types = PostTypes(ROOT)
     angle = next(a for a in types.angles("marketing-post") if a.id == "ANGLE-agent-wallet-security")
-    assert angle.service_lines == CROSS and angle.seed_query and angle.focus_terms
+    assert angle.service_lines == CROSS and angle.seed_query
 
     slot = ResolvedSlot(slot_id="m", type="marketing-post", topic_id=angle.id)
     assert types.marketing_service_line(slot) == "web3-security"
@@ -257,8 +257,8 @@ def test_cross_service_post_counts_toward_both_lines_in_the_weekly_mix():
     assert web3.format == "news-reaction"
 
 
-def test_cross_service_post_cannot_dodge_the_per_service_limit():
-    slots = states("ANGLE-agent-wallet-security", "ANGLE-agentic-security", "ANGLE-web3-security")
+def prepare(*topic_ids):
+    slots = states(*topic_ids)
     pipeline = mix_pipeline()
     pipeline._assign_marketing_mix(slots)
     for state in slots:
@@ -268,14 +268,103 @@ def test_cross_service_post_cannot_dodge_the_per_service_limit():
             topic_name=state.slot.topic_id,
             sources=[web_source("WEB-aa", WEB3_URL, [])],
         )
-        state.pack.sources[0].published_at = None
-
     pipeline._enforce_marketing_mix(slots, "viable")
+    return slots
 
-    # Without dated news, the second use of either line is dropped for the service repeat.
-    dropped = [s for s in slots if s.outcome is not None]
-    assert dropped, "a cross-service post plus same-line posts must trip the repeat rule"
-    assert any("service_repeat" in reason for s in dropped for reason in s.reasons)
+
+@pytest.mark.parametrize(
+    "order",
+    [
+        # The later slot repeats only the cross post's secondary line (agentic-security).
+        ("ANGLE-agent-wallet-security", "ANGLE-agentic-security"),
+        # The cross post repeats a line an earlier single-service post used.
+        ("ANGLE-agentic-security", "ANGLE-agent-wallet-security"),
+        ("ANGLE-agent-wallet-security", "ANGLE-web3-security"),
+        ("ANGLE-web3-security", "ANGLE-agent-wallet-security"),
+    ],
+)
+def test_enforcement_counts_both_lines_of_a_cross_service_post(order):
+    slots = prepare(*order)
+
+    assert slots[0].outcome is None
+    assert slots[1].outcome.value == "dropped_weekly_mix"
+    assert slots[1].reasons == ["weekly_mix_service_repeat"]
+
+
+def test_cross_service_post_alongside_unrelated_service_is_not_dropped():
+    slots = prepare("ANGLE-agent-wallet-security", "ANGLE-pentesting")
+
+    assert all(state.outcome is None for state in slots)
+
+
+# 4b. Plan-supplied lines are never trusted --------------------------------------------------
+
+
+def test_slot_rejects_malformed_service_lines():
+    def build(**fields):
+        return ResolvedSlot(slot_id="m", type="marketing-post", **fields)
+
+    assert build(service_lines=CROSS).service_lines == CROSS
+    for lines in (["pentesting"], ["pentesting", "agentic-payments", "web3-security"], ["a", "b"]):
+        with pytest.raises(ValidationError):
+            build(service_lines=lines)
+    with pytest.raises(ValidationError):
+        build(service_line="pentesting", service_lines=CROSS)
+
+
+def test_plan_supplied_service_lines_are_rederived_from_the_angle():
+    pipeline = mix_pipeline()
+    pipeline.types = PostTypes(ROOT)
+    single = ResolvedSlot(
+        slot_id="m",
+        type="marketing-post",
+        topic_id="ANGLE-pentesting",
+        service_lines=["pentesting", "agentic-payments"],
+    )
+    request = pipeline._research_request(single)
+    assert request.slot.service_lines is None and request.slot.service_line == "pentesting"
+
+    cross = ResolvedSlot(
+        slot_id="m",
+        type="marketing-post",
+        topic_id="ANGLE-agent-wallet-security",
+        service_line="web3-security",
+    )
+    request = pipeline._research_request(cross)
+    assert request.slot.service_lines == CROSS and request.slot.service_line == "web3-security"
+
+    mix = states("ANGLE-pentesting")
+    mix[0].slot.service_lines = ["pentesting", "agentic-payments"]
+    pipeline._assign_marketing_mix(mix)
+    assert mix[0].slot.service_lines is None
+
+
+def test_run_log_shows_both_lines_of_a_cross_service_slot(tmp_path):
+    from content_pipeline.run_log import render_run_log
+
+    slots = [
+        {
+            "slot_id": "a",
+            "type": "marketing-post",
+            "format": "thread",
+            "service_line": "web3-security",
+            "service_lines": CROSS,
+        },
+        {
+            "slot_id": "b",
+            "type": "marketing-post",
+            "format": "short-tip",
+            "service_line": "pentesting",
+        },
+    ]
+    (tmp_path / "plan.resolved.json").write_text(json.dumps({"slots": slots}), encoding="utf-8")
+
+    from test_run_log import summary
+
+    log = render_run_log(tmp_path, summary())
+
+    assert "a: thread, web3-security + agentic-security" in log
+    assert "b: short-tip, pentesting" in log
 
 
 # 5. End to end through the research agent ---------------------------------------------------
@@ -335,3 +424,64 @@ async def test_research_agent_searches_both_allowlists_and_logs_each_source_line
     assert web and all(source["service_lines"] for source in web)
     assert searchers[0].query_log[0]["service_lines"] == CROSS
     assert all(entry["service_lines"] for entry in searchers[0].fetch_log)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_passes_the_post_lines_to_the_validator(tmp_path, monkeypatch):
+    """A cross-service draft citing only a source tagged outside both lines is rejected."""
+    from content_pipeline import pipeline as pipeline_module
+
+    real = pipeline_module.validate
+    seen = []
+    violations = []
+
+    def retagged(draft, pack, *args, **kwargs):
+        seen.append(kwargs.get("service_lines"))
+        sources = [
+            source.model_copy(update={"service_lines": ["pentesting"]})
+            if source.kind == "web"
+            else source
+            for source in pack.sources
+        ]
+        result = real(draft, pack.model_copy(update={"sources": sources}), *args, **kwargs)
+        violations.extend(result.violations)
+        return result
+
+    monkeypatch.setattr(pipeline_module, "validate", retagged)
+    angle = next(
+        a for a in PostTypes(ROOT).angles("marketing-post") if a.id == "ANGLE-agent-wallet-security"
+    )
+    models = OfflineModels(
+        {
+            "marketing": {
+                "research_actions": ["web_search", "finish"],
+                "research_query": angle.seed_query,
+            }
+        }
+    )
+
+    def factory(root):
+        search = WebSearch(
+            fixture=FixtureSearch(root / "inputs/search-fixtures"), check_url=lambda url: url
+        )
+        search.registry = load_sources(root / "inputs/sources.json")
+        return search
+
+    summary = await run_pipeline(
+        ROOT,
+        [
+            ResolvedSlot(
+                slot_id="marketing",
+                type="marketing-post",
+                topic_id=angle.id,
+                focus=angle.seed_query,
+            )
+        ],
+        tmp_path / "run",
+        model_factory=models.factory,
+        search_factory=factory,
+    )
+
+    assert seen and all(lines == CROSS for lines in seen)
+    assert "marketing_web_source_required" in violations
+    assert summary.slots["marketing"].outcome.value != "shipped"

@@ -655,8 +655,12 @@ class Pipeline:
 
     def _research_request(self, slot):
         if slot.type == "marketing-post":
-            slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
-            slot.service_lines = slot.service_lines or self.types.marketing_service_lines(slot)
+            # Cross-service lines always come from the angle, never from a plan-supplied value.
+            slot.service_lines = self.types.marketing_service_lines(slot)
+            if slot.service_lines:
+                slot.service_line = slot.service_lines[0]
+            else:
+                slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
             if not slot.service_line:
                 raise ModelFailure("failed_research", "marketing_service_line_missing")
 
@@ -906,10 +910,15 @@ class Pipeline:
                 ),
                 None,
             )
-            if angle and angle.service_lines:
-                state.slot.service_lines = state.slot.service_lines or list(angle.service_lines)
+            # Cross-service lines always come from the angle, never from a plan-supplied value.
+            state.slot.service_lines = (
+                list(angle.service_lines) if angle and angle.service_lines else None
+            )
             primary = angle and (angle.service_line or (angle.service_lines or [None])[0])
-            state.slot.service_line = state.slot.service_line or primary or None
+            if state.slot.service_lines:
+                state.slot.service_line = state.slot.service_lines[0]
+            else:
+                state.slot.service_line = state.slot.service_line or primary or None
 
             # A cross-service post counts toward both of its lines.
             lines = slot_service_lines(state.slot)

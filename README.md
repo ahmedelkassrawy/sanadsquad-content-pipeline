@@ -18,8 +18,8 @@ are the firm's facts (no figures yet: the company's audits are private); the 20 
   domains of its service line and never reads the knowledge base, except a vulnerability-class
   angle, which must cite its finding. An angle may instead list exactly two `service_lines`
   (for example `ANGLE-agent-wallet-security`: web3 security and agentic security); that post may
-  search both allowlists, each query, fetch and web source records which line its domain belongs to
-  (both for a shared domain), a URL outside both lists is still rejected, and the post counts toward
+  search both allowlists, each fetch and web source records which line its domain belongs to
+  (both for a shared domain) and each query records both searched lines, a URL outside both lists is still rejected, and the post counts toward
   both lines in the weekly mix. A marketing post may be a thread (3 to 7 posts); its format
   comes from the table in `post_types/marketing-post/type.yaml`.
 - **[inputs/sources.json](inputs/sources.json)** maps each service line to allowed domains (a
@@ -180,7 +180,7 @@ even if the average passes.
 | Cloudflare FLUX backgrounds are unit-tested with mocked HTTP. In live runs Cloudflare returned HTTP 429 (rate limit) for every image, so the sample's images are Pillow cards: brand header, title, the post's own code line for threads, an accent bar and a severity badge. | Check new images by eye after a prompt change; retry Cloudflare on a paid plan. |
 | Connection and timeout errors from Groq and Gemini are not retried, and a Groq HTTP 400 `tool_use_failed` gets no repair attempt. A misspelled provider name fails at its first call, not at start-up. | Add those exception classes to the retry list; validate the provider at start-up. |
 | A model with no known price is refused (`failed_budget`) unless you pass `--allow-unpriced`, which leaves only the token limit. The committed models are priced via `config/prices.yaml`. Search and image calls are counted, not priced. | Add prices for any other model you use. |
-| Marketing variety: each angle is one service line with its own stats and seed query, and the weekly mix compares topics by word overlap. Nothing compares the wording of two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
+| Marketing variety: each angle is one service line (or, for a cross-service angle, two) with its own stats and seed query, and the weekly mix compares topics by word overlap. Nothing compares the wording of two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
 | The rule-of-three check counts any two three-item lists in a piece, including a plain list of account names in a technical thread, so it can drop a sound thread (`thread_2` in the company sample). | Measure it over more runs; exempt lists of code identifiers if it keeps firing on them. |
 | The marketing guide's claims rules (no client names, named competitors or active engagements) are enforced by the writer prompt and the reviewer, not by code. | Turn a recurring reviewer catch into a code check. |
 | The domain lists in `inputs/sources.json` and the search fixtures are drafts written for this change, not lists the company approved. A fixture run quotes hand-written page summaries. | Have the company review `sources.json`; run with Tavily for real page text. |

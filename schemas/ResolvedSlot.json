@@ -71,6 +71,21 @@
       "default": null,
       "title": "Service Line"
     },
+    "service_lines": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Service Lines"
+    },
     "cta_allowed": {
       "default": true,
       "title": "Cta Allowed",

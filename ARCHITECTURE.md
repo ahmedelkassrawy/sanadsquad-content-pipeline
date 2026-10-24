@@ -236,11 +236,13 @@ A cross-service marketing slot keeps `service_line` as the primary line and adds
 (`[primary, secondary]`, omitted from saved slots when unset, so older snapshots load unchanged). The
 research agent sets the searcher's allowlist to the union of both lines' domains; `_deny` and the
 redirect-hop checks apply as before, and a URL outside both lists is rejected and logged. The searcher
-records `service_lines` on each query-log, fetch-log and URL-log entry and on each web `SourceRecord`:
-the lines whose allowlist contains the domain, primary first, so a domain on both lists records both.
+records `service_lines` on each query-log entry (both searched lines) and on each fetch-log, URL-log
+entry and web `SourceRecord` (the lines whose allowlist contains that domain, primary first, so a domain
+on both lists records both). Plan-supplied `service_lines` are ignored: they are re-derived from the angle.
 `check_research_separation` then accepts a marketing web source only if its recorded lines intersect
 the post's lines. Single-service posts are unchanged: one allowlist, no `service_lines` keys.
-Focus-term resolution (`marketing_service_line`) still returns one line (the primary).
+Focus-term resolution (`marketing_service_line`) is single-service: cross-service angles have no
+`focus_terms` and are reached by `topic_id` only.
 
 ### Marketing formats and weekly mix
 

@@ -65,6 +65,27 @@
           "default": null,
           "title": "Service Line"
         },
+        "service_lines": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "web3-security",
+                  "pentesting",
+                  "agentic-security",
+                  "agentic-payments"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Lines"
+        },
         "focus_terms": {
           "items": {
             "type": "string"
