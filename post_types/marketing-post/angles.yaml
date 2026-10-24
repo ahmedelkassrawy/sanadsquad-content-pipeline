@@ -44,3 +44,11 @@ angles:
   source_ids:
   - SS-03699
   stat_ids: []
+- id: ANGLE-agent-wallet-security
+  name: agent-wallet-security
+  service_lines: [web3-security, agentic-security]
+  seed_query: AI agent wallet key custody smart contract
+  focus_terms: [agent wallet, wallet key, agent signing, onchain agent]
+  stat_ids:
+  - STAT-03
+  - STAT-05

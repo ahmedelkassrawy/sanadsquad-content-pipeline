@@ -16,7 +16,11 @@ are the firm's facts (no figures yet: the company's audits are private); the 20 
   built from knowledge-base findings cited by id, or from one external page (`--set
   thread_2=https://...`) that it must link. A `marketing-post` researches only the allowlisted
   domains of its service line and never reads the knowledge base, except a vulnerability-class
-  angle, which must cite its finding. A marketing post may be a thread (3 to 7 posts); its format
+  angle, which must cite its finding. An angle may instead list exactly two `service_lines`
+  (for example `ANGLE-agent-wallet-security`: web3 security and agentic security); that post may
+  search both allowlists, each query, fetch and web source records which line its domain belongs to
+  (both for a shared domain), a URL outside both lists is still rejected, and the post counts toward
+  both lines in the weekly mix. A marketing post may be a thread (3 to 7 posts); its format
   comes from the table in `post_types/marketing-post/type.yaml`.
 - **[inputs/sources.json](inputs/sources.json)** maps each service line to allowed domains (a
   draft, see [docs/sources.md](docs/sources.md)), plus a global `_deny` list. Every query (empty
@@ -178,7 +182,7 @@ even if the average passes.
 | A model with no known price is refused (`failed_budget`) unless you pass `--allow-unpriced`, which leaves only the token limit. The committed models are priced via `config/prices.yaml`. Search and image calls are counted, not priced. | Add prices for any other model you use. |
 | Marketing variety: each angle is one service line with its own stats and seed query, and the weekly mix compares topics by word overlap. Nothing compares the wording of two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
 | The rule-of-three check counts any two three-item lists in a piece, including a plain list of account names in a technical thread, so it can drop a sound thread (`thread_2` in the company sample). | Measure it over more runs; exempt lists of code identifiers if it keeps firing on them. |
-| Cross-service marketing posts (marketing guide section 2, one post searching two allowlists) are not supported: each angle has one service line. The guide's claims rules (no client names, named competitors or active engagements) are enforced by the writer prompt and the reviewer, not by code. | Let an angle list two service lines and record each source's service; turn a recurring reviewer catch into a code check. |
+| The marketing guide's claims rules (no client names, named competitors or active engagements) are enforced by the writer prompt and the reviewer, not by code. | Turn a recurring reviewer catch into a code check. |
 | The domain lists in `inputs/sources.json` and the search fixtures are drafts written for this change, not lists the company approved. A fixture run quotes hand-written page summaries. | Have the company review `sources.json`; run with Tavily for real page text. |
 | Weaker writer models vary from run to run. On the free setup, while the checks and prompt changes went in one at a time, four runs shipped 4, 2, 6 and 6 of 6; the last two used the checks and prompts as of those runs; the claim-word list was narrowed after them. That is a small sample. | Run a week and read `run.log` whenever you change a writer model. |
 | The reviewer is an LLM and not fully consistent: it rejected "12 smart contract audits completed by a team of 3 auditors" in one run and passed it in the next. That case is now a code check (`check_stat_claims`: a stat's number keeps its noun, and two stats may not share a sentence), but other judgement calls still vary run to run. | Turn a recurring reviewer disagreement into a code check when it can be stated as a rule. |

@@ -257,6 +257,8 @@ class PostTypes:
         configured = next((angle for angle in angles if angle.id == slot.topic_id), None)
         if configured and configured.service_line:
             return configured.service_line
+        if configured and configured.service_lines:
+            return configured.service_lines[0]
 
         focus = (slot.focus or "").casefold()
         matches = {
@@ -265,6 +267,15 @@ class PostTypes:
             if angle.service_line and any(term.casefold() in focus for term in angle.focus_terms)
         }
         return next(iter(matches)) if len(matches) == 1 else None
+
+    def marketing_service_lines(self, slot: ResolvedSlot) -> list[str] | None:
+        """The two service lines of a cross-service angle, primary first; None otherwise."""
+        if slot.type != "marketing-post":
+            return None
+        configured = next(
+            (angle for angle in self.angles(slot.type) if angle.id == slot.topic_id), None
+        )
+        return list(configured.service_lines) if configured and configured.service_lines else None
 
     def assigned_pack(self, slot: ResolvedSlot, kb) -> ResearchPack | None:
         """Return the pack for an already-assigned topic, or None when research must search."""

@@ -1076,6 +1076,7 @@ def validate(
     ai_policy_root: Path | None = None,
     format: MarketingFormat | None = None,
     cta_allowed: bool = True,
+    service_lines: list[str] | None = None,
 ) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
@@ -1130,7 +1131,11 @@ def validate(
     )
     errors.extend(
         brand_rules.check_research_separation(
-            fixed, pack, spec, enforce_marketing_web=bool(spec.formats)
+            fixed,
+            pack,
+            spec,
+            enforce_marketing_web=bool(spec.formats),
+            service_lines=service_lines,
         )
     )
     errors.extend(

@@ -15,6 +15,8 @@ from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKETING_IDS = [angle.id for angle in PostTypes(ROOT).angles("marketing-post")]
+# One slot more than there are angles, so the last slot finds the pool exhausted.
+SLOT_IDS = [chr(97 + i) for i in range(len(MARKETING_IDS) + 1)]
 
 
 class ProposedModels(OfflineModels):
@@ -81,16 +83,16 @@ async def test_later_valid_angle_survives_pool_exhaustion(tmp_path):
     models = ProposedModels({"e": MARKETING_IDS[0]})
     summary = await run_pipeline(
         ROOT,
-        [ResolvedSlot(slot_id=id, type="marketing-post") for id in ["a", "b", "c", "d", "e", "f"]],
+        [ResolvedSlot(slot_id=id, type="marketing-post") for id in SLOT_IDS],
         tmp_path / "run",
         model_factory=models.factory,
         search_factory=search_factory,
     )
-    # The sixth angle is exhausted; independent quality lanes may drop, but selection still
+    # The angle pool is exhausted by the last slot; independent quality lanes may drop, but selection still
     # reserves the later valid proposal instead of discarding it with the exhausted slot.
     assert summary.shipped >= 3
     assert summary.slots["e"].topic_id == MARKETING_IDS[0]
-    assert summary.slots["f"].outcome.value == "failed_research"
+    assert summary.slots[SLOT_IDS[-1]].outcome.value == "failed_research"
 
 
 def test_reserved_proposals_keep_history_focus_exclusions_and_type_pools():

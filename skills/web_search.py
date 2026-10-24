@@ -40,6 +40,8 @@ class WebSearch:
         self.denied_domains = set(denied_domains or ())
         self.registry = None
         self.service_line = service_line
+        # Cross-service posts only: {service line: its allowlisted domains}, primary line first.
+        self.service_domains = {}
         self.query_log = []
         self.fetch_log = []
         self.url_log = []
@@ -55,24 +57,46 @@ class WebSearch:
         )
         return allowed and not denied
 
+    def lines_for(self, url: str) -> list[str]:
+        """Cross-service posts: every service line whose allowlist holds this URL's host."""
+        host = (urlparse(url).hostname or "").lower()
+        return [
+            line
+            for line, domains in self.service_domains.items()
+            if any(host == domain or host.endswith("." + domain) for domain in domains)
+        ]
+
+    def _tag(self, entry: dict, lines: list[str]) -> dict:
+        """Add the per-entry service lines to a log entry when the post is cross-service."""
+        if self.service_domains:
+            entry["service_lines"] = lines
+        return entry
+
     def fetch_url(self, url: str, service_line=None) -> tuple[str, str, str]:
         """Fetch one permitted URL, retaining the final redirect target for publication."""
         service_line = service_line or self.service_line
         if not self._permitted(url):
             self.url_log.append(
-                {"url": url, "service_line": service_line, "reason": "policy_rejected"}
+                self._tag(
+                    {"url": url, "service_line": service_line, "reason": "policy_rejected"}, []
+                )
             )
             return "", url, "fetch_failed"
         try:
             self.check_url(url)
         except (ValueError, OSError):
             self.url_log.append(
-                {"url": url, "service_line": service_line, "reason": "public_url_rejected"}
+                self._tag(
+                    {"url": url, "service_line": service_line, "reason": "public_url_rejected"},
+                    self.lines_for(url),
+                )
             )
             return "", url, "fetch_failed"
 
         self.fetch_calls += 1
-        self.fetch_log.append({"url": url, "service_line": service_line})
+        self.fetch_log.append(
+            self._tag({"url": url, "service_line": service_line}, self.lines_for(url))
+        )
         try:
             if self.fetch is fetch_page:
                 evidence, final_url = self.fetch(url, allow_url=self._permitted, return_url=True)
@@ -84,12 +108,15 @@ class WebSearch:
             evidence, final_url, status = "", url, "fetch_failed"
 
         self.url_log.append(
-            {
-                "url": url,
-                "final_url": final_url,
-                "service_line": service_line,
-                "reason": "fetched" if status == "ok" else "fetch_failed",
-            }
+            self._tag(
+                {
+                    "url": url,
+                    "final_url": final_url,
+                    "service_line": service_line,
+                    "reason": "fetched" if status == "ok" else "fetch_failed",
+                },
+                self.lines_for(final_url),
+            )
         )
         return evidence, final_url, status
 
@@ -169,12 +196,15 @@ class WebSearch:
             else:
                 final_url = url
                 self.url_log.append(
-                    {
-                        "url": url,
-                        "final_url": final_url,
-                        "service_line": service_line or self.service_line,
-                        "reason": "fetched",
-                    }
+                    self._tag(
+                        {
+                            "url": url,
+                            "final_url": final_url,
+                            "service_line": service_line or self.service_line,
+                            "reason": "fetched",
+                        },
+                        self.lines_for(final_url),
+                    )
                 )
 
             records.append(
@@ -185,6 +215,7 @@ class WebSearch:
                     title=hit.get("title", final_url),
                     evidence_text=(evidence or "")[: self.evidence_limit],
                     status=status,
+                    service_lines=self.lines_for(final_url),
                     published_at=hit.get("published_date") or hit.get("published_at"),
                 )
             )
@@ -197,6 +228,7 @@ class WebSearch:
                 "backend": backend,
                 "result_count": len(records) if index == len(attempts) - 1 else 0,
             }
+            self._tag(entry, list(self.service_domains))
             if failure:
                 entry["failure"] = failure
             self.query_log.append(entry)

@@ -230,6 +230,18 @@ angles) and brand rules, each read once per run.
   thread 2 the second, wrapping) as the write request's `style`. This keeps a week's threads from sharing one
   opening and ending.
 
+### Cross-service source separation
+
+A cross-service marketing slot keeps `service_line` as the primary line and adds `service_lines`
+(`[primary, secondary]`, omitted from saved slots when unset, so older snapshots load unchanged). The
+research agent sets the searcher's allowlist to the union of both lines' domains; `_deny` and the
+redirect-hop checks apply as before, and a URL outside both lists is rejected and logged. The searcher
+records `service_lines` on each query-log, fetch-log and URL-log entry and on each web `SourceRecord`:
+the lines whose allowlist contains the domain, primary first, so a domain on both lists records both.
+`check_research_separation` then accepts a marketing web source only if its recorded lines intersect
+the post's lines. Single-service posts are unchanged: one allowlist, no `service_lines` keys.
+Focus-term resolution (`marketing_service_line`) still returns one line (the primary).
+
 ### Marketing formats and weekly mix
 
 `post_types/marketing-post/type.yaml` owns the format table: each format has its own unit range,
@@ -237,7 +249,9 @@ link rule, length hint, optional numbering, and the data-loaded topic-overlap th
 the shapes and CTA allowance; after research, and again immediately before export, the viable/shipped
 marketing set is checked explicitly. The run log records every pass/fail verdict with its slot. Similar
 topics use normalized token overlap, and a repeated service line is allowed only for a news reaction with
-a successfully fetched web source that has a publish date within seven days. Link/no-link diversity is
+a successfully fetched web source that has a publish date within seven days. A cross-service angle
+(`service_lines: [primary, secondary]` in `angles.yaml`, instead of `service_line`) counts toward both
+lines here, so it cannot dodge the per-service limit. Link/no-link diversity is
 assigned during planning whenever two or more marketing slots exist; export only logs an unmet link
 shape (for example, when no unlinked post shipped), so losing a valid post cannot drop another. A
 failure drops only the latest offending slot, never the whole run. CTA patterns are data-loaded from

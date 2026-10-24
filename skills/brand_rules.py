@@ -47,7 +47,9 @@ def check_brand(text: str, rules: BrandRules, pack: ResearchPack | None = None) 
     return errors
 
 
-def check_research_separation(draft, pack, spec, *, enforce_marketing_web=True) -> list[str]:
+def check_research_separation(
+    draft, pack, spec, *, enforce_marketing_web=True, service_lines=None
+) -> list[str]:
     """Enforce source separation after writing, independent of the prompt."""
     cited = {source_id for tweet in draft.tweets for source_id in tweet.source_ids}
     usable_kb = {
@@ -59,6 +61,15 @@ def check_research_separation(draft, pack, spec, *, enforce_marketing_web=True) 
         if source.kind == "web" and source.status == "ok" and source.url
     }
     if spec.name == "marketing-post":
+        if service_lines:
+            # Cross-service post: a web source counts only if its domain belongs to one of the
+            # post's service lines, as recorded when it was fetched.
+            wanted = set(service_lines)
+            usable_web = {
+                source.source_id: source.url
+                for source in pack.sources
+                if source.source_id in usable_web and wanted.intersection(source.service_lines)
+            }
         kb_ids = {source.source_id for source in pack.sources if source.kind == "kb"}
         if kb_ids and not pack.kb_allowed:
             return ["marketing_kb_forbidden"]
