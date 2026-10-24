@@ -14,7 +14,7 @@ from .config import (
     read_type_file,
     read_utf8,
 )
-from .contracts import Rubric, TopicInfo, WriteStyle
+from .contracts import Angle, Rubric, TopicInfo, WriteStyle
 from .models import (
     AgentConfig,
     BrandRules,
@@ -248,13 +248,31 @@ class PostTypes:
 
         return selected
 
-    def marketing_service_line(self, slot: ResolvedSlot) -> str | None:
-        """Resolve an angle or focused marketing request to one configured service line."""
+    def marketing_angle(self, slot: ResolvedSlot) -> Angle | None:
+        """The angle a marketing slot names by topic id, or by an angle id or name in focus."""
         if slot.type != "marketing-post":
             return None
 
         angles = self.angles(slot.type)
         configured = next((angle for angle in angles if angle.id == slot.topic_id), None)
+        if configured:
+            return configured
+
+        focus = (slot.focus or "").strip().casefold()
+        if not focus:
+            return None
+
+        return next(
+            (angle for angle in angles if focus in {angle.id.casefold(), angle.name.casefold()}),
+            None,
+        )
+
+    def marketing_service_line(self, slot: ResolvedSlot) -> str | None:
+        """Resolve an angle or focused marketing request to one configured service line."""
+        if slot.type != "marketing-post":
+            return None
+
+        configured = self.marketing_angle(slot)
         if configured and configured.service_line:
             return configured.service_line
         if configured and configured.service_lines:
@@ -263,7 +281,7 @@ class PostTypes:
         focus = (slot.focus or "").casefold()
         matches = {
             angle.service_line
-            for angle in angles
+            for angle in self.angles(slot.type)
             if angle.service_line and any(term.casefold() in focus for term in angle.focus_terms)
         }
         return next(iter(matches)) if len(matches) == 1 else None
@@ -272,9 +290,7 @@ class PostTypes:
         """The two service lines of a cross-service angle, primary first; None otherwise."""
         if slot.type != "marketing-post":
             return None
-        configured = next(
-            (angle for angle in self.angles(slot.type) if angle.id == slot.topic_id), None
-        )
+        configured = self.marketing_angle(slot)
         return list(configured.service_lines) if configured and configured.service_lines else None
 
     def assigned_pack(self, slot: ResolvedSlot, kb) -> ResearchPack | None:

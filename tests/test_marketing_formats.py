@@ -112,6 +112,13 @@ def states(*topic_ids):
     ]
 
 
+def stub_types(real, angles):
+    """A PostTypes stand-in whose angle table has extra test angles."""
+    stub = SimpleNamespace(spec=real.spec, angles=lambda _: angles)
+    stub.marketing_angle = lambda slot: PostTypes.marketing_angle(stub, slot)
+    return stub
+
+
 def mix_pipeline(types=None, week="2024-W02"):
     pipeline = Pipeline.__new__(Pipeline)
     pipeline.types = types or PostTypes(ROOT)
@@ -218,10 +225,7 @@ def test_weekly_mix_drops_a_third_service_repeat_without_stopping_other_slots():
         service_line="agentic-security",
         stat_ids=["STAT-03"],
     )
-    fake_types = SimpleNamespace(
-        spec=real.spec,
-        angles=lambda _: [*real.angles("marketing-post"), extra],
-    )
+    fake_types = stub_types(real, [*real.angles("marketing-post"), extra])
     slots = states(
         "ANGLE-agentic-security",
         "ANGLE-vulnerability-class",
@@ -457,7 +461,7 @@ def test_weekly_mix_rejects_a_third_current_news_service_repeat():
         )
         for index in range(1, 4)
     ]
-    fake_types = SimpleNamespace(spec=real.spec, angles=lambda _: extras)
+    fake_types = stub_types(real, extras)
     slots = states(*(angle.id for angle in extras))
     pipeline = mix_pipeline(fake_types)
     pipeline._assign_marketing_mix(slots)

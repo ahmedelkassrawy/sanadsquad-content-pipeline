@@ -297,6 +297,31 @@ def test_cross_service_post_alongside_unrelated_service_is_not_dropped():
     assert all(state.outcome is None for state in slots)
 
 
+def test_a_focused_angle_id_resolves_both_service_lines():
+    slot = ResolvedSlot(slot_id="m1", type="marketing-post", focus="ANGLE-agent-wallet-security")
+
+    assert PostTypes(ROOT).marketing_service_lines(slot) == CROSS
+    assert PostTypes(ROOT).marketing_service_line(slot) == CROSS[0]
+
+
+def test_mix_keeps_both_lines_when_focus_names_the_angle_after_research():
+    # `run_piece --topic ANGLE-...` puts the angle in focus, and research then replaces the
+    # topic id with the chosen source. The angle must still supply both lines for the mix.
+    state = SlotState(
+        slot=ResolvedSlot(
+            slot_id="m1",
+            type="marketing-post",
+            focus="ANGLE-agent-wallet-security",
+            topic_id="WEB-77e513a7e81b5229",
+        )
+    )
+
+    mix_pipeline()._assign_marketing_mix([state])
+
+    assert state.slot.service_lines == CROSS
+    assert state.slot.service_line == CROSS[0]
+
+
 # 4b. Plan-supplied lines are never trusted --------------------------------------------------
 
 

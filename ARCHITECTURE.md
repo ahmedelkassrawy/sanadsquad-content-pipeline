@@ -242,7 +242,8 @@ on both lists records both). Plan-supplied `service_lines` are re-derived from t
 `check_research_separation` then accepts a marketing web source only if its recorded lines intersect
 the post's lines. Single-service posts are unchanged: one allowlist, no `service_lines` keys.
 Focus-term resolution (`marketing_service_line`) is single-service: cross-service angles have no
-`focus_terms` and are reached by `topic_id` only.
+`focus_terms`, so they are reached by `topic_id` or by naming the angle's id or name in `focus`.
+A slot focused that way keeps both lines when research replaces the topic id with the chosen source.
 
 ### Marketing formats and weekly mix
 
