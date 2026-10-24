@@ -1,1 +1,5 @@
 # Additional protocol names that must never appear in published drafts. One name per line.
+# Operator additions: the framework and client behind SS-03804 are not in the stored
+# protocol string ("MetaDAO Squads Integration"), so name them separately.
+MetaDAO
+Squads

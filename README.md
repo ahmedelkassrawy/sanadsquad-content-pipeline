@@ -128,9 +128,12 @@ below.
   $0.529 at commit `43d5151`. It shows KB-only threads, web-only marketing posts on their service
   lines, logged empty queries, no protocol names, the weekly-mix verdicts and one thread dropped
   by the AI-text checks. Its marketing posts quote the fixtures' hand-written page summaries.
-- **Live web search sample: [output/company-live-sample](output/company-live-sample)**, the
-  same pipeline with real Tavily search at commit `b136cc0`, shipped 3 of 6 for $0.675. Its news
-  reaction links a page fetched in the run; the drops are writer misses caught by the gates.
+- **Live web search sample: [output/company-sample-2026-10-24](output/company-sample-2026-10-24)**,
+  real Tavily search on `03267f8`, shipped 6 of 6 for $0.99 (the week cost $0.84; one thread was
+  re-drafted for $0.15 after a framework name went onto the redaction list). It shows live
+  allowlisted research, reviewer rejections on two slots, Cloudflare images and the re-draft note.
+  The earlier 3-of-6 live sample at `b136cc0` stays in
+  [output/company-live-sample](output/company-live-sample) for comparison.
 - The samples below were made before the company requirements, on the earlier placeholder brand
   and knowledge base.
 - [output/claude-run-with-drop](output/claude-run-with-drop), a live run on

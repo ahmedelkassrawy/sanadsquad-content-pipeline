@@ -205,6 +205,25 @@ def test_validation_uses_the_run_snapshot_redaction_files(tmp_path):
     assert "kb_protocol_name:Snapshot Name" in result.violations
 
 
+def test_framework_and_client_names_are_redacted_from_the_squads_finding():
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-03804")
+
+    assert "squads" not in source.evidence_text.casefold()
+    assert "metadao" not in source.evidence_text.casefold()
+    assert "squads" not in source.title.casefold()
+
+
+def test_validation_rejects_the_squads_framework_name_in_a_draft():
+    result = validate(
+        _draft("The ProposalActivate instruction in Squads relies on the initiator."),
+        _pack(),
+        load_type(ROOT, "tech-thread"),
+        load_brand(ROOT / "inputs/brand-voice.md")[0],
+    )
+
+    assert "kb_protocol_name:Squads" in result.violations
+
+
 def test_kb_json_has_no_replacement_characters():
     data = json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))
 
