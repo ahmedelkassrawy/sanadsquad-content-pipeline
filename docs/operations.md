@@ -26,6 +26,10 @@ For a reproducible marketing-format rotation, set an optional top-level `week` i
 With one `OPENROUTER_API_KEY` only, add
 `--model-override openrouter:openai/gpt-4.1-mini`.
 
+Web evidence is capped at 3,000 characters per source before it reaches research or writing.
+Set `WEB_EVIDENCE_LIMIT` to a value from 1 to 12,000 when a run needs a different cap; the
+same limit applies to each source in every research-model turn.
+
 On macOS/Linux use `.venv/bin/python` instead of `.\.venv\Scripts\python.exe`.
 
 Useful facts:

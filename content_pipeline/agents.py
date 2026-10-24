@@ -149,7 +149,9 @@ class Agent:
 
 
 class ResearchAgent(Agent):
-    def __init__(self, root, client, kb, searcher, usage_callback=None, types=None):
+    def __init__(
+        self, root, client, kb, searcher, usage_callback=None, types=None, evidence_limit=3000
+    ):
         super().__init__(root, "research", client, types=types)
 
         self.kb = kb
@@ -157,6 +159,14 @@ class ResearchAgent(Agent):
         self.tools = {}
         self.records = []
         self.usage_callback = usage_callback
+        self.evidence_limit = evidence_limit
+
+    def _turn_evidence(self, sources: list[SourceRecord]) -> list[SourceRecord]:
+        """Keep each source in a model turn within the configured evidence budget."""
+        return [
+            source.model_copy(update={"evidence_text": source.evidence_text[: self.evidence_limit]})
+            for source in sources
+        ]
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
@@ -340,7 +350,7 @@ class ResearchAgent(Agent):
                 ResearchAction,
                 ResearchTurn(
                     request=request,
-                    evidence=list(evidence.values()),
+                    evidence=self._turn_evidence(list(evidence.values())),
                     searches_remaining=4 - searches,
                     available_actions=[*self.tools, "finish"],
                 ),

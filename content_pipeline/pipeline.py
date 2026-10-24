@@ -707,6 +707,7 @@ class Pipeline:
                 return state.model_dump(mode="json")
 
             searcher = self._new_searcher()
+            searcher.evidence_limit = self.context.settings.web_evidence_limit
 
             self.searchers.append(searcher)
 
@@ -717,6 +718,7 @@ class Pipeline:
                 searcher,
                 self.save_search_usage,
                 self.types,
+                self.context.settings.web_evidence_limit,
             )
 
             pack = await agent(request)

@@ -45,7 +45,7 @@ approved_stats:
   STAT-02: 'SanadSquad provides Web2 pentesting for the infrastructure around a protocol: APIs, cloud, CI/CD, dependencies, internal access, and frontend.'
   STAT-03: 'SanadSquad provides agentic security and red teaming for AI agent systems, including prompt injection, tool abuse, unauthorized action, agent wallets, and spending policy.'
   STAT-04: 'SanadSquad provides agentic payment protocol review for x402 and MPP, including integration review, facilitator trust, and payment policy design.'
-  STAT-05: 'Teams can request a SanadSquad review.'
+  STAT-05: 'Teams can request a review.'
 palette:
 - '#14213d'
 - '#fca311'

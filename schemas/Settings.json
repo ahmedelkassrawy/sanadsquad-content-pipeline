@@ -43,6 +43,13 @@
       "title": "Max Tweet Chars",
       "type": "integer"
     },
+    "web_evidence_limit": {
+      "default": 3000,
+      "maximum": 12000,
+      "minimum": 1,
+      "title": "Web Evidence Limit",
+      "type": "integer"
+    },
     "run_token_budget": {
       "default": 400000,
       "minimum": 1,

@@ -7,4 +7,10 @@ Write the marketing format supplied in the request from the supplied research pa
 - Use at most one CTA, and only when `cta_allowed` is true. A short post with no CTA is complete when the plan disallows one.
 - Keep plain punctuation, no emoji, and no banned vocabulary or constructions.
 
-Aim well under `max_tweet_chars`. If a revision includes validation feedback, fix every listed constraint rather than rephrasing an unsupported claim.
+## Length is a hard limit
+
+- Every post must fit `max_tweet_chars` after validation. X counts each URL as 23 characters.
+- Budget each post by words: at most `max_tweet_chars / 7.5` words, or `(max_tweet_chars - 24) / 7.5` words when it carries a link. Count before answering.
+- When feedback reports `weighted_length`, `words`, and `max_words`, rewrite to at most `max_words` words. Cut a whole sentence rather than trimming a few words.
+
+If a revision includes validation feedback, fix every listed constraint rather than rephrasing an unsupported claim.

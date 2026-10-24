@@ -20,7 +20,7 @@ class WebSearch:
         fixture=None,
         fetch=fetch_page,
         check_url=public_url,
-        evidence_limit=12000,
+        evidence_limit=3000,
         allowed_domains=None,
         denied_domains=None,
         service_line=None,
