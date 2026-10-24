@@ -8,6 +8,7 @@ from .pipeline import estimate, parse_sets, run_pipeline
 from .durability import resume_inputs
 
 
+# piece changes the cli mode
 def parser(piece=False):
     cli = argparse.ArgumentParser(
         description="Produce grounded X content through the configured pipeline."
