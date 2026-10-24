@@ -902,14 +902,7 @@ class Pipeline:
             offset = (year * 53 + week) % len(order)
 
         for index, state in enumerate(marketing):
-            angle = next(
-                (
-                    angle
-                    for angle in self.types.angles("marketing-post")
-                    if angle.id == state.slot.topic_id
-                ),
-                None,
-            )
+            angle = self.types.marketing_angle(state.slot)
             # Cross-service lines always come from the angle, never from a plan-supplied value.
             state.slot.service_lines = (
                 list(angle.service_lines) if angle and angle.service_lines else None

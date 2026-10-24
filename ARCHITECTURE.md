@@ -241,8 +241,9 @@ entry and web `SourceRecord` (the lines whose allowlist contains that domain, pr
 on both lists records both). Plan-supplied `service_lines` are re-derived from the angle; a malformed value is rejected when the plan loads.
 `check_research_separation` then accepts a marketing web source only if its recorded lines intersect
 the post's lines. Single-service posts are unchanged: one allowlist, no `service_lines` keys.
-Focus-term resolution (`marketing_service_line`) is single-service: cross-service angles have no
-`focus_terms` and are reached by `topic_id` only.
+Cross-service angles have no `focus_terms`; they resolve from `topic_id` (which wins) or from an
+exact angle id or name in `focus`. A focus-named angle supplies its service lines, but `stat_ids`,
+`kb_allowed` and `source_ids` still key on `topic_id`.
 
 ### Marketing formats and weekly mix
 

