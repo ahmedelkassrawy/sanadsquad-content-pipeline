@@ -33,7 +33,7 @@ def draft(slot_id, attempt, tweets, accepted=True, violations=(), fixes=()):
             "accepted": accepted,
             "violations": list(violations),
             "fixes": list(fixes),
-            "normalized": [{"text": text, "source_ids": ["KB-01"]} for text in tweets],
+            "normalized": [{"text": text, "source_ids": ["SS-01"]} for text in tweets],
         },
     }
 
@@ -75,13 +75,13 @@ def summary():
 def build(tmp_path):
     """Write a rejected-then-shipped slot and a dropped slot, and render the log."""
     evidence = [
-        {"source_id": "KB-01", "status": "ok"},
+        {"source_id": "SS-01", "status": "ok"},
         {"source_id": "WEB-1", "status": "failed"},
     ]
     pack = {
-        "topic_id": "KB-01",
+        "topic_id": "SS-01",
         "topic_name": "Reentrancy",
-        "sources": [{"source_id": "KB-01"}],
+        "sources": [{"source_id": "SS-01"}],
     }
 
     write(
@@ -139,8 +139,8 @@ def test_rejected_then_shipped_slot_shows_both_attempts(tmp_path):
 def test_search_and_failed_research_records_are_logged(tmp_path):
     log = build(tmp_path)
 
-    assert "research   search_kb 'reentrancy' -> KB-01:ok, WEB-1:failed" in log
-    assert "research   topic KB-01 (Reentrancy) from KB-01" in log
+    assert "research   search_kb 'reentrancy' -> SS-01:ok, WEB-1:failed" in log
+    assert "research   topic SS-01 (Reentrancy) from SS-01" in log
     assert "research failed: no evidence" in log
 
 

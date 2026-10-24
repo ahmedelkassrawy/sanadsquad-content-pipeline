@@ -103,7 +103,12 @@ def inventory(root):
 def expected_snapshot(contents):
     expected = {
         "inputs/brand-voice.md",
+        "inputs/marketing-rules.md",
         "inputs/kb.json",
+        "inputs/sources.json",
+        "inputs/ai-vocabulary.txt",
+        "inputs/ai-constructions.yaml",
+        "inputs/marketing-cta.yaml",
         "inputs/plan.json",
         "resolved-config.json",
         "agents/research/loop.md",
@@ -114,6 +119,22 @@ def expected_snapshot(contents):
 
     if "config/prices.yaml" in contents:
         expected.add("config/prices.yaml")
+    if "inputs/redacted-names.txt" in contents:
+        expected.add("inputs/redacted-names.txt")
+
+    fixture_prefix = "inputs/search-fixtures/"
+    fixture_names = {
+        name for name in contents if name.startswith(fixture_prefix) and name.endswith(".json")
+    }
+    for name in fixture_names:
+        suffix = name.removeprefix(fixture_prefix)
+        if not suffix or "/" in suffix or suffix.startswith("."):
+            raise ValueError("invalid search fixture path")
+        try:
+            json.loads(contents[name])
+        except (TypeError, json.JSONDecodeError):
+            raise ValueError("invalid search fixture") from None
+    expected.update(fixture_names)
 
     slots = [
         ResolvedSlot.model_validate(slot)
@@ -311,7 +332,9 @@ def validated_files(source):
         ):
             raise ValueError("sample result mismatch")
 
-        suffix = {"pillow_card": ".png", "cloudflare_flux": ".png", "spec_json": ".json"}.get(final.image.backend)
+        suffix = {"pillow_card": ".png", "cloudflare_flux": ".png", "spec_json": ".json"}.get(
+            final.image.backend
+        )
 
         if suffix is None or post.image != f"images/slot-{post.slot_id}{suffix}":
             raise ValueError("unsafe sample image reference")

@@ -26,23 +26,26 @@ RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 def stat_pack():
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm completed 2 reviews.",
+                }[id],
             )
-            for id in ("STAT-01", "STAT-02", "STAT-03", "STAT-05")
+            for id in ("STAT-01", "STAT-02")
         ],
     )
 
 
 def credit_pack(*names):
     identities = {
-        "owasp": ("KB-18", "kb", "OWASP Smart Contract Top 10", "https://scs.owasp.org/"),
+        "owasp": ("SS-18", "kb", "OWASP Smart Contract Top 10", "https://scs.owasp.org/"),
         "solidity": (
             "WEB-acde",
             "web",
@@ -59,7 +62,7 @@ def credit_pack(*names):
 
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-18",
+        topic_id="SS-18",
         topic_name="source",
         sources=[
             SourceRecord(
@@ -120,25 +123,25 @@ def test_capitalized_lead_ins_do_not_make_ordinary_prose_a_credit():
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove's 12 auditors review every audit.",
-        "Our 12 auditors have run audits for years.",
-        "12 audit firms trust us.",
+        "Example Firm's 4 reviewers review every assessment.",
+        "Our 4 reviewers have run assessments for years.",
+        "4 assessment firms trust us.",
     ],
 )
 def test_a_stat_number_on_another_head_noun_is_flagged(text):
     violations = check_stat_claims(text, stat_pack())
 
-    assert len(violations) == 1 and violations[0].startswith("stat_misbound:12")
+    assert len(violations) == 1 and violations[0].startswith("stat_misbound:4")
 
 
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has completed 12 smart contract audits.",
-        "Sentinel Grove has 3 auditors.",
-        "A 3-auditor team.",
-        "A 3-auditor team reviews the code.",
-        "12 completed smart contract audits.",
+        "Example Firm completed 4 assessments.",
+        "Example Firm completed 2 reviews.",
+        "A 2-review team.",
+        "A 2-review team checks the code.",
+        "4 completed assessments.",
     ],
 )
 def test_a_stat_number_on_its_own_noun_passes(text):
@@ -146,7 +149,7 @@ def test_a_stat_number_on_its_own_noun_passes(text):
 
 
 def test_a_stat_joined_across_two_sentences_is_left_to_the_reviewer():
-    text = "Sentinel Grove completed 12 smart contract audits. All 3 auditors worked on each one."
+    text = "Example Firm completed 4 assessments. All 2 reviews were documented."
 
     assert check_stat_claims(text, stat_pack()) == []
 
@@ -157,11 +160,11 @@ def test_a_stat_joined_across_two_sentences_is_left_to_the_reviewer():
 @pytest.mark.parametrize(
     ("focus", "topic_id"),
     [
-        ("proxy storage collision", "KB-09"),
-        ("uninitialized proxy", "KB-09"),
-        ("timestamp dependence", "KB-08"),
-        ("unchecked return value", "KB-09"),
-        ("missing access control", "KB-16"),
+        ("proxy storage collision", "SS-03738"),
+        ("uninitialized proxy", "SS-03738"),
+        ("timestamp dependence", "SS-03813"),
+        ("unchecked return value", "SS-03738"),
+        ("missing access control", "SS-03928"),
     ],
 )
 def test_one_shared_generic_word_does_not_match_a_kb_entry(focus, topic_id):
@@ -173,15 +176,13 @@ def test_one_shared_generic_word_does_not_match_a_kb_entry(focus, topic_id):
 def test_the_right_entry_still_matches_each_focus():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
 
-    assert focus_matches("timestamp dependence", kb, "KB-09")
-    assert focus_matches("unchecked return value", kb, "KB-03")
-    assert focus_matches("missing access control", kb, "KB-04")
-    assert focus_matches("reentrancy", kb, "KB-01")
-    assert focus_matches("re-entrancy", kb, "KB-01")
-    assert focus_matches("front-running", kb, "KB-08")
-    assert focus_matches("frontrunning", kb, "KB-08")
-    assert focus_matches("DoS", kb, "KB-11")
-    assert focus_matches("oracle manipulation", kb, "KB-18")
+    assert focus_matches("price feeds", kb, "SS-03738")
+    assert focus_matches("missing signer check", kb, "SS-03859")
+    assert focus_matches("access control", kb, "SS-03699")
+    assert focus_matches("front-running", kb, "SS-03813")
+    assert focus_matches("frontrunning", kb, "SS-03813")
+    assert focus_matches("DoS", kb, "SS-03928")
+    assert focus_matches("oracle manipulation", kb, "SS-03738")
 
 
 def test_a_focus_that_matches_no_entry_matches_none():

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+import re
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -11,6 +12,7 @@ class Contract(BaseModel):
 class SlotOutcome(str, Enum):
     shipped = "shipped"
     dropped_quality = "dropped_quality"
+    dropped_weekly_mix = "dropped_weekly_mix"
     failed_research = "failed_research"
     failed_api = "failed_api"
     failed_budget = "failed_budget"
@@ -52,20 +54,31 @@ class ResolvedSlot(Contract):
     topic_id: str | None = None
     # For an angle that picks one of several sources: the source code chose for this week.
     angle_source: str | None = None
+    # Marketing-only planning data. These fields are persisted with the resolved plan so the
+    # writer, validator and run log agree on the week's assigned shape.
+    format: str | None = None
+    service_line: str | None = None
+    cta_allowed: bool = True
+    # Set from a plan's optional top-level `week` and copied into snapshots for operators.
+    marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")
 
 
 class SourceRecord(Contract):
-    source_id: str = Field(pattern=r"^(KB-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
+    # KB-* remains readable solely for run folders saved before the SS migration.
+    source_id: str = Field(pattern=r"^(?:(?:SS|KB)-\d+|STAT-\d+|WEB-[a-f0-9]+)$")
     kind: Literal["kb", "stat", "web"]
     url: str | None = None
     title: str
     retrieved_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # Search backends may supply this. A retrieval time is not a publication date.
+    published_at: datetime | None = None
     evidence_text: str
     status: Literal["ok", "snippet_only", "fetch_failed"] = "ok"
 
     @model_validator(mode="after")
     def source_kind(self):
-        if not self.source_id.startswith({"kb": "KB-", "stat": "STAT-", "web": "WEB-"}[self.kind]):
+        expected = {"kb": ("SS-", "KB-"), "stat": ("STAT-",), "web": ("WEB-",)}[self.kind]
+        if not self.source_id.startswith(expected):
             raise ValueError("source id must match kind")
 
         if self.status == "ok" and not self.evidence_text.strip():
@@ -79,6 +92,7 @@ class ResearchPack(Contract):
     topic_id: str
     topic_name: str
     sources: list[SourceRecord]
+    kb_allowed: bool = False
 
     @model_validator(mode="after")
     def unique_sources(self):
@@ -91,6 +105,15 @@ class ResearchPack(Contract):
             raise ValueError("failed_research: no citable evidence")
 
         return self
+
+    @property
+    def fetched_urls(self) -> set[str]:
+        """URLs fetched successfully for this run and therefore safe to publish."""
+        return {
+            source.url
+            for source in self.sources
+            if source.kind == "web" and source.status == "ok" and source.url
+        }
 
 
 class Tweet(Contract):
@@ -179,6 +202,16 @@ class Units(Contract):
         return self
 
 
+class MarketingFormat(Contract):
+    """One data-loaded shape a marketing slot may use."""
+
+    id: str = Field(min_length=1)
+    units: Units
+    link_rule: Literal["required", "forbidden", "optional"]
+    length_hint: str = Field(min_length=1)
+    numbering: bool = False
+
+
 class ResearchConfig(Contract):
     hints: str
     topic_source: Literal["kb", "angles"]
@@ -230,11 +263,33 @@ class PostType(Contract):
     # end the same way. Empty means the writer is free.
     hook_styles: list[str] = Field(default_factory=list)
     closing_styles: list[str] = Field(default_factory=list)
+    # Marketing uses this table to select the effective unit, link and numbering rules.
+    formats: list[MarketingFormat] = Field(default_factory=list)
+    # Deliberately separate from `formats`: content can add a format without changing rotation.
+    # An absent value is the compatibility signal for pre-rotation snapshots.
+    format_order: list[str] = Field(default_factory=list)
+    weekly_topic_similarity: float = Field(default=0.6, ge=0, le=1)
 
     @model_validator(mode="after")
     def styles_not_blank(self):
         if any(not style.strip() for style in self.hook_styles + self.closing_styles):
             raise ValueError("hook and closing styles cannot be blank")
+
+        if len({format.id for format in self.formats}) != len(self.formats):
+            raise ValueError("duplicate marketing format")
+
+        unknown_format_order = set(self.format_order) - {format.id for format in self.formats}
+        if unknown_format_order:
+            raise ValueError("unknown marketing format in format_order")
+
+        if len(self.format_order) != len(set(self.format_order)):
+            raise ValueError("duplicate marketing format in format_order")
+
+        if self.formats and any(
+            format.units.min < self.units.min or format.units.max > self.units.max
+            for format in self.formats
+        ):
+            raise ValueError("format units outside post type units")
 
         return self
 
@@ -255,6 +310,47 @@ class BrandRules(Contract):
     ]
     approved_stats: dict[str, str]
     palette: list[str]
+
+
+SOURCE_GROUPS = ("blogs", "docs", "production", "analysis", "figures")
+SERVICE_LINES = ("web3-security", "pentesting", "agentic-security", "agentic-payments")
+
+
+class SourceGroups(Contract):
+    blogs: list[str]
+    docs: list[str]
+    production: list[str]
+    analysis: list[str]
+    figures: list[str]
+
+    @model_validator(mode="after")
+    def domains_are_nonempty_bare_hosts(self):
+        for group in SOURCE_GROUPS:
+            domains = getattr(self, group)
+            if not domains:
+                raise ValueError(f"source group {group} must not be empty")
+            if any(
+                not re.fullmatch(r"[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?", domain, re.I)
+                for domain in domains
+            ):
+                raise ValueError("source domains must be bare hostnames")
+        return self
+
+
+class SourceRegistry(Contract):
+    """Allowlisted web-source domains, loaded once before a run starts."""
+
+    web3_security: SourceGroups = Field(alias="web3-security")
+    pentesting: SourceGroups
+    agentic_security: SourceGroups = Field(alias="agentic-security")
+    agentic_payments: SourceGroups = Field(alias="agentic-payments")
+    deny: list[str] = Field(alias="_deny")
+
+    def domains_for(self, service_line: str) -> set[str]:
+        if service_line not in SERVICE_LINES:
+            raise ValueError("unknown service: " + service_line)
+        groups = getattr(self, service_line.replace("-", "_"))
+        return {domain for group in SOURCE_GROUPS for domain in getattr(groups, group)}
 
 
 class AgentConfig(Contract):

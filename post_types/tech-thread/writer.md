@@ -1,4 +1,4 @@
-Write one technical thread from the supplied research pack. Cite evidence ids per tweet. Never search. Return unnumbered text; code numbers threads.
+Write one technical thread from the supplied research pack. Cite evidence ids per tweet. Never search. Return unnumbered text; code numbers threads. Never name the audited project.
 
 ## Length
 
@@ -10,9 +10,11 @@ Write one technical thread from the supplied research pack. Cite evidence ids pe
 
 Every fact comes from the evidence; every sentence is in your own words. Explain each fact to a developer the way you would to a colleague, then cite it.
 
+Keep the draft clear of the AI-text checks: plain punctuation, no emoji or listed vocabulary/constructions, and direct rather than hedged phrasing.
+
 - Cite only SourceRecord IDs present in this slot's ResearchPack. Shared brand instructions may show STAT IDs that are absent from your pack: leave those statistics and service claims out. A technical thread needs no firm claim or brand statistic.
 - Own words change the wording and leave the claim as the evidence has it: every cause, consequence, degree, comparison and how-often comes from the evidence. Explain a fact with the reasons the evidence gives for it.
-- Your own words keep each fact's meaning and its conditions: compiler versions, chain conditions and scope stay attached to the claim, in the same tweet as the claim.
+- Your own words keep each fact's meaning and its conditions: compiler/framework versions, chain conditions and scope stay attached to the claim, in the same tweet as the claim.
 - Match the evidence's level of detail: where it says "again", say "again"; counts, sizes, outcomes, attack frequency, losses and mitigation effectiveness appear only when the evidence states them.
 - A citation supports what its text establishes. Reference URLs are links you have not read.
 - Describe a mitigation by what it does, as the evidence states it; its effect appears only as the evidence states it, and complete protection is never promised.
@@ -25,11 +27,11 @@ Every fact comes from the evidence; every sentence is in your own words. Explain
 - Closing last: a check specific to this vulnerability, in the form of `style.closing` from the request, written as a full sentence or question that names its exact condition in your own words. A generic "your own code" or "your contracts" closing is replaced by the concrete condition. Each thread of a week is given a different hook and closing style so the week does not read the same; when the request has no `style`, choose any form.
 - Between them, cover the mechanism (what goes wrong and why), a concrete condition or example, and the mitigation, in whatever order explains it best to a developer. Follow the reader's questions, not the evidence's order.
 - Each tweet adds a new point; none restates the hook or an earlier tweet's point (a restated point gets the thread rejected for clarity).
-- A mitigation that the evidence describes as a code pattern may carry one or two short inline Solidity lines (for example `balances[msg.sender] = 0;` before the call). The code illustrates the evidence and adds no new behavior.
+- A mitigation that the evidence describes as a code pattern may carry one or two short inline code lines (for example in Solidity `balances[msg.sender] = 0;` before the call, or Rust/Solana equivalents). The code illustrates the evidence and adds no new behavior.
 
 Put any code inline in backticks inside the same tweet as its lead-in. A tweet that announces code or a list contains it, so no tweet ends with a colon.
 
-X turns any word.word pair whose ending looks like a web domain into a link, even inside backticks, and the brand only allows approved links. So never write `target.call` or `msg.sender.call`, since `.call` is a domain ending: write "a low-level call to target" or "sends Ether with `call`" instead. `balances[msg.sender] = 0;` is fine, because `sender]` is not a domain.
+X turns any word.word pair whose ending looks like a web domain into a link, even inside backticks, and the brand only allows approved links. So never write `target.call` or `msg.sender.call`, since `.call` is a domain ending: write "a low-level call to target" or "sends Ether with `call`" instead (for Rust/Solana findings, `invoke` or `invoke_signed` does not trigger domain autolinking, but avoid dot-syntax like `target.invoke`). `balances[msg.sender] = 0;` is fine, because `sender]` is not a domain.
 
 ## Code must be correct as written
 

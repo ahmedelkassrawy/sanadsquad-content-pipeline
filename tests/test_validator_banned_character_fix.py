@@ -1,4 +1,4 @@
-"""Validator rewrites configured banned characters (such as em dashes) before numbering."""
+"""Validator punctuation normalization that remains safe after AI-text checks."""
 
 from pathlib import Path
 
@@ -17,225 +17,178 @@ def rules():
     return load_brand(ROOT / "inputs/brand-voice.md")[0]
 
 
-def check(text, rules: BrandRules, post_type="marketing-post"):
+def check(text: str, rules: BrandRules, post_type="marketing-post"):
     spec = load_type(ROOT, post_type)
+    source_id = "WEB-abcdef12" if post_type == "marketing-post" else "SS-01"
     draft = Draft(
         slot_id="s9",
-        tweets=[Tweet(text=text, source_ids=["KB-01"])]
+        tweets=[Tweet(text=text, source_ids=[source_id])]
         + [
-            Tweet(text="Update state before external calls.", source_ids=["KB-01"])
+            Tweet(text="Update state before external calls.", source_ids=[source_id])
             for _ in range(spec.units.min - 1)
         ],
     )
     pack = ResearchPack(
         slot_id="s9",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
-                kind="kb",
+                source_id=source_id,
+                kind="web" if post_type == "marketing-post" else "kb",
+                url="https://example.com/evidence" if post_type == "marketing-post" else None,
                 title="Reentrancy",
-                evidence_text="External calls can reenter before state is finalized. Version v1.2 applies.",
+                evidence_text="External calls can reenter before state is finalized.",
             )
         ],
+        kb_allowed=post_type != "marketing-post",
     )
     return validate(draft, pack, spec, rules)
 
 
-def test_em_dashes_are_fixed_before_numbering_and_accepted(rules):
-    text = "Reentrancy\u2014a classic bug\u2014lets attackers reenter."
-    result = check(text, rules, "tech-thread")
+def test_em_dash_is_rejected_without_normalization(rules):
+    result = check("Reentrancy\u2014a classic bug.", rules)
+
+    assert "ai_text:em_dash" in result.violations
+    assert result.normalized.tweets[0].text == "Reentrancy\u2014a classic bug."
+    assert "tweet_1:banned_characters" not in result.fixes
+
+
+def test_curly_quotes_are_rejected_without_normalization(rules):
+    result = check("\u201cState before calls.\u201d", rules)
+
+    assert "ai_text:curly_quotes" in result.violations
+    assert result.normalized.tweets[0].text == "\u201cState before calls.\u201d"
+    assert "tweet_1:curly_quotes" not in result.fixes
+
+
+def test_other_configured_dash_look_alikes_are_still_normalized(rules):
+    result = check("Checks\u2012effects\u2011interactions order.", rules)
 
     assert result.accepted, result.violations
-    assert result.violations == []
-    assert result.normalized.tweets[0].text == (
-        "1/5 Reentrancy, a classic bug, lets attackers reenter."
-    )
+    assert result.normalized.tweets[0].text == "Checks-effects-interactions order."
     assert result.fixes == ["tweet_1:banned_characters"]
-    assert result.original.tweets[0].text == text
 
 
-@pytest.mark.parametrize(
-    "text,expected",
-    [
-        ("word \u2014 word", "word, word"),
-        ("word\t\n\u2014\t\nword", "word, word"),
-        ("non\u2011breaking", "non-breaking"),
-    ],
-)
-def test_configured_punctuation_is_rewritten(rules, text, expected):
+def test_protected_url_is_not_rewritten(rules):
+    result = check("See https://example.com/non\u2011breaking", rules)
+
+    assert result.normalized.tweets[0].text == "See https://example.com/non\u2011breaking"
+    assert not result.accepted
+    assert "tweet_1:banned_character:\u2011" in result.violations
+
+
+@pytest.mark.parametrize("text", ["word \u2014 word", "word, \u2014 word", "word \u2014, word"])
+def test_em_dash_is_rejected_at_punctuation_boundaries(rules, text):
     result = check(text, rules)
 
-    assert result.accepted, result.violations
-    assert result.normalized.tweets[0].text == expected
-    assert result.fixes == ["tweet_1:banned_characters"]
-
-
-def test_overlength_marketing_draft_still_fails_after_fix(rules):
-    result = check("x" * 279 + "\u2014y", rules)
-
-    assert not result.accepted
-    assert "tweet_1:length" in result.violations
-    assert not any("banned_character:" in error for error in result.violations)
-    assert result.normalized.tweets[0].text == "x" * 279 + ", y"
-    assert result.fixes == ["tweet_1:banned_characters"]
-
-
-def test_em_dash_is_rejected_when_fix_is_disabled(rules):
-    rules = rules.model_copy(
-        update={
-            "safe_fixes": [fix for fix in rules.safe_fixes if fix != "banned_characters"],
-        }
-    )
-    result = check("word\u2014word", rules)
-
-    assert not result.accepted
-    assert result.violations == ["tweet_1:banned_character:\u2014"]
-    assert result.normalized.tweets[0].text == "word\u2014word"
-    assert result.fixes == []
-
-
-def test_clean_text_records_no_banned_character_fix(rules):
-    result = check("Update state before external calls.", rules)
-
-    assert result.accepted, result.violations
-    assert result.fixes == []
-
-
-def test_banned_character_fix_runs_first_even_when_configured_last(rules):
-    rules = rules.model_copy(
-        update={
-            "safe_fixes": [fix for fix in rules.safe_fixes if fix != "banned_characters"]
-            + ["banned_characters"],
-        }
-    )
-    result = check("word\u2014", rules)
-
-    assert result.accepted, result.violations
-    assert result.normalized.tweets[0].text == "word"
-    assert result.fixes == ["tweet_1:banned_characters"]
-
-
-def test_other_configured_banned_characters_are_removed(rules):
-    rules = rules.model_copy(update={"banned_characters": [*rules.banned_characters, "~"]})
-    result = check("word~ word", rules)
-
-    assert result.accepted, result.violations
-    assert result.normalized.tweets[0].text == "word word"
-    assert result.fixes == ["tweet_1:banned_characters"]
-
-
-def test_unconfigured_characters_are_preserved(rules):
-    rules = rules.model_copy(update={"banned_characters": ["~"]})
-    result = check("word\u2014non\u2011breaking", rules)
-
-    assert result.accepted, result.violations
-    assert result.normalized.tweets[0].text == "word\u2014non\u2011breaking"
-    assert result.fixes == []
+    assert "ai_text:em_dash" in result.violations
+    assert result.normalized.tweets[0].text == text
 
 
 @pytest.mark.parametrize(
-    "text,post_type,expected,accepted",
+    "text,violation",
     [
-        ("\u2014word", "marketing-post", "word", True),
-        ("word\u2014", "marketing-post", "word", True),
-        ("word\u2014\u2014word", "marketing-post", "word, word", True),
-        ("word, \u2014 word", "marketing-post", "word, word", True),
-        ("word\u2014, word", "marketing-post", "word, word", True),
-        ("word\u2014.", "marketing-post", "word.", True),
-        ("\u2014word", "tech-thread", "1/5 word", True),
-        ("\u2014", "marketing-post", "", False),
-        ("\u2011", "marketing-post", "-", False),
-        (" \t\u2014\u2014 word \u2014\u2014 ", "marketing-post", "word", True),
-        ("word \u2014 \u2014 word", "marketing-post", "word, word", True),
-        ("\u2014", "tech-thread", "1/5 ", False),
-        ("\u2011", "tech-thread", "1/5 -", False),
-        ("...", "marketing-post", "...", False),
+        ("https://example.com/a\u2014b", "ai_text:em_dash"),
+        ("See https://example.com/non\u2011breaking", "tweet_1:banned_character:\u2011"),
+        ("www.example.com/non\u2011breaking", "tweet_1:banned_character:\u2011"),
+        ("example.com/a\u2014b", "ai_text:em_dash"),
+        ("prefix:https://example.com/a\u2014b", "ai_text:em_dash"),
     ],
 )
-def test_banned_character_boundaries_and_empty_content(rules, text, post_type, expected, accepted):
+def test_banned_characters_inside_urls_are_rejected_without_rewriting(rules, text, violation):
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert violation in result.violations
+    assert result.normalized.tweets[0].text == text
+    assert result.fixes == []
+
+
+def test_protected_url_does_not_hide_a_rejected_dash_in_surrounding_text(rules):
+    text = "word\u2014word https://example.com/non\u2011breaking"
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert "ai_text:em_dash" in result.violations
+    assert "tweet_1:banned_character:\u2011" in result.violations
+    assert result.normalized.tweets[0].text == text
+
+
+@pytest.mark.parametrize("text", ["\u2014", "\u2013", "\u201c\u201d"])
+def test_rejected_banned_characters_cannot_become_empty_content(rules, text):
+    result = check(text, rules)
+
+    assert not result.accepted
+    assert result.normalized.tweets[0].text == text
+
+
+def test_whitespace_and_markdown_fixes_remain_available(rules):
+    result = check("  State   before *external* calls. #audit  ", rules)
+
+    assert result.accepted, result.violations
+    assert result.normalized.tweets[0].text == "State before external calls."
+    assert result.fixes == [
+        "tweet_1:whitespace",
+        "tweet_1:trailing_hashtags",
+        "tweet_1:markdown",
+    ]
+
+
+@pytest.mark.parametrize(
+    "text,post_type,expected_suffix",
+    [
+        ("\u2014word", "marketing-post", "\u2014word"),
+        ("word\u2014", "marketing-post", "word\u2014"),
+        ("word\u2014\u2014word", "marketing-post", "word\u2014\u2014word"),
+        ("word\u2014.", "marketing-post", "word\u2014."),
+        ("\u2014word", "tech-thread", "\u2014word"),
+        ("\u2014", "marketing-post", "\u2014"),
+        ("\u2011", "marketing-post", "-"),
+        (" \t\u2014\u2014 word \u2014\u2014 ", "marketing-post", "\u2014\u2014 word \u2014\u2014"),
+        ("word \u2014 \u2014 word", "marketing-post", "word \u2014 \u2014 word"),
+        ("\u2014", "tech-thread", "\u2014"),
+        ("\u2011", "tech-thread", "-"),
+        ("...", "marketing-post", "..."),
+    ],
+)
+def test_restored_boundary_matrix_keeps_rejected_characters_visible(
+    rules, text, post_type, expected_suffix
+):
     result = check(text, rules, post_type)
 
-    assert result.normalized.tweets[0].text == expected
-    assert result.accepted is accepted, result.violations
-    assert result.violations == ([] if accepted else ["tweet_1:invalid_text"])
-    assert result.original.tweets[0].text == text
+    assert not result.accepted
+    assert result.normalized.tweets[0].text.endswith(expected_suffix)
 
 
 @pytest.mark.parametrize("punctuation", list(",.;:!?)(\"'\u2018\u2019\u201c\u201d"))
 @pytest.mark.parametrize("side", ["left", "right"])
-def test_em_dash_next_to_punctuation(rules, punctuation, side):
-    if side == "left":
-        text = f"word{punctuation} \u2014 word"
-        expected = f"word{punctuation}word" if punctuation == "(" else f"word{punctuation} word"
-    else:
-        text = f"word \u2014 {punctuation}word"
-        expected = f"word {punctuation}word"
-        if punctuation in ",.;:!?)":
-            expected = f"word{punctuation}word"
-    expected = expected.translate(
-        str.maketrans({"\u2018": "'", "\u2019": "'", "\u201c": '"', "\u201d": '"'})
-    )
+def test_restored_punctuation_matrix_rejects_em_dash(rules, punctuation, side):
+    text = f"word{punctuation} \u2014 word" if side == "left" else f"word \u2014 {punctuation}word"
+
     result = check(text, rules)
 
-    assert result.accepted, result.violations
-    assert result.normalized.tweets[0].text == expected
+    assert not result.accepted
+    assert "ai_text:em_dash" in result.violations
 
 
 @pytest.mark.parametrize(
-    "text,char",
+    "text",
     [
-        ("See https://example.com/non\u2011breaking", "\u2011"),
-        ("https://example.com/a\u2014b", "\u2014"),
-        ("www.example.com/non\u2011breaking", "\u2011"),
-        ("example.com/a\u2014b", "\u2014"),
-        ("prefix:https://example.com/a\u2014b", "\u2014"),
+        'He said "word\u2014".',
+        "He said \u201cword\u2014\u201d.",
+        'He said "word\u2014\u2014".',
+        "[word\u2014]",
+        "{word\u2014}",
+        'word\u2014 "quote"',
+        'word \u2014"quote"',
+        "word\u2014 \u201cquote\u201d",
+        "v1.2/3\u2014word",
     ],
 )
-def test_url_like_tokens_are_preserved_and_rejected(rules, text, char):
+def test_restored_dash_run_matrix_rejects_without_rewriting(rules, text):
     result = check(text, rules)
 
+    assert not result.accepted
     assert result.normalized.tweets[0].text == text
-    assert not result.accepted
-    assert f"tweet_1:banned_character:{char}" in result.violations
-    assert result.fixes == []
-
-
-def test_protected_url_does_not_prevent_fixing_surrounding_text(rules):
-    result = check("word\u2014word https://example.com/non\u2011breaking", rules)
-
-    assert result.normalized.tweets[0].text == "word, word https://example.com/non\u2011breaking"
-    assert not result.accepted
-    assert result.violations == ["tweet_1:banned_character:\u2011"]
-    assert result.fixes == ["tweet_1:banned_characters"]
-
-
-@pytest.mark.parametrize(
-    "text,expected",
-    [
-        ('He said "word\u2014".', 'He said "word".'),
-        ("He said \u201cword\u2014\u201d.", 'He said "word".'),
-        ('He said "word\u2014\u2014".', 'He said "word".'),
-        ("[word\u2014]", "[word]"),
-        ("{word\u2014}", "{word}"),
-        ('word\u2014 "quote"', 'word "quote"'),
-        ('word \u2014"quote"', 'word "quote"'),
-        ("word\u2014 \u201cquote\u201d", 'word "quote"'),
-    ],
-)
-def test_dash_run_respects_closing_and_opening_punctuation(rules, text, expected):
-    result = check(text, rules)
-
-    assert result.normalized.tweets[0].text == expected
-    assert result.accepted, result.violations
-    assert result.fixes[0] == "tweet_1:banned_characters"
-    assert result.original.tweets[0].text == text
-
-
-def test_version_token_is_not_protected_as_a_url(rules):
-    result = check("v1.2/3\u2014word", rules)
-
-    assert result.normalized.tweets[0].text == "v1.2/3, word"
-    assert result.accepted, result.violations
-    assert result.fixes == ["tweet_1:banned_characters"]
+    assert "ai_text:em_dash" in result.violations

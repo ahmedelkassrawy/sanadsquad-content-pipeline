@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+    "title": "OWASP: Software supply chain attacks",
+    "raw_content": "OWASP describes how compromised dependencies and build systems can affect applications that trust them. Reviews should include the dependency and CI/CD paths around an application."
+  }
+]

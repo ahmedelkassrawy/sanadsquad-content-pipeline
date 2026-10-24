@@ -19,7 +19,7 @@ from .contracts import ReviewRequest
 from .durability import atomic_json
 from .ledger import BudgetExhausted, Ledger
 from .model_client import PRICES_FILE, Prices, configured_client, load_price_overrides
-from .models import Draft, ResearchPack, Tweet
+from .models import Draft, ResearchPack, SourceRecord, Tweet
 from .pipeline import run_pipeline, validate_inputs
 from .research import KnowledgeBase
 from .validation import validate
@@ -62,12 +62,30 @@ async def reviewer_control(
         ("unsupported", controls["unsupported_text"]),
     ]:
         pack = ResearchPack(
-            slot_id=name, topic_id=source.source_id, topic_name=source.title, sources=[source]
+            slot_id=name,
+            topic_id=source.source_id,
+            topic_name=source.title,
+            sources=[
+                source,
+                SourceRecord(
+                    source_id="WEB-acde1234",
+                    kind="web",
+                    url="https://example.com/live-proof",
+                    title="Independent technical resource",
+                    evidence_text="Independent evidence for the control.",
+                ),
+            ],
+            # This control is a vulnerability-class marketing post, the approved
+            # marketing exception that uses a KB source and cites it explicitly.
+            kb_allowed=True,
         )
 
         draft = Draft(
             slot_id=name,
-            tweets=[Tweet(text=text, source_ids=[source.source_id]) for _ in range(spec.units.min)],
+            tweets=[
+                Tweet(text=text, source_ids=[source.source_id, "WEB-acde1234"])
+                for _ in range(spec.units.min)
+            ],
         )
 
         checked = validate(draft, pack, spec, rules)

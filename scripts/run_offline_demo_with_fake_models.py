@@ -8,6 +8,7 @@ uses these models. Example:
 """
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from content_pipeline.cli import main  # noqa: E402
 
 
 if __name__ == "__main__":
+    os.environ.setdefault("SEARCH_BACKEND", "fixture")
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

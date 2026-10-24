@@ -1,18 +1,19 @@
 import asyncio
+import inspect
 import json
 import re
 import shutil
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Annotated, TypedDict
 from uuid import uuid4
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-from . import record_ids
+from . import ai_text, record_ids
 from .agents import ResearchAgent, TopicSelector, Writer, Reviewer, VisualAgent
-from .config import Settings, load_visual_backends, local_file, resolve_model
+from .config import Settings, load_sources, load_visual_backends, local_file, resolve_model
 from .contracts import (
     DraftAudit,
     DraftRecord,
@@ -47,6 +48,7 @@ from .model_client import (
 )
 from .models import ImageResult, ResolvedSlot, SlotOutcome
 from .post_types import PostTypes
+from .redaction import redact_research_pack, redact_writer_material
 from .research import KnowledgeBase, assign_topics, open_topics, recent_topic_ids
 from .run_log import render_run_index, render_run_log
 from .tools import configured_web_search
@@ -54,6 +56,7 @@ from .trail import Trail, export_posts
 from .validation import (
     claim_feedback,
     colon_feedback,
+    count_marketing_ctas,
     credit_feedback,
     is_writer_note,
     label_feedback,
@@ -119,7 +122,7 @@ def parse_sets(slots, values):
     return list(indexed.values())
 
 
-def validate_inputs(root, slots, settings=None, types=None):
+def validate_inputs(root, slots, settings=None, types=None, *, allow_legacy_snapshot=False):
     """Validate the plan and required configuration before starting a run."""
     if not slots or len({slot.slot_id.casefold() for slot in slots}) != len(slots):
         raise ValueError("plan needs case-insensitive unique slots")
@@ -136,6 +139,11 @@ def validate_inputs(root, slots, settings=None, types=None):
         ImageColor.getrgb(color)
 
     KnowledgeBase(root / "inputs/kb.json")
+    sources = root / "inputs/sources.json"
+    if sources.is_file():
+        load_sources(sources)
+    elif not allow_legacy_snapshot:
+        local_file(root, "inputs/sources.json")
 
     for slot in slots:
         _validate_slot_inputs(root, slot, settings, types)
@@ -301,13 +309,31 @@ def snapshot(root, run_dir, slots, settings):
 
     target.mkdir()
 
-    for name in ["inputs/brand-voice.md", "inputs/kb.json"]:
+    for name in [
+        "inputs/brand-voice.md",
+        "inputs/marketing-rules.md",
+        "inputs/kb.json",
+        "inputs/sources.json",
+        "inputs/ai-vocabulary.txt",
+        "inputs/ai-constructions.yaml",
+        "inputs/marketing-cta.yaml",
+    ]:
         source = local_file(root, name)
         destination = target / name
 
         destination.parent.mkdir(parents=True, exist_ok=True)
 
         shutil.copyfile(source, destination)
+
+    redacted_names = root / "inputs/redacted-names.txt"
+    if redacted_names.is_file():
+        destination = target / "inputs/redacted-names.txt"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(redacted_names, destination)
+
+    fixtures = root / "inputs/search-fixtures"
+    if fixtures.is_dir():
+        shutil.copytree(fixtures, target / "inputs/search-fixtures")
 
     files = _snapshot_files(PostTypes(root), slots)
 
@@ -333,6 +359,18 @@ def snapshot(root, run_dir, slots, settings):
     )
 
     return target
+
+
+def marketing_week(slots):
+    """Resolve one immutable ISO week for a new run from its optional plan override."""
+    configured = {slot.marketing_week for slot in slots if slot.marketing_week is not None}
+    if len(configured) > 1:
+        raise ValueError("plan needs one marketing week")
+    if configured:
+        return configured.pop()
+
+    year, week, _ = datetime.now(timezone.utc).isocalendar()
+    return f"{year:04d}-W{week:02d}"
 
 
 def _snapshot_files(types, slots):
@@ -566,6 +604,14 @@ class Pipeline:
         """Create a model client for an agent and slot."""
         return self.model_factory(name, slot_id, self.context)
 
+    def _new_searcher(self):
+        """Load policy/fixtures from the snapshot and credentials from the live root."""
+        try:
+            inspect.signature(self.search_factory).bind(self.root, self.context.credential_root)
+        except TypeError:
+            return self.search_factory(self.root)
+        return self.search_factory(self.root, self.context.credential_root)
+
     async def record(self, name, record):
         """Append a stage record to its durable trail."""
         await self.trails[name].append(
@@ -608,6 +654,11 @@ class Pipeline:
             atomic_json(self.context.run_dir / "external-usage.json", self.external.model_dump())
 
     def _research_request(self, slot):
+        if slot.type == "marketing-post":
+            slot.service_line = slot.service_line or self.types.marketing_service_line(slot)
+            if not slot.service_line:
+                raise ModelFailure("failed_research", "marketing_service_line_missing")
+
         request = ResearchRequest(slot=slot, hints=self.types.hints(slot.type))
 
         return request
@@ -617,7 +668,7 @@ class Pipeline:
             state.outcome = failure(ModelFailure(saved.failure or "failed_research"), research=True)
             state.reasons = [state.outcome.value]
         else:
-            state.pack = saved.pack
+            state.pack = redact_research_pack(saved.pack, self.root)
             state.slot.topic_id = saved.pack.topic_id
 
     async def _record_research_outcome(self, state):
@@ -655,7 +706,8 @@ class Pipeline:
 
                 return state.model_dump(mode="json")
 
-            searcher = self.search_factory(self.context.credential_root)
+            searcher = self._new_searcher()
+            searcher.evidence_limit = self.context.settings.web_evidence_limit
 
             self.searchers.append(searcher)
 
@@ -666,6 +718,7 @@ class Pipeline:
                 searcher,
                 self.save_search_usage,
                 self.types,
+                self.context.settings.web_evidence_limit,
             )
 
             pack = await agent(request)
@@ -673,7 +726,7 @@ class Pipeline:
             if pack.slot_id != slot.slot_id:
                 raise ModelFailure("failed_output")
 
-            state.pack = pack
+            state.pack = redact_research_pack(pack, self.root)
             state.slot.topic_id = pack.topic_id
         except Exception as error:
             state.outcome = failure(error, research=True)
@@ -704,7 +757,7 @@ class Pipeline:
         return {"slots": {state["slot"]["slot_id"]: state for state in results}}
 
     def _taken_topics(self, states):
-        """This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy"."""
+        """This week's focused slots that already have a topic: slot id -> "SS-01 Reentrancy"."""
         return {
             state.slot.slot_id: f"{state.slot.topic_id} "
             + (state.pack.topic_name if state.pack else state.slot.focus)
@@ -775,6 +828,7 @@ class Pipeline:
             slots=resolved,
             warnings=warnings,
             topic_reasons=reasons,
+            marketing_week=self.context.identity.marketing_week if self.context.identity else None,
         )
 
         (self.context.run_dir / "plan.resolved.json").write_text(
@@ -801,6 +855,249 @@ class Pipeline:
             state.slot.angle_source = chosen
             taken.add(chosen)
 
+        return warnings
+
+    def _assign_marketing_mix(self, states):
+        """Assign the week's marketing shapes and reject only irreconcilable repeat slots.
+
+        Service and format diversity are planning decisions, before research and writing. Link
+        diversity follows from a forbidden-link short tip and required-link learning resource.
+        CTA allowance is also planned here, then enforced by validation in each independent lane.
+        """
+        marketing = [
+            state for state in states if not state.outcome and state.slot.type == "marketing-post"
+        ]
+        if not marketing:
+            return []
+
+        spec = self.types.spec("marketing-post")
+        formats = {format.id: format for format in spec.formats}
+        # Snapshots written before this field retain the original selection order and offset.
+        # The literal is intentionally local: current configuration is wholly data-loaded.
+        order = spec.format_order or [
+            "short-tip",
+            "learning-resource",
+            "differentiation",
+            "service-overview",
+            "thread",
+            "news-reaction",
+        ]
+        order = [format_id for format_id in order if format_id in formats]
+        if not order:
+            return []
+
+        warnings = []
+        services = {}
+        format_counts = {}
+        saved_week = self.context.identity.marketing_week if self.context.identity else None
+        if saved_week is None:
+            offset = 0
+        else:
+            year, week = (int(part) for part in saved_week.replace("-W", "-").split("-"))
+            offset = (year * 53 + week) % len(order)
+
+        for index, state in enumerate(marketing):
+            angle = next(
+                (
+                    angle
+                    for angle in self.types.angles("marketing-post")
+                    if angle.id == state.slot.topic_id
+                ),
+                None,
+            )
+            state.slot.service_line = state.slot.service_line or (
+                angle.service_line if angle else None
+            )
+
+            service_count = (
+                services.get(state.slot.service_line, 0) if state.slot.service_line else 0
+            )
+
+            # Repeated services are provisionally shaped as news reactions. The fetched,
+            # dated evidence decides whether that exception actually applies below.
+            preferred = (
+                "news-reaction"
+                if service_count
+                else angle.preferred_format
+                if angle and angle.preferred_format
+                else order[(offset + index) % len(order)]
+            )
+            choices = [preferred] + [id for id in order if id != preferred]
+            format_id = next((id for id in choices if format_counts.get(id, 0) < 2), preferred)
+            if format_id is None:
+                state.outcome = SlotOutcome.dropped_weekly_mix
+                state.reasons = ["weekly_mix_format_exhausted"]
+                warnings.append("weekly_mix_drop_format:" + state.slot.slot_id)
+                continue
+
+            state.slot.format = format_id
+            format_counts[format_id] = format_counts.get(format_id, 0) + 1
+            if state.slot.service_line:
+                services[state.slot.service_line] = service_count + 1
+
+        viable = [state for state in marketing if not state.outcome]
+        if len(viable) >= 2:
+
+            def has_link_rule(rule):
+                return any(formats[state.slot.format].link_rule == rule for state in viable)
+
+            def adjust(rule, format_id):
+                if has_link_rule(rule):
+                    return
+                other_rule = "forbidden" if rule == "required" else "required"
+                for state in reversed(viable):
+                    current = state.slot.format
+                    # A news reaction may be the only format that makes a repeated service
+                    # eligible for its existing current-news exception below.
+                    if (
+                        current == format_id
+                        or current == "news-reaction"
+                        or format_counts.get(format_id, 0) >= 2
+                    ):
+                        continue
+                    if (
+                        formats[current].link_rule == other_rule
+                        and sum(
+                            formats[other.slot.format].link_rule == other_rule for other in viable
+                        )
+                        == 1
+                    ):
+                        continue
+                    format_counts[current] -= 1
+                    format_counts[format_id] = format_counts.get(format_id, 0) + 1
+                    state.slot.format = format_id
+                    warnings.append(
+                        f"weekly_mix:planning:{state.slot.slot_id}:link_diversity_adjusted:{format_id}"
+                    )
+                    return
+                raise ValueError("marketing formats cannot satisfy link diversity")
+
+            adjust(
+                "required",
+                next(format.id for format in spec.formats if format.link_rule == "required"),
+            )
+            adjust(
+                "forbidden",
+                next(format.id for format in spec.formats if format.link_rule == "forbidden"),
+            )
+
+        cta_slots = max(1, len(viable) // 3)
+        for index, state in enumerate(viable):
+            state.slot.cta_allowed = index < cta_slots
+
+        return warnings
+
+    @staticmethod
+    def _topic_terms(state):
+        text = " ".join(
+            value
+            for value in [state.slot.focus, state.pack.topic_name if state.pack else None]
+            if value
+        ).casefold()
+        return set(re.findall(r"[a-z0-9]{3,}", text))
+
+    @staticmethod
+    def _current_news(state):
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        return any(
+            source.kind == "web"
+            and source.status == "ok"
+            and source.published_at is not None
+            and source.published_at >= cutoff
+            for source in (state.pack.sources if state.pack else [])
+        )
+
+    def _enforce_marketing_mix(self, states, phase):
+        """Check the viable/shipped set and fail only the latest offending marketing slot."""
+        marketing = [
+            state
+            for state in states
+            if state.slot.type == "marketing-post"
+            and state.pack is not None
+            and (
+                phase == "viable"
+                and state.outcome is None
+                or phase == "shipped"
+                and state.outcome == SlotOutcome.shipped
+            )
+        ]
+        if not marketing:
+            return []
+
+        spec = self.types.spec("marketing-post")
+        warnings = []
+        services = {}
+        topics = []
+        formats = {}
+
+        def verdict(state, rule, passed):
+            warnings.append(
+                f"weekly_mix:{phase}:{state.slot.slot_id}:{rule}:{'pass' if passed else 'fail'}"
+            )
+            if not passed:
+                state.outcome = SlotOutcome.dropped_weekly_mix
+                state.reasons = ["weekly_mix_" + rule]
+
+        for state in marketing:
+            terms = self._topic_terms(state)
+            similar = any(
+                terms
+                and earlier
+                and len(terms & earlier) / len(terms | earlier) >= spec.weekly_topic_similarity
+                for earlier in topics
+            )
+            verdict(state, "similar_topic", not similar)
+            if similar:
+                continue
+            topics.append(terms)
+
+            service = state.slot.service_line
+            service_count = services.get(service, 0) if service else 0
+            repeat = service_count > 0
+            news_ok = state.slot.format == "news-reaction" and self._current_news(state)
+            # The dated-news exception permits only the second appearance of a service.
+            service_ok = not repeat or service_count == 1 and news_ok
+            verdict(state, "service_repeat", service_ok)
+            if not service_ok:
+                continue
+            if service:
+                services[service] = service_count + 1
+
+            count = formats.get(state.slot.format, 0)
+            verdict(state, "format_repeat", count < 2)
+            if count >= 2:
+                continue
+            formats[state.slot.format] = count + 1
+
+        surviving = [
+            state
+            for state in marketing
+            if state.outcome is None or phase == "shipped" and state.outcome == SlotOutcome.shipped
+        ]
+        if phase == "shipped":
+            has_link = any(
+                state.slot.format in {"news-reaction", "learning-resource"} for state in surviving
+            )
+            has_no_link = any(state.slot.format == "short-tip" for state in surviving)
+            unmet = (
+                "no_linked_post_shipped"
+                if not has_link
+                else "no_unlinked_post_shipped"
+                if not has_no_link
+                else None
+            )
+            if unmet:
+                warnings.append(f"weekly_mix:shipped:set:link_diversity:unmet:{unmet}")
+
+        remaining_ctas = max(1, len(surviving) // 3)
+        for state in surviving:
+            ctas = (
+                count_marketing_ctas(state.draft, getattr(self, "root", None)) if state.draft else 0
+            )
+            cta_ok = ctas <= remaining_ctas
+            verdict(state, "cta_limit", cta_ok)
+            if cta_ok:
+                remaining_ctas -= ctas
         return warnings
 
     async def select(self, week):
@@ -860,6 +1157,7 @@ class Pipeline:
             else:
                 await self._record_topic_exhaustion(state)
 
+        warnings.extend(self._assign_marketing_mix(states))
         warnings.extend(self._choose_angle_sources(states))
 
         results = await asyncio.gather(
@@ -869,8 +1167,26 @@ class Pipeline:
         results.extend(state.model_dump(mode="json") for state in empty if state.outcome)
 
         changed = {state["slot"]["slot_id"]: state for state in results}
+        # Format and CTA assignment also changes focused marketing slots, which did not pass
+        # through the research fan-out in this node.
+        changed.update(
+            {
+                state.slot.slot_id: state.model_dump(mode="json")
+                for state in states
+                if state.slot.focus
+            }
+        )
 
-        self._save_resolved_plan(states, changed, warnings, accepted)
+        resolved_states = [
+            SlotState.model_validate(changed.get(state.slot.slot_id, state.model_dump(mode="json")))
+            for state in states
+        ]
+        warnings.extend(self._enforce_marketing_mix(resolved_states, "viable"))
+        changed.update(
+            {state.slot.slot_id: state.model_dump(mode="json") for state in resolved_states}
+        )
+
+        self._save_resolved_plan(resolved_states, changed, warnings, accepted)
 
         return {"slots": changed, "warnings": warnings}
 
@@ -916,15 +1232,21 @@ class Pipeline:
         state.audit = None
         state.review = None
 
+        writer_pack, writer_feedback, previous_draft = redact_writer_material(
+            state.pack, state.feedback, previous_draft, self.root
+        )
+
         request = WriteRequest(
             slot_id=state.slot.slot_id,
             attempt=state.attempt,
-            research=state.pack,
+            research=writer_pack,
             post_type=self.types.spec(state.slot.type),
-            feedback=state.feedback,
+            feedback=writer_feedback,
             max_tweet_chars=self.context.settings.max_tweet_chars,
             previous_draft=previous_draft,
             style=self.types.writing_style(state.slot, self.plan),
+            format=self.types.format(state.slot),
+            cta_allowed=state.slot.cta_allowed,
         )
 
         saved = self.replay.reuse(
@@ -961,6 +1283,9 @@ class Pipeline:
             research=state.pack,
             post_type=self.types.spec(state.slot.type),
             max_tweet_chars=self.context.settings.max_tweet_chars,
+            ai_policy_sha256=ai_text.policy_digest(self.root),
+            format=self.types.format(state.slot),
+            cta_allowed=state.slot.cta_allowed,
         )
 
     async def validation(self, raw):
@@ -979,6 +1304,9 @@ class Pipeline:
             self.rules,
             self.context.settings.max_tweet_chars,
             state.slot.focus,
+            ai_policy_root=self.root,
+            format=self.types.format(state.slot),
+            cta_allowed=state.slot.cta_allowed,
         )
 
         state.audit = DraftAudit(
@@ -987,6 +1315,9 @@ class Pipeline:
             fixes=result.fixes,
             violations=result.violations,
             accepted=result.accepted,
+            sentence_length_stats=ai_text.sentence_length_stats(
+                "\n".join(tweet.text for tweet in result.original.tweets)
+            ),
         )
         state.feedback = (
             result.violations
@@ -1093,10 +1424,14 @@ class Pipeline:
         state = lane_state(raw)
 
         if state.attempt >= MAX_CONTENT_ATTEMPTS:
-            state.outcome = SlotOutcome.dropped_quality
             state.reasons = [reason for reason in state.feedback if not is_writer_note(reason)] or [
                 "quality_rejected"
             ]
+            state.outcome = (
+                SlotOutcome.dropped_weekly_mix
+                if any(reason.startswith("weekly_mix_") for reason in state.reasons)
+                else SlotOutcome.dropped_quality
+            )
 
         return state.model_dump(mode="json")
 
@@ -1341,6 +1676,13 @@ class Pipeline:
     async def export(self, week):
         """Export shipped posts in plan order."""
         states = [SlotState.model_validate(week["slots"][slot.slot_id]) for slot in self.plan]
+        mix_warnings = self._enforce_marketing_mix(states, "shipped")
+        if mix_warnings:
+            path = self.context.run_dir / "plan.resolved.json"
+            if path.exists():
+                plan = json.loads(path.read_text(encoding="utf-8"))
+                plan["warnings"] = [*plan.get("warnings", []), *mix_warnings]
+                path.write_text(json.dumps(plan, indent=2), encoding="utf-8")
         accepted = []
 
         for state in states:
@@ -1360,7 +1702,7 @@ class Pipeline:
 
         export_posts(self.context.run_dir, accepted)
 
-        return {}
+        return {"slots": {state.slot.slot_id: state.model_dump(mode="json") for state in states}}
 
     async def _record_advice(self, status, reason, output, patch, input_hash, keep_saved=False):
         # With the advisor off there is no advice, so no empty advice files ship.
@@ -1629,6 +1971,7 @@ def _initialize_new_run(root, run_dir, slots, settings):
         thread_id=uuid4().hex,
         run_id=run_dir.name,
         snapshot_files=snapshot_hashes(snapshot_root),
+        marketing_week=marketing_week(slots),
     )
 
     atomic_json(run_dir / "run_identity.json", identity.model_dump())
@@ -1738,7 +2081,12 @@ async def run_pipeline(
 
             snapshot_root, slots, settings, identity = saved_inputs
 
-            validate_inputs(snapshot_root, slots, settings)
+            validate_inputs(
+                snapshot_root,
+                slots,
+                settings,
+                allow_legacy_snapshot=not (snapshot_root / "inputs/sources.json").is_file(),
+            )
 
             if on_resume_inputs is not None:
                 on_resume_inputs(saved_inputs)

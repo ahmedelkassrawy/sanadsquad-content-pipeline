@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from test_pipeline_end_to_end import OfflineModels, search_factory
+from test_pipeline_end_to_end import DEFAULT_FOCUS, OfflineModels, search_factory
 
 from content_pipeline.ledger import Ledger
 from content_pipeline.model_client import ModelClient
@@ -235,7 +235,7 @@ async def test_a_retried_call_takes_the_next_number(tmp_path):
 
 async def test_offline_run_ids_all_come_from_the_module(tmp_path):
     models = OfflineModels()
-    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy")]
+    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS)]
     summary = await run_pipeline(
         ROOT,
         slots,

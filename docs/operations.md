@@ -21,8 +21,14 @@ current folder. Run from the repo root, with the venv Python:
 & .\.venv\Scripts\python.exe run_piece.py --type tech-thread --topic "reentrancy"
 ```
 
+For a reproducible marketing-format rotation, set an optional top-level `week` in the plan, such as `"week": "2026-W42"`; otherwise the run records its current ISO week and reuses it on resume.
+
 With one `OPENROUTER_API_KEY` only, add
 `--model-override openrouter:openai/gpt-4.1-mini`.
+
+Web evidence is capped at 3,000 characters per source before it reaches research or writing.
+Set `WEB_EVIDENCE_LIMIT` to a value from 1 to 12,000 when a run needs a different cap; the
+same limit applies to each source in every research-model turn.
 
 On macOS/Linux use `.venv/bin/python` instead of `.\.venv\Scripts\python.exe`.
 

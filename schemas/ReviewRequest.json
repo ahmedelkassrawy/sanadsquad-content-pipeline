@@ -29,6 +29,47 @@
       "title": "Draft",
       "type": "object"
     },
+    "MarketingFormat": {
+      "additionalProperties": false,
+      "description": "One data-loaded shape a marketing slot may use.",
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "units": {
+          "$ref": "#/$defs/Units"
+        },
+        "link_rule": {
+          "enum": [
+            "required",
+            "forbidden",
+            "optional"
+          ],
+          "title": "Link Rule",
+          "type": "string"
+        },
+        "length_hint": {
+          "minLength": 1,
+          "title": "Length Hint",
+          "type": "string"
+        },
+        "numbering": {
+          "default": false,
+          "title": "Numbering",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "units",
+        "link_rule",
+        "length_hint"
+      ],
+      "title": "MarketingFormat",
+      "type": "object"
+    },
     "PostType": {
       "additionalProperties": false,
       "properties": {
@@ -106,6 +147,27 @@
           },
           "title": "Closing Styles",
           "type": "array"
+        },
+        "formats": {
+          "items": {
+            "$ref": "#/$defs/MarketingFormat"
+          },
+          "title": "Formats",
+          "type": "array"
+        },
+        "format_order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Format Order",
+          "type": "array"
+        },
+        "weekly_topic_similarity": {
+          "default": 0.6,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weekly Topic Similarity",
+          "type": "number"
         }
       },
       "required": [
@@ -177,6 +239,11 @@
           },
           "title": "Sources",
           "type": "array"
+        },
+        "kb_allowed": {
+          "default": false,
+          "title": "Kb Allowed",
+          "type": "boolean"
         }
       },
       "required": [
@@ -241,7 +308,7 @@
       "additionalProperties": false,
       "properties": {
         "source_id": {
-          "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+          "pattern": "^(?:(?:SS|KB)-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
           "title": "Source Id",
           "type": "string"
         },
@@ -274,6 +341,19 @@
           "format": "date-time",
           "title": "Retrieved At",
           "type": "string"
+        },
+        "published_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Published At"
         },
         "evidence_text": {
           "title": "Evidence Text",

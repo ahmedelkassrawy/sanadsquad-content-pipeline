@@ -1,13 +1,42 @@
 # SanadSquad content pipeline
 
-This repo produces one week of X (Twitter) content for **Sentinel Grove**, a smart contract
-audit firm. It is a LangGraph multi-agent pipeline. It reads a weekly plan of 6 slots (3
-technical threads, 3 marketing posts), researches each topic, writes each piece, checks it
-with code (brand rules, length, citations, numbers) and with a reviewer from a different model
-than the writers, makes an image for each accepted piece, and exports `posts.csv` (columns
-`Post Text, Image`). The brand statistics in [inputs/brand-voice.md](inputs/brand-voice.md)
-are the firm's facts; the 20 knowledge base entries in [inputs/kb.json](inputs/kb.json) are
-still marked `pending_owner_review`.
+This repo produces one week of X (Twitter) content for **SanadSquad**, a security firm that
+covers Web3 audits, Web2 pentesting, agentic security and agentic payment protocols. It is a
+LangGraph multi-agent pipeline. It reads a weekly plan of 6 slots (3 technical threads, 3
+marketing posts), researches each topic, writes each piece, checks it with code (brand rules,
+length, citations, numbers, AI-sounding text) and with a reviewer from a different model than
+the writers, makes an image for each accepted piece, and exports `posts.csv` (columns
+`Post Text, Image`). The service statements in [inputs/brand-voice.md](inputs/brand-voice.md)
+are the firm's facts (no figures yet: the company's audits are private); the 20 findings in
+[inputs/kb.json](inputs/kb.json) are SanadSquad's and other firms' audit findings.
+
+## Company requirements (round 2)
+
+- **Two post types, separate sources, enforced in code.** A `tech-thread` (5 to 10 tweets) is
+  built from knowledge-base findings cited by id, or from one external page (`--set
+  thread_2=https://...`) that it must link. A `marketing-post` researches only the allowlisted
+  domains of its service line and never reads the knowledge base, except a vulnerability-class
+  angle, which must cite its finding. A marketing post may be a thread (3 to 7 posts); its format
+  comes from the table in `post_types/marketing-post/type.yaml`.
+- **[inputs/sources.json](inputs/sources.json)** maps each service line to allowed domains (a
+  draft, see [docs/sources.md](docs/sources.md)), plus a global `_deny` list. Every query (empty
+  ones too) and every URL is logged in `research_log.json`; a post may link only a page fetched
+  in that run; a failed source fails only its slot.
+- **No web search key?** Research uses live DDGS. `SEARCH_BACKEND=fixture` answers searches from
+  `inputs/search-fixtures/` instead: real URLs on allowlisted domains, each with a short
+  hand-written summary of the page, so posts from a fixture run quote those summaries.
+- **AI-sounding text is rejected by code before review**: em dashes, en dashes, curly quotes,
+  emoji, the words in `inputs/ai-vocabulary.txt`, the constructions and hedge words in
+  `inputs/ai-constructions.yaml` (hedging above 3.0 per 100 words), and three-item lists that
+  repeat within a piece. Sentence-length spread is logged per draft. No AI-detector API is used;
+  [ARCHITECTURE.md](ARCHITECTURE.md#ai-text-checks) says why.
+- **Audited projects are never named.** Knowledge-base protocol names are removed from what the
+  writer sees, and a draft that names one is rejected (`kb_protocol_name:`). Add other names to
+  `inputs/redacted-names.txt`.
+- **[inputs/marketing-rules.md](inputs/marketing-rules.md)** is loaded for marketing agents the way
+  `brand-voice.md` is. Its weekly mix (one post per service line, link and no-link posts,
+  different formats, calls to action on at most a third) is checked in code and logged at the top
+  of `run.log`; call-to-action phrases are in `inputs/marketing-cta.yaml`.
 
 ## Setup
 
@@ -41,7 +70,10 @@ provider name decides which key is read. The committed config needs:
   (`anthropic:claude-opus-5-5`), a larger model than the writers; the writers, research,
   visual and advisor run on Claude Sonnet 5.5 (`anthropic:claude-sonnet-5-5`). All use
   reasoning effort low.
-- Optional: `TAVILY_API_KEY` (web search; DDGS is used without it), `CLOUDFLARE_ACCOUNT_ID`
+- Optional: `TAVILY_API_KEY` (web search; without it research uses live DDGS).
+  Fixtures are used only when `SEARCH_BACKEND=fixture`, for deterministic offline runs from
+  `inputs/search-fixtures/`.
+  `CLOUDFLARE_ACCOUNT_ID`
   and `CLOUDFLARE_API_TOKEN` (FLUX image background; otherwise a Pillow card).
 
 A free setup (Ministral writers, Nemotron reviewer) is described in
@@ -86,7 +118,17 @@ below.
 
 ## Sample runs
 
-- **Headline sample: [output/claude-run-with-drop](output/claude-run-with-drop)**, a live run on
+- **Company requirements sample: [output/company-fixture-sample](output/company-fixture-sample)**,
+  a live run on the committed Claude models with `SEARCH_BACKEND=fixture`, shipped 5 of 6 for
+  $0.529 at commit `43d5151`. It shows KB-only threads, web-only marketing posts on their service
+  lines, logged empty queries, no protocol names, the weekly-mix verdicts and one thread dropped
+  by the AI-text checks. Its marketing posts quote the fixtures' hand-written page summaries.
+- **Live web search sample: [output/company-live-sample](output/company-live-sample)**, the
+  same pipeline with real Tavily search at commit `b136cc0`, shipped 3 of 6 for $0.675. Its news
+  reaction links a page fetched in the run; the drops are writer misses caught by the gates.
+- The samples below were made before the company requirements, on the earlier placeholder brand
+  and knowledge base.
+- [output/claude-run-with-drop](output/claude-run-with-drop), a live run on
   the committed Claude models, shipped 5 of 6 for $0.503 (123,644 tokens, from its
   `run_summary.json`). It shows the whole review loop: the reviewer rejected threads for
   copying their sources nearly word for word, and `thread_1` and `thread_2` shipped after a retry
@@ -106,8 +148,10 @@ tweet. The CSV is UTF-8 with standard quoting. Import into a real scheduler has 
 
 ## Quality gates in short
 
-Code checks tweet count and length, banned words and characters, links, citations, and that
-multi-digit numbers appear in the evidence. An en dash is auto-fixed to a hyphen. Text is
+Code checks tweet count and length, banned words and characters, links, citations, AI-sounding
+text, protocol names, and that multi-digit numbers appear in the evidence. Em dashes, en dashes
+(ranges included: write `0.4-0.8`) and curly quotes reject the draft instead of being fixed; a
+non-breaking hyphen is still fixed to a plain hyphen. Text is
 first normalized (Unicode NFKC), so look-alike characters such as a full-width `＃` cannot
 sneak a banned character or hashtag past the rules. The reviewer scores each criterion. Any score
 below the minimum reviewer score a post type needs to ship (`min_score`, 3) rejects the draft,
@@ -132,10 +176,13 @@ even if the average passes.
 | Cloudflare FLUX backgrounds are unit-tested with mocked HTTP. In live runs Cloudflare returned HTTP 429 (rate limit) for every image, so the sample's images are Pillow cards: brand header, title, the post's own code line for threads, an accent bar and a severity badge. | Check new images by eye after a prompt change; retry Cloudflare on a paid plan. |
 | Connection and timeout errors from Groq and Gemini are not retried, and a Groq HTTP 400 `tool_use_failed` gets no repair attempt. A misspelled provider name fails at its first call, not at start-up. | Add those exception classes to the retry list; validate the provider at start-up. |
 | A model with no known price is refused (`failed_budget`) unless you pass `--allow-unpriced`, which leaves only the token limit. The committed models are priced via `config/prices.yaml`. Search and image calls are counted, not priced. | Add prices for any other model you use. |
-| Marketing variety is enforced by inputs, not by comparing finished posts: each angle has its own approved stats and opening, and the education angle takes a KB topic no thread uses that week. Nothing compares two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
+| Marketing variety: each angle is one service line with its own stats and seed query, and the weekly mix compares topics by word overlap. Nothing compares the wording of two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
+| The rule-of-three check counts any two three-item lists in a piece, including a plain list of account names in a technical thread, so it can drop a sound thread (`thread_2` in the company sample). | Measure it over more runs; exempt lists of code identifiers if it keeps firing on them. |
+| Cross-service marketing posts (marketing guide section 2, one post searching two allowlists) are not supported: each angle has one service line. The guide's claims rules (no client names, named competitors or active engagements) are enforced by the writer prompt and the reviewer, not by code. | Let an angle list two service lines and record each source's service; turn a recurring reviewer catch into a code check. |
+| The domain lists in `inputs/sources.json` and the search fixtures are drafts written for this change, not lists the company approved. A fixture run quotes hand-written page summaries. | Have the company review `sources.json`; run with Tavily for real page text. |
 | Weaker writer models vary from run to run. On the free setup, while the checks and prompt changes went in one at a time, four runs shipped 4, 2, 6 and 6 of 6; the last two used the checks and prompts as of those runs; the claim-word list was narrowed after them. That is a small sample. | Run a week and read `run.log` whenever you change a writer model. |
 | The reviewer is an LLM and not fully consistent: it rejected "12 smart contract audits completed by a team of 3 auditors" in one run and passed it in the next. That case is now a code check (`check_stat_claims`: a stat's number keeps its noun, and two stats may not share a sentence), but other judgement calls still vary run to run. | Turn a recurring reviewer disagreement into a code check when it can be stated as a rule. |
-| Knowledge base entries are not reviewed by the owner. | Owner review of `kb.json`. |
+| Protocol names are found from the knowledge base's `protocol` field and `inputs/redacted-names.txt`; a project named only in another way (a nickname, a token ticker) is not caught. | Add such names to `inputs/redacted-names.txt`. |
 | Exercised on Windows with Python 3.13 only; card fonts differ elsewhere. | Run the offline checks and a sample on macOS and Linux. |
 | A crashed run that is resumed can pay twice for a model call that had already been billed (see [Resume](docs/operations.md#resume)). | Accept it, or move to a durable executor for a daily service. |
 | The model's topic choices are not saved, so a resume after a crash inside the topic node can re-ask and get a different answer; the affected slot then fails instead of swapping topics. Topic history also counts every sibling folder of the run folder (the committed `output/` samples included), so a first run next to them can warn `history_exhausted`. See [Topic selection](ARCHITECTURE.md#topic-selection-decision-and-alternatives). | Save `TopicChoices` to the trail and reuse it on resume; add an explicit history folder. |

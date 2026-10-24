@@ -182,7 +182,7 @@ def public_url(url: str, resolver=socket.getaddrinfo) -> str:
     return url
 
 
-def fetch_page(url: str) -> str:
+def fetch_page(url: str, *, allow_url=None, return_url=False) -> str | tuple[str, str]:
     # Each redirect is checked; a public DNS answer is pinned for the request.
     import http.client
 
@@ -191,6 +191,8 @@ def fetch_page(url: str) -> str:
     import trafilatura
 
     for _ in range(6):
+        if allow_url is not None and not allow_url(url):
+            raise ValueError("source policy rejected URL")
         public_url(url)
 
         parsed = urlparse(url)
@@ -230,7 +232,8 @@ def fetch_page(url: str) -> str:
             if len(body) > 2_000_000:
                 raise ValueError("page too large")
 
-            return trafilatura.extract(body.decode("utf-8", errors="replace")) or ""
+            text = trafilatura.extract(body.decode("utf-8", errors="replace")) or ""
+            return (text, url) if return_url else text
         finally:
             connection.close()
 

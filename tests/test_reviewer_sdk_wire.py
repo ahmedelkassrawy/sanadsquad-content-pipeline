@@ -34,7 +34,7 @@ def review_request(custom=False):
         )
         spec = spec.model_copy(deep=True)
         spec.review.hard_fail = ["unsupported_claim", "model_dump", "brand-safe?"]
-    source = KnowledgeBase(ROOT / "inputs/kb.json").source("KB-01")
+    source = KnowledgeBase(ROOT / "inputs/kb.json").source("SS-03738")
     return ReviewRequest(
         slot_id="a",
         attempt=1,
@@ -43,12 +43,12 @@ def review_request(custom=False):
             tweets=[
                 Tweet(
                     text="External calls can reenter before state is finalized.",
-                    source_ids=["KB-01"],
+                    source_ids=["SS-01"],
                 )
             ],
         ),
         research=ResearchPack(
-            slot_id="a", topic_id="KB-01", topic_name=source.title, sources=[source]
+            slot_id="a", topic_id="SS-01", topic_name=source.title, sources=[source]
         ),
         post_type=spec,
         rubric=rubric,

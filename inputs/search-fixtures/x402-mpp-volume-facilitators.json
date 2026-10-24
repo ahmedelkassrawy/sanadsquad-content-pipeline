@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://docs.cdp.coinbase.com/x402/welcome",
+    "title": "Coinbase Developer Platform: x402 overview",
+    "raw_content": "The x402 documentation describes HTTP payment flows and the role of a facilitator in verifying and settling payment requirements. Payment protocol reviews should examine integration and trust boundaries."
+  }
+]

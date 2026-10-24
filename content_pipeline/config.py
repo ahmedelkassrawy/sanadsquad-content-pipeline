@@ -5,8 +5,9 @@ from typing import Literal
 import yaml
 from dotenv import dotenv_values
 from pydantic import Field
-from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot
+from .models import AgentConfig, BrandRules, Contract, PostType, ResolvedSlot, SourceRegistry
 from .contracts import AnglesFile
+from skills.search_kb import KnowledgeBase
 
 
 class Settings(Contract):
@@ -14,6 +15,9 @@ class Settings(Contract):
     model_override: str | None = None
     reasoning_effort_override: Literal["none", "low", "medium", "high"] | None = None
     max_tweet_chars: int = Field(default=280, ge=1, le=280)
+    # Web pages are much longer than the evidence a writer can use. This limit also caps each
+    # source in a research-model turn, keeping a few pages from exhausting the run budget.
+    web_evidence_limit: int = Field(default=3000, ge=1, le=12000)
     run_token_budget: int = Field(default=400000, ge=1)
     run_cost_budget_usd: float = Field(default=1.0, gt=0)
     allow_unpriced: bool = False
@@ -43,6 +47,11 @@ def local_file(root: Path, name: str) -> Path:
 
 def load_brand(path: Path) -> tuple[BrandRules, str]:
     return parse_brand(path.read_text(encoding="utf-8"))
+
+
+def load_sources(path: Path) -> SourceRegistry:
+    """Load the source allowlist; invalid or incomplete lists fail before research starts."""
+    return SourceRegistry.model_validate(json.loads(path.read_text(encoding="utf-8")))
 
 
 def parse_brand(text: str) -> tuple[BrandRules, str]:
@@ -92,23 +101,35 @@ def load_angles(root: Path, spec: PostType):
 
     if configured_sources:
         kb_ids = {
-            entry["id"]
-            for entry in json.loads(local_file(root, "inputs/kb.json").read_text(encoding="utf-8"))[
-                "entries"
-            ]
+            entry["id"] for entry in KnowledgeBase(local_file(root, "inputs/kb.json")).entries
         }
 
         if configured_sources - kb_ids:
             raise ValueError("angle evidence references an unknown knowledge-base source")
 
+    format_ids = {format.id for format in spec.formats}
+    unknown_preferences = {
+        angle.preferred_format
+        for angle in angles
+        if angle.preferred_format is not None and angle.preferred_format not in format_ids
+    }
+    if unknown_preferences:
+        raise ValueError("angle preferred_format references an unknown marketing format")
+
     return angles
 
 
 def load_plan(root: Path, path: Path) -> list[ResolvedSlot]:
-    slots = [
-        ResolvedSlot.model_validate(x)
-        for x in json.loads(path.read_text(encoding="utf-8"))["slots"]
-    ]
+    plan = json.loads(path.read_text(encoding="utf-8"))
+    week = plan.get("week")
+    slots = []
+    for raw_slot in plan["slots"]:
+        slot = ResolvedSlot.model_validate(raw_slot)
+        if week is not None:
+            if slot.marketing_week is not None and slot.marketing_week != week:
+                raise ValueError("plan week conflicts with slot marketing_week")
+            slot.marketing_week = week
+        slots.append(slot)
 
     if not slots or len({s.slot_id for s in slots}) != len(slots):
         raise ValueError("plan needs unique slots")
@@ -187,6 +208,13 @@ def build_prompt(
 
     for skill in agent.skills:
         parts.append(read(local_file(root / "skills", skill + ".md")))
+
+    if spec and spec.name == "marketing-post":
+        rules = root / "inputs/marketing-rules.md"
+        # Pre-format snapshots did not include this later guide; their original writer prompt
+        # remains valid when a run resumes.
+        if rules.is_file():
+            parts.append(read(rules))
 
     parts.append(read(local_file(root / "inputs", "brand-voice.md")))
 

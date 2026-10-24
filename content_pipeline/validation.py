@@ -1,10 +1,21 @@
 import re
 import unicodedata
+from pathlib import Path
 from functools import partial
+from functools import lru_cache
 from itertools import combinations
 from twitter_text import parse_tweet
 from skills import brand_rules
-from .models import BrandRules, Draft, PostType, ResearchPack, SourceRecord, ValidationResult
+from .redaction import kb_protocol_name_violations
+from .models import (
+    BrandRules,
+    Draft,
+    MarketingFormat,
+    PostType,
+    ResearchPack,
+    SourceRecord,
+    ValidationResult,
+)
 from .x_format import (
     CODE_SPAN,
     NUMBERING_PREFIX,
@@ -13,6 +24,9 @@ from .x_format import (
     split_overlong_tweets,
     strip_markdown,
 )
+from . import ai_text as _ai_text
+from twitter_text import extract_urls_with_indices
+import yaml
 
 
 # The brand check lives in the brand_rules skill; this alias keeps existing imports working.
@@ -26,6 +40,7 @@ _PUNCTUATION = _CLOSING_PUNCTUATION + _OPENING_BRACKETS + _QUOTES
 _DASH_RUN = re.compile(r"\s*\u2014(?:\s*\u2014)*\s*")
 # Hyphen and en-dash look-alikes become a plain hyphen; only the em dash needs run handling.
 _HYPHEN_LIKE = "\u2010\u2011\u2012\u2013\u2015\u2212"
+_AI_TEXT_REJECTED_CHARACTERS = frozenset("\u2014\u2013\u2018\u2019\u201c\u201d")
 # A number token not glued to a word or a decimal point (uint256, KB-01 and SWC-107 are not
 # numbers here, but the second half of "0.8.0-0.9.5" is). A "v" before a dotted version is a
 # prefix, so "v0.8.0" and "0.8.0" are the same number.
@@ -57,6 +72,9 @@ def _replace_dash_run(left: str, right: str, dash_run: str) -> str:
 def _fix_plain_text(plain: str, banned: list[str], before: str, after: str) -> str:
     """Replace configured banned characters in prose between protected URL tokens."""
     for char in banned:
+        if char in _AI_TEXT_REJECTED_CHARACTERS:
+            continue
+
         if char != "\u2014":
             plain = plain.replace(char, "-" if char in _HYPHEN_LIKE else "")
 
@@ -165,6 +183,62 @@ def check_citations(draft: Draft, pack: ResearchPack) -> list[str]:
     ]
 
 
+_DEFAULT_POLICY_ROOT = Path(__file__).resolve().parents[1]
+
+
+@lru_cache(maxsize=None)
+def _cta_patterns(root: Path) -> tuple[re.Pattern[str], ...]:
+    """Load commercial CTA phrases; technical advice is deliberately not a CTA."""
+    path = root / "inputs/marketing-cta.yaml"
+    if not path.is_file():
+        path = _DEFAULT_POLICY_ROOT / "inputs/marketing-cta.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    patterns = data.get("patterns") if isinstance(data, dict) else None
+    if (
+        not isinstance(patterns, list)
+        or not patterns
+        or not all(isinstance(p, str) for p in patterns)
+    ):
+        raise ValueError("marketing CTA patterns need nonempty string patterns")
+    return tuple(re.compile(pattern, re.I) for pattern in patterns)
+
+
+def check_marketing_format(
+    draft: Draft, format: MarketingFormat | None, cta_allowed: bool, policy_root: Path | None = None
+) -> list[str]:
+    """Enforce a selected marketing format without making other post types opt in."""
+    errors = []
+    if format is not None:
+        count = len(draft.tweets)
+        if not format.units.min <= count <= format.units.max:
+            errors.append(f"format_units:{format.id}:{count}/{format.units.min}-{format.units.max}")
+
+        links = [
+            link["url"] for tweet in draft.tweets for link in extract_urls_with_indices(tweet.text)
+        ]
+        if format.link_rule == "required" and not links:
+            errors.append(f"format_link_required:{format.id}")
+        if format.link_rule == "forbidden" and links:
+            errors.append(f"format_link_forbidden:{format.id}")
+
+    ctas = count_marketing_ctas(draft, policy_root)
+    if ctas > 1:
+        errors.append(f"marketing_cta_limit:{ctas}")
+    elif ctas and not cta_allowed:
+        errors.append("weekly_mix_cta_not_allowed")
+
+    return errors
+
+
+def count_marketing_ctas(draft: Draft, policy_root: Path | None = None) -> int:
+    """Count data-loaded commercial CTA phrases in a completed marketing draft."""
+    return sum(
+        len(pattern.findall(tweet.text))
+        for tweet in draft.tweets
+        for pattern in _cta_patterns(policy_root or _DEFAULT_POLICY_ROOT)
+    )
+
+
 # These aliases are derived only when a pack source identifies the publisher in its title or URL.
 # That keeps a protocol used as an example ("Per Uniswap pool") from becoming a source credit.
 _CREDIT_SOURCE_MARKERS = {
@@ -221,6 +295,19 @@ _PUBLISHER_ONLY_CREDIT = re.compile(
     r"(?=" + _NAME + r"(?:\s+[A-Za-z0-9][\w-]*){0,4}?\s+(?:calls|flags|catalogs|ranks|names)\b)"
 )
 _ACRONYM = re.compile(r"^[A-Z]{2,}[A-Z0-9]*$")
+_DEFAULT_POLICY_ROOT = Path(__file__).resolve().parents[1]
+
+
+@lru_cache(maxsize=None)
+def _technical_acronyms(root: Path) -> frozenset[str]:
+    path = root / "inputs" / "technical-acronyms.txt"
+    if not path.is_file():
+        path = _DEFAULT_POLICY_ROOT / "inputs" / "technical-acronyms.txt"
+    return frozenset(
+        line.strip().upper()
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    )
 
 
 def _credit_key(name: str) -> str:
@@ -234,7 +321,9 @@ def _credit_key(name: str) -> str:
     return key
 
 
-def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
+def check_repeated_credits(
+    texts: list[str], pack: ResearchPack, policy_root: Path | None = None
+) -> list[str]:
     """Report a source credited in more than one tweet of a thread.
 
     A credit is a source's name in crediting phrasing, not any mention of it. Only a source's
@@ -244,6 +333,7 @@ def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
     """
     prose = [CODE_SPAN.sub(" ", unicodedata.normalize("NFKC", text)) for text in texts]
     publishers = _KNOWN_PUBLISHERS | _credit_source_names(pack)
+    technical_acronyms = _technical_acronyms(policy_root or _DEFAULT_POLICY_ROOT)
     tweets_by_name = {}
 
     for index, text in enumerate(prose):
@@ -260,7 +350,10 @@ def check_repeated_credits(texts: list[str], pack: ResearchPack) -> list[str]:
                 raw = match.group(1)
                 key = _credit_key(raw)
 
-                if key in publishers or _ACRONYM.match(raw.rstrip(".")):
+                if key in publishers or (
+                    _ACRONYM.match(raw.rstrip("."))
+                    and raw.rstrip(".").upper() not in technical_acronyms
+                ):
                     names.add(key)
 
         for name in names:
@@ -955,14 +1048,14 @@ def _apply_safe_fixes(text: str, index: int, rules: BrandRules, fixes: list[str]
     operations = {
         "banned_characters": partial(fix_banned_characters, banned=rules.banned_characters),
         "whitespace": lambda t: " ".join(t.split()),
-        "curly_quotes": lambda t: t.translate(
-            str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
-        ),
         "trailing_hashtags": lambda t: re.sub(r"(?:^|\s+)#[\w]+(?:\s+#[\w]+)*\s*$", "", t),
         "markdown": strip_markdown,
     }
 
     for fix in sorted(rules.safe_fixes, key=lambda fix: fix != "banned_characters"):
+        if fix == "curly_quotes":
+            continue
+
         changed = operations[fix](text)
 
         if changed != text:
@@ -980,6 +1073,9 @@ def validate(
     rules: BrandRules,
     limit: int = 280,
     focus: str | None = None,
+    ai_policy_root: Path | None = None,
+    format: MarketingFormat | None = None,
+    cta_allowed: bool = True,
 ) -> ValidationResult:
     if not 1 <= limit <= 280:
         raise ValueError("editorial limit must be 1..280")
@@ -990,11 +1086,19 @@ def validate(
     unsourced = []
     dangling = []
     claims = []
+    ai_violations = _ai_text.check_ai_text(
+        "\n".join(tweet.text for tweet in draft.tweets),
+        ai_policy_root,
+        (source.evidence_text for source in pack.sources if source.kind == "stat"),
+    )
+    protocol_names = kb_protocol_name_violations(
+        "\n".join(tweet.text for tweet in draft.tweets), ai_policy_root
+    )
 
     for i, tweet in enumerate(fixed.tweets, 1):
         tweet.text = _apply_safe_fixes(tweet.text, i, rules, fixes)
 
-    split_overlong_tweets(fixed, spec, limit, fixes)
+    split_overlong_tweets(fixed, spec, limit, fixes, format)
 
     for i, tweet in enumerate(fixed.tweets, 1):
         text = tweet.text
@@ -1013,9 +1117,22 @@ def validate(
         claims.extend(f"tweet_{i}:{e}" for e in check_claim_words(text, pack, spec.claim_words))
         claims.extend(f"tweet_{i}:{e}" for e in check_stat_claims(text, pack))
 
-        tweet.text = numbering(spec, i, len(fixed.tweets)) + text
+        tweet.text = numbering(spec, i, len(fixed.tweets), format) + text
 
-    errors = check_citations(fixed, pack) + empty_content + unsourced + dangling + claims
+    errors = (
+        ai_violations
+        + protocol_names
+        + check_citations(fixed, pack)
+        + empty_content
+        + unsourced
+        + dangling
+        + claims
+    )
+    errors.extend(
+        brand_rules.check_research_separation(
+            fixed, pack, spec, enforce_marketing_web=bool(spec.formats)
+        )
+    )
     errors.extend(
         check_post_limits([tweet.text for tweet in fixed.tweets], pack, spec, rules.brand_name)
     )
@@ -1023,16 +1140,19 @@ def validate(
     if len(fixed.tweets) > 1:
         texts = [tweet.text for tweet in fixed.tweets]
         errors.extend(check_repeated_openings(texts))
-        errors.extend(check_repeated_credits(texts, pack))
+        errors.extend(check_repeated_credits(texts, pack, ai_policy_root))
         errors.extend(check_repeated_points(texts))
         errors.extend(check_section_labels(texts))
 
-    if not spec.units.min <= len(fixed.tweets) <= spec.units.max:
+    units = format.units if format else spec.units
+    if not units.min <= len(fixed.tweets) <= units.max:
         errors.append("tweet_count")
+
+    errors.extend(check_marketing_format(fixed, format, cta_allowed, ai_policy_root))
 
     for i, tweet in enumerate(fixed.tweets, 1):
         errors.extend(f"tweet_{i}:{e}" for e in check_leaked_source_ids(tweet.text, pack))
-        errors.extend(f"tweet_{i}:{e}" for e in brand_rules.check_brand(tweet.text, rules))
+        errors.extend(f"tweet_{i}:{e}" for e in brand_rules.check_brand(tweet.text, rules, pack))
 
         parsed = parse_tweet(tweet.text)
 
@@ -1080,6 +1200,8 @@ def link_feedback(result: ValidationResult) -> list[str]:
 
     for violation in result.violations:
         _, separator, domain = violation.partition(":link_domain:")
+        if not separator:
+            _, separator, domain = violation.partition(":link_not_fetched:")
 
         if separator:
             notes.append(

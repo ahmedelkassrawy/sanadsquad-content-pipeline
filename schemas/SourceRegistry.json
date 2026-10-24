@@ -1,0 +1,85 @@
+{
+  "$defs": {
+    "SourceGroups": {
+      "additionalProperties": false,
+      "properties": {
+        "blogs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blogs",
+          "type": "array"
+        },
+        "docs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Docs",
+          "type": "array"
+        },
+        "production": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Production",
+          "type": "array"
+        },
+        "analysis": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Analysis",
+          "type": "array"
+        },
+        "figures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Figures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "blogs",
+        "docs",
+        "production",
+        "analysis",
+        "figures"
+      ],
+      "title": "SourceGroups",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Allowlisted web-source domains, loaded once before a run starts.",
+  "properties": {
+    "web3-security": {
+      "$ref": "#/$defs/SourceGroups"
+    },
+    "pentesting": {
+      "$ref": "#/$defs/SourceGroups"
+    },
+    "agentic-security": {
+      "$ref": "#/$defs/SourceGroups"
+    },
+    "agentic-payments": {
+      "$ref": "#/$defs/SourceGroups"
+    },
+    "_deny": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Deny",
+      "type": "array"
+    }
+  },
+  "required": [
+    "web3-security",
+    "pentesting",
+    "agentic-security",
+    "agentic-payments",
+    "_deny"
+  ],
+  "title": "SourceRegistry",
+  "type": "object"
+}

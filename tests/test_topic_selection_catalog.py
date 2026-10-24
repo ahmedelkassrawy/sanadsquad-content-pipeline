@@ -5,10 +5,17 @@ from pathlib import Path
 from content_pipeline.contracts import TopicChoiceRequest
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
+from content_pipeline.post_types import PostTypes
 from content_pipeline.research import canonical_topic_choices, topic_wire_schema
+from skills.search_kb import KnowledgeBase
 from test_pipeline_end_to_end import OfflineModels, search_factory
 
 ROOT = Path(__file__).resolve().parents[1]
+KB = KnowledgeBase(ROOT / "inputs/kb.json")
+TYPES = PostTypes(ROOT)
+FOCUSED_ENTRY = KB.entries[0]
+ACCEPTED_ENTRY, SECOND_ACCEPTED_ENTRY = TYPES.topic_pool("tech-thread", KB, ranked=True)[:2]
+UNKNOWN_ENTRY = "SS-00000"
 
 
 class TopicModels(OfflineModels):
@@ -69,23 +76,25 @@ def resolved(tmp_path, name="run"):
 
 async def test_request_carries_catalog_and_the_weeks_taken_topics(tmp_path):
     models = TopicModels()
-    plan = slots("a", "b", "c", focus="reentrancy") + slots("m", type="marketing-post")
+    plan = slots("a", "b", "c", focus=FOCUSED_ENTRY["title"]) + slots("m", type="marketing-post")
     await run(tmp_path, models, plan)
     request = models.topic_request()
-    assert request["taken"] == {"a": "KB-01 Reentrancy"}
+    assert request["taken"] == {"a": f"{FOCUSED_ENTRY['id']} {FOCUSED_ENTRY['title']}"}
     assert set(request["choices"]) == {"b", "c", "m"}
     offered = {id for ids in request["choices"].values() for id in ids}
     assert set(request["catalog"]) == offered
-    assert request["catalog"]["KB-02"] == {
-        "title": "Integer overflow and underflow",
-        "summary": request["catalog"]["KB-02"]["summary"],
-        "category": "arithmetic",
-        "severity": "high",
+    entry = KB.entries[1]
+    assert request["catalog"][entry["id"]] == {
+        "title": entry["title"],
+        "summary": request["catalog"][entry["id"]]["summary"],
+        "category": ", ".join(entry["category"]),
+        "severity": entry["impact"],
     }
-    summary = request["catalog"]["KB-02"]["summary"]
+    summary = request["catalog"][entry["id"]]["summary"]
     assert summary and "." not in summary[:-1]
-    assert request["catalog"]["ANGLE-service"] == {
-        "title": "service",
+    angle = TYPES.angles("marketing-post")[0]
+    assert request["catalog"][angle.id] == {
+        "title": angle.name,
         "summary": "",
         "category": None,
         "severity": None,
@@ -98,44 +107,49 @@ async def test_prefilter_drops_the_weeks_taken_topic_and_recent_runs(tmp_path):
     first_run = await run(tmp_path, first, slots("a", "b"), "first")
     used = {slot.topic_id for slot in first_run.slots.values()}
     models = TopicModels()
-    plan = slots("c", "d", "e", focus="reentrancy")
+    plan = slots("c", "d", "e", focus=FOCUSED_ENTRY["title"])
     await run(tmp_path, models, plan, "second")
     choices = models.topic_request()["choices"]
     assert set(choices) == {"d", "e"}
     for ids in choices.values():
         assert not used & set(ids)
-        assert "KB-01" not in ids
-        assert len(ids) == 20 - len(used | {"KB-01"})
+        assert FOCUSED_ENTRY["id"] not in ids
+        assert len(ids) == len(KB.entries) - len(used | {FOCUSED_ENTRY["id"]})
 
 
 async def test_slot_with_nothing_left_after_filtering_gets_its_whole_pool(tmp_path):
-    await run(tmp_path, TopicModels(), slots("a", "b", "c", type="marketing-post"), "first")
+    await run(
+        tmp_path, TopicModels(), slots("a", "b", "c", "d", "e", type="marketing-post"), "first"
+    )
     models = TopicModels()
     await run(tmp_path, models, slots("x", type="marketing-post"), "second")
-    assert models.topic_request()["choices"]["x"] == [
-        "ANGLE-service",
-        "ANGLE-credibility",
-        "ANGLE-education",
-    ]
+    assert models.topic_request()["choices"]["x"] == TYPES.topic_pool("marketing-post", KB)
     assert "history_exhausted:x" in resolved(tmp_path, "second")["warnings"]
 
 
 async def test_rejected_proposals_are_logged_and_code_picks_instead(tmp_path):
-    models = TopicModels({"a": "KB-18", "b": "KB-18", "c": "KB-99", "d": "ANGLE-service"})
+    models = TopicModels(
+        {
+            "a": ACCEPTED_ENTRY,
+            "b": ACCEPTED_ENTRY,
+            "c": UNKNOWN_ENTRY,
+            "d": "ANGLE-service",
+        }
+    )
     summary = await run(tmp_path, models, slots("a", "b", "c", "d"))
     warnings = resolved(tmp_path)["warnings"]
-    assert summary.slots["a"].topic_id == "KB-18"
-    assert "topic_proposal_rejected:b:KB-18" in warnings
-    assert "topic_proposal_rejected:c:KB-99" in warnings
+    assert summary.slots["a"].topic_id == ACCEPTED_ENTRY
+    assert f"topic_proposal_rejected:b:{ACCEPTED_ENTRY}" in warnings
+    assert f"topic_proposal_rejected:c:{UNKNOWN_ENTRY}" in warnings
     assert "topic_proposal_rejected:d:ANGLE-service" in warnings
-    assert "topic_proposal_rejected:a:KB-18" not in warnings
-    assert summary.slots["b"].topic_id not in {"KB-18", "KB-99"}
-    assert summary.slots["c"].topic_id.startswith("KB-")
+    assert f"topic_proposal_rejected:a:{ACCEPTED_ENTRY}" not in warnings
+    assert summary.slots["b"].topic_id not in {ACCEPTED_ENTRY, UNKNOWN_ENTRY}
+    assert summary.slots["c"].topic_id.startswith("SS-")
 
 
 async def test_reasons_reach_the_resolved_plan_only_for_accepted_picks(tmp_path):
     models = TopicModels(
-        {"a": "KB-18", "b": "KB-18", "c": "KB-02"},
+        {"a": ACCEPTED_ENTRY, "b": ACCEPTED_ENTRY, "c": SECOND_ACCEPTED_ENTRY},
         {"a": "  Fresh angle on upgrades.  ", "b": "Duplicate pick.", "c": "x" * 500, "z": "?"},
     )
     await run(tmp_path, models, slots("a", "b", "c"))
@@ -145,7 +159,7 @@ async def test_reasons_reach_the_resolved_plan_only_for_accepted_picks(tmp_path)
 
 
 async def test_plan_without_reasons_still_resolves_and_old_files_still_load(tmp_path):
-    await run(tmp_path, TopicModels({"a": "KB-18"}), slots("a"))
+    await run(tmp_path, TopicModels({"a": ACCEPTED_ENTRY}), slots("a"))
     plan = resolved(tmp_path)
     assert plan["topic_reasons"] == {}
     from content_pipeline.contracts import ResolvedPlan
@@ -155,39 +169,39 @@ async def test_plan_without_reasons_still_resolves_and_old_files_still_load(tmp_
 
 
 async def test_failed_topic_call_falls_back_to_code_with_no_reasons(tmp_path):
-    models = TopicModels({"a": "KB-02"}, {"a": "never used"}, fail=True)
+    models = TopicModels({"a": SECOND_ACCEPTED_ENTRY}, {"a": "never used"}, fail=True)
     summary = await run(tmp_path, models, slots("a", "b"))
     plan = resolved(tmp_path)
     assert "topic_selection_failed:code_fallback" in plan["warnings"]
     assert plan["topic_reasons"] == {}
     assert summary.shipped == 2
-    # The ranked fallback ran; the scripted KB-02 was never read.
-    assert summary.slots["a"].topic_id != "KB-02"
+    # The ranked fallback ran; the scripted id was never read.
+    assert summary.slots["a"].topic_id != SECOND_ACCEPTED_ENTRY
     assert not any(warning.startswith("topic_proposal_rejected") for warning in plan["warnings"])
 
 
 async def test_model_is_asked_through_a_schema_with_one_named_field_per_open_slot(tmp_path):
     # Live finding: a free-form dict[str, str] reaches Claude as an object with no properties
     # and it answers {}. The old call was a silent no-op; named fields give it something to fill.
-    models = TopicModels({"b": "KB-02"})
-    await run(tmp_path, models, slots("a", "b", "c", focus="reentrancy"))
+    models = TopicModels({"b": ACCEPTED_ENTRY})
+    await run(tmp_path, models, slots("a", "b", "c", focus=FOCUSED_ENTRY["title"]))
     (schema,) = models.schemas
     for name in ("TopicAssignments", "TopicReasons"):
         assert set(schema["$defs"][name]["properties"]) == {"b", "c"}
 
 
 def test_wire_schema_keeps_odd_slot_ids_and_folds_to_the_canonical_contract():
-    request = TopicChoiceRequest(choices={"thread 1/a": ["KB-01"], "b": ["KB-02"], "c": ["KB-03"]})
+    request = TopicChoiceRequest(choices={"thread 1/a": ["SS-01"], "b": ["SS-02"], "c": ["SS-03"]})
     wire = topic_wire_schema(request).model_validate(
         {
             "slot_id": "_batch",
             "attempt": 1,
-            "assignments": {"thread 1/a": "KB-01", "b": None, "unknown": "KB-09"},
+            "assignments": {"thread 1/a": "SS-01", "b": None, "unknown": "SS-09"},
             "reasons": {"thread 1/a": "Fits.", "b": ""},
         }
     )
     chosen = canonical_topic_choices(wire)
-    assert chosen.assignments == {"thread 1/a": "KB-01"}
+    assert chosen.assignments == {"thread 1/a": "SS-01"}
     assert chosen.reasons == {"thread 1/a": "Fits."}
     empty = topic_wire_schema(request).model_validate(
         {"slot_id": "_batch", "attempt": 1, "assignments": {}}
@@ -196,19 +210,22 @@ def test_wire_schema_keeps_odd_slot_ids_and_folds_to_the_canonical_contract():
 
 
 async def test_reason_is_dropped_when_the_pick_was_rejected_even_if_fallback_lands_on_it(tmp_path):
-    await run(tmp_path, TopicModels(), slots("a", "b", "c", type="marketing-post"), "first")
-    # Every angle is now recent history, so ANGLE-service is refused; the fallback then happens
+    marketing_id = TYPES.topic_pool("marketing-post", KB)[0]
+    await run(
+        tmp_path, TopicModels(), slots("a", "b", "c", "d", "e", type="marketing-post"), "first"
+    )
+    # Every angle is now recent history, so the proposed id is refused; the fallback then happens
     # to choose that same id first. The model's reason must not be credited with the pick.
-    models = TopicModels({"x": "ANGLE-service"}, {"x": "Service fits."})
+    models = TopicModels({"x": marketing_id}, {"x": "Service fits."})
     summary = await run(tmp_path, models, slots("x", type="marketing-post"), "second")
     plan = resolved(tmp_path, "second")
-    assert summary.slots["x"].topic_id == "ANGLE-service"
-    assert "topic_proposal_rejected:x:ANGLE-service" in plan["warnings"]
+    assert summary.slots["x"].topic_id == marketing_id
+    assert f"topic_proposal_rejected:x:{marketing_id}" in plan["warnings"]
     assert plan["topic_reasons"] == {}
 
 
 async def test_an_answer_that_skips_a_slot_is_warned_not_silent(tmp_path):
-    models = TopicModels({"a": "KB-18"})
+    models = TopicModels({"a": ACCEPTED_ENTRY})
     summary = await run(tmp_path, models, slots("a", "b", "c"))
     warnings = resolved(tmp_path)["warnings"]
     assert summary.shipped == 3
@@ -225,9 +242,9 @@ async def test_a_failed_call_reports_only_the_failure_not_a_missing_pick_per_slo
 
 
 def test_a_null_reasons_object_is_tolerated():
-    request = TopicChoiceRequest(choices={"a": ["KB-01"]})
+    request = TopicChoiceRequest(choices={"a": ["SS-01"]})
     wire = topic_wire_schema(request).model_validate(
-        {"slot_id": "_batch", "attempt": 1, "assignments": {"a": "KB-01"}, "reasons": None}
+        {"slot_id": "_batch", "attempt": 1, "assignments": {"a": "SS-01"}, "reasons": None}
     )
     chosen = canonical_topic_choices(wire)
-    assert chosen.assignments == {"a": "KB-01"} and chosen.reasons == {}
+    assert chosen.assignments == {"a": "SS-01"} and chosen.reasons == {}

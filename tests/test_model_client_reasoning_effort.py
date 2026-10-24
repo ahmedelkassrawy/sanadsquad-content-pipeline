@@ -14,7 +14,7 @@ from content_pipeline.durability import resume_inputs, snapshot_hashes
 from content_pipeline.ledger import Ledger
 from content_pipeline.models import Review, ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
-from test_pipeline_end_to_end import FixturePrices, OfflineModels, search_factory
+from test_pipeline_end_to_end import DEFAULT_FOCUS, FixturePrices, OfflineModels, search_factory
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -133,7 +133,7 @@ async def test_offline_proof_effort_settings_and_provenance(tmp_path, monkeypatc
 async def test_snapshot_without_effort_field_resumes(tmp_path):
     output = tmp_path / "run"
     models = OfflineModels()
-    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy")]
+    slots = [ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS)]
     with pytest.raises(RuntimeError, match="interrupted"):
         await run_pipeline(
             ROOT,

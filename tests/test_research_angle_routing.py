@@ -1,64 +1,50 @@
-"""Assigned topics are routed to research by their configured source."""
+"""Configured marketing angles must select a service line before research."""
 
-import json
 from pathlib import Path
 import shutil
+
 import pytest
-from content_pipeline.config import load_brand
+
 from content_pipeline.models import ResolvedSlot
 from content_pipeline.pipeline import run_pipeline
 from test_pipeline_end_to_end import OfflineModels, search_factory
 
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.parametrize(
-    "type_name,topic_id,topic_name,source_kind",
-    [
-        ("marketing-post", "KB-01", "custom-service-angle", "stat"),
-        ("marketing-post", "KB-custom", "custom-service-angle", "stat"),
-        ("marketing-post", "ANGLE-service", "custom-service-angle", "stat"),
-        ("tech-thread", None, None, "kb"),
-    ],
-)
-async def test_public_runner_routes_assigned_topics_by_configured_source(
-    tmp_path, type_name, topic_id, topic_name, source_kind
-):
+@pytest.mark.asyncio
+async def test_marketing_angle_without_a_service_line_fails_before_research(tmp_path):
     root = tmp_path / "root"
     for folder in ["inputs", "agents", "post_types", "skills", "config"]:
         shutil.copytree(ROOT / folder, root / folder)
-    if type_name == "marketing-post":
-        (root / "post_types/marketing-post/angles.yaml").write_text(
-            f"angles:\n- {{id: {topic_id}, name: {topic_name}}}\n"
-        )
+    (root / "post_types/marketing-post/angles.yaml").write_text(
+        "angles:\n- {id: ANGLE-unknown, name: custom-service-angle}\n", encoding="utf-8"
+    )
     models = OfflineModels()
-    output = tmp_path / "run"
     summary = await run_pipeline(
         root,
-        [ResolvedSlot(slot_id="a", type=type_name)],
-        output,
+        [ResolvedSlot(slot_id="a", type="marketing-post")],
+        tmp_path / "run",
         model_factory=models.factory,
         search_factory=search_factory,
     )
-    assert summary.shipped == 1, "valid angle ID was routed outside its configured pool"
-    post = json.loads((output / "posts.json").read_text())[0]
-    writer = next(call[3]["research"] for call in models.calls if call[2] == "Draft")
-    reviewer = next(call[3]["research"] for call in models.calls if call[2] == "ReviewAssessment")
-    assert reviewer == writer
-    assert {source["kind"] for source in writer["sources"]} == {source_kind}
-    assert post["topic_name"] == writer["topic_name"]
-    assert post["topic_id"] == writer["topic_id"] == summary.slots["a"].topic_id
+
+    assert summary.slots["a"].outcome.value == "failed_research"
+    assert "marketing_service_line_missing" in summary.slots["a"].error
     assert not any(call[2] == "ResearchAction" for call in models.calls)
-    if source_kind == "stat":
-        assert post["topic_id"] == topic_id
-        assert post["topic_name"] == topic_name
-        rules, _ = load_brand(root / "inputs/brand-voice.md")
-        assert {
-            source["source_id"]: source["evidence_text"] for source in writer["sources"]
-        } == rules.approved_stats
-        assert post["tweets"] == ["Sentinel Grove is a smart contract audit firm."]
-    else:
-        entries = json.loads((root / "inputs/kb.json").read_text())["entries"]
-        entry = next(entry for entry in entries if entry["id"] == post["topic_id"])
-        assert post["topic_name"] == entry["name"]
-        assert writer["sources"][0]["source_id"] == entry["id"]
+
+
+@pytest.mark.asyncio
+async def test_tech_threads_keep_their_configured_kb_routing(tmp_path):
+    models = OfflineModels()
+    summary = await run_pipeline(
+        ROOT,
+        [ResolvedSlot(slot_id="a", type="tech-thread")],
+        tmp_path / "run",
+        model_factory=models.factory,
+        search_factory=search_factory,
+    )
+
+    assert summary.shipped == 1
+    assert not any(call[2] == "ResearchAction" for call in models.calls)

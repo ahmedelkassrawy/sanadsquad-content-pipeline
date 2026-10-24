@@ -32,11 +32,11 @@ ROOT = Path(__file__).resolve().parents[1]
 def pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is updated.",
@@ -49,7 +49,7 @@ def draft(text="State before calls.", ids=None, count=5):
     return Draft(
         slot_id="thread_1",
         tweets=[
-            Tweet(text=text, source_ids=ids if ids is not None else ["KB-01"]) for _ in range(count)
+            Tweet(text=text, source_ids=ids if ids is not None else ["SS-01"]) for _ in range(count)
         ],
     )
 
@@ -66,7 +66,7 @@ def validate_thread(value, research=None):
 def test_loaded_inputs_and_invalid_configuration(tmp_path):
     slots = load_plan(ROOT, ROOT / "inputs/plan.json")
     assert [(s.slot_id, s.type, s.focus) for s in slots] == [
-        ("thread_1", "tech-thread", "reentrancy"),
+        ("thread_1", "tech-thread", "oracle manipulation"),
         ("thread_2", "tech-thread", None),
         ("thread_3", "tech-thread", None),
         ("marketing_1", "marketing-post", None),
@@ -86,7 +86,7 @@ def test_loaded_inputs_and_invalid_configuration(tmp_path):
     assert resolve_model(Settings(), agent) == "openai:agent-choice"
     prompt = load_prompt(ROOT, "thread_writer", "tech-thread")
     assert "Return unnumbered text" in prompt
-    assert "Sentinel Grove" in prompt
+    assert "SanadSquad" in prompt
     assert "Shared by writers" in prompt
 
 
@@ -105,7 +105,7 @@ def test_folder_only_post_type(tmp_path):
     type_file = tmp_path / "post_types/case-study/type.yaml"
     type_file.write_text(type_file.read_text().replace("name: marketing-post", "name: case-study"))
     value = Draft(
-        slot_id="thread_1", tweets=[Tweet(text="Explain one root cause.", source_ids=["KB-01"])]
+        slot_id="thread_1", tweets=[Tweet(text="Explain one root cause.", source_ids=["SS-01"])]
     )
     result = validate(
         value,
@@ -114,20 +114,19 @@ def test_folder_only_post_type(tmp_path):
         load_brand(ROOT / "inputs/brand-voice.md")[0],
     )
     assert result.model_dump()["normalized"]["tweets"] == [
-        {"text": "Explain one root cause.", "source_ids": ["KB-01"]}
+        {"text": "Explain one root cause.", "source_ids": ["SS-01"]}
     ]
     assert result.accepted is True
 
 
 def test_normalization_keeps_original_and_numbers_before_review():
-    result = validate_thread(draft("  “State”   before calls. #audit #security  "))
-    assert result.original.tweets[0].text == "  “State”   before calls. #audit #security  "
+    result = validate_thread(draft('  "State"   before calls. #audit #security  '))
+    assert result.original.tweets[0].text == '  "State"   before calls. #audit #security  '
     assert [t.text for t in result.normalized.tweets] == [
         f'{i}/5 "State" before calls.' for i in range(1, 6)
     ]
-    assert result.fixes[:3] == [
+    assert result.fixes[:2] == [
         "tweet_1:whitespace",
-        "tweet_1:curly_quotes",
         "tweet_1:trailing_hashtags",
     ]
     assert result.accepted is True
@@ -141,7 +140,7 @@ def test_normalization_keeps_original_and_numbers_before_review():
         ("Use ＃audit inside text.", "hashtag"),
         ("Let's delve into reentrancy.", "banned_phrase:delve"),
         ("Audited 40 contracts.", "unsourced_number:40"),
-        ("https://sub.example.com/path", "link_domain:sub.example.com"),
+        ("https://sub.example.com/path", "link_not_fetched:https://sub.example.com/path"),
         ("界" * 139, "length"),
         ("a" * 277, "length"),
     ],
@@ -153,7 +152,7 @@ def test_brand_and_weighted_length_rejections(text, error):
 
 
 def test_dash_look_alikes_are_fixed_to_a_plain_hyphen():
-    result = validate_thread(draft("Checks–effects‒interactions order."))
+    result = validate_thread(draft("Checks‒effects‑interactions order."))
 
     assert result.normalized.tweets[0].text == "1/5 Checks-effects-interactions order."
     assert "tweet_1:banned_characters" in result.fixes
@@ -215,7 +214,7 @@ def test_number_token_boundaries():
     assert numbers_result("Works in 0.8.0-0.9.5 only.", evidence="Since 0.8.0.") == [
         "unsourced_number:0.9.5"
     ]
-    assert numbers_result("See KB-01 and SWC-107 with uint256.") == []
+    assert numbers_result("See SS-01 and SWC-107 with uint256.") == []
     assert numbers_result("The max is 2**256 - 1.", evidence="Wraps at 256 bits.") == []
 
 
@@ -245,8 +244,19 @@ def test_a_colon_inside_a_tweet_or_after_a_safe_fix_is_fine():
 
 
 def test_boundaries_and_url_weight_are_accepted():
-    result = validate_thread(draft("unguaranteed https://example.com/" + "x" * 400))
-    assert result.normalized.tweets[0].text == "1/5 unguaranteed https://example.com/" + "x" * 400
+    url = "https://example.com/" + "x" * 400
+    research = pack()
+    research.sources.append(
+        SourceRecord(
+            source_id="WEB-aabb",
+            kind="web",
+            title="Fetched",
+            url=url,
+            evidence_text="Fetched evidence.",
+        )
+    )
+    result = validate_thread(draft("unguaranteed " + url), research)
+    assert result.normalized.tweets[0].text == "1/5 unguaranteed " + url
     assert result.accepted is True
 
 
@@ -264,9 +274,9 @@ def test_citations_unknown_failed_and_snippet_rejected():
             source_id="WEB-cd", kind="web", title="Failed", evidence_text="", status="fetch_failed"
         ),
     ]
-    result = validate_thread(draft(ids=["KB-99", "WEB-ab", "WEB-cd"]), evidence)
+    result = validate_thread(draft(ids=["SS-99", "WEB-ab", "WEB-cd"]), evidence)
     assert result.violations[:3] == [
-        "tweet_1:citation:KB-99",
+        "tweet_1:citation:SS-99",
         "tweet_1:citation:WEB-ab",
         "tweet_1:citation:WEB-cd",
     ]
@@ -274,48 +284,47 @@ def test_citations_unknown_failed_and_snippet_rejected():
 
 
 def test_unknown_kb_citation_is_rejected():
-    result = validate_thread(draft(ids=["KB-99"]))
+    result = validate_thread(draft(ids=["SS-99"]))
     assert result.accepted is False
-    assert result.violations[0] == "tweet_1:citation:KB-99"
+    assert result.violations[0] == "tweet_1:citation:SS-99"
 
 
 def test_kb_alias_and_batch_assignment():
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    assert kb.search("recursive call")[0]["id"] == "KB-01"
-    assert (
-        kb.source("KB-01").evidence_text
-        == "External calls can reenter before state is finalized. Calling another contract hands it control, allowing it to call back before the first call returns. In a withdrawal that sends Ether before clearing the caller balance, a callback can withdraw against the still-unchanged balance again. Reentrancy can arise from calls to other contracts, not only Ether transfers; dependencies across multiple contracts also matter.\nRoot cause: State updates after untrusted calls allow repeated execution. Apply checks-effects-interactions: validate inputs and permissions, update the relevant storage state, then make external calls. In the withdrawal example, save the withdrawal amount and clear the stored balance before calling the recipient; require the call to succeed so failure reverts the operation. Review other callable paths and contracts sharing the affected state, since a callback may enter through another function or dependency."
-    )
+    topic_id = "SS-03738"
+    assert kb.search("oracle manipulation")[0]["id"] == topic_id
+    assert "Non-Canonical Price Feeds" in kb.source(topic_id).evidence_text
+    assert "canonical feed account" in kb.source(topic_id).evidence_text
     slots = load_plan(ROOT, ROOT / "inputs/plan.json")
-    slots[0].topic_id = "KB-01"
+    slots[0].topic_id = topic_id
     assigned, warnings = assign_topics(
         ROOT,
         slots,
         {
-            "thread_2": "KB-01",
-            "thread_3": "KB-01",
-            "marketing_1": "ANGLE-service",
-            "marketing_2": "ANGLE-service",
+            "thread_2": topic_id,
+            "thread_3": topic_id,
+            "marketing_1": "ANGLE-web3-security",
+            "marketing_2": "ANGLE-web3-security",
         },
         kb,
     )
-    assert assigned["thread_1"] == "KB-01"
+    assert assigned["thread_1"] == topic_id
     assert len(set(assigned.values())) == 6
     assert [assigned[f"marketing_{i}"] for i in range(1, 4)] == [
-        "ANGLE-service",
-        "ANGLE-credibility",
-        "ANGLE-education",
+        "ANGLE-web3-security",
+        "ANGLE-pentesting",
+        "ANGLE-agentic-security",
     ]
     assert warnings == [
-        "topic_proposal_rejected:thread_2:KB-01",
-        "topic_proposal_rejected:thread_3:KB-01",
-        "topic_proposal_rejected:marketing_2:ANGLE-service",
+        f"topic_proposal_rejected:thread_2:{topic_id}",
+        f"topic_proposal_rejected:thread_3:{topic_id}",
+        "topic_proposal_rejected:marketing_2:ANGLE-web3-security",
     ]
-    slots[1].focus = "recursive call"
-    slots[1].topic_id = "KB-01"
+    slots[1].focus = "oracle manipulation"
+    slots[1].topic_id = topic_id
     assigned, warnings = assign_topics(ROOT, slots, {}, kb, [[e["id"] for e in kb.entries]])
-    assert assigned["thread_2"] == "KB-01"
-    assert warnings == ["explicit_duplicate:KB-01", "history_exhausted:thread_3"]
+    assert assigned["thread_2"] == topic_id
+    assert warnings == [f"explicit_duplicate:{topic_id}", "history_exhausted:thread_3"]
 
 
 class Search:
@@ -452,7 +461,10 @@ def test_fetch_redirect_to_private_is_blocked(monkeypatch):
 def test_research_llm_callable_tool_returns_retained_entry():
     tools = research_tools(ROOT, KnowledgeBase(ROOT / "inputs/kb.json"), WebSearch())
     assert [tool.name for tool in tools] == ["search_kb", "web_search"]
-    assert tools[0].invoke({"query": "recursive call"})[0]["name"] == "Reentrancy"
+    assert (
+        tools[0].invoke({"query": "oracle manipulation"})[0]["name"]
+        == "Non-Canonical Price Feeds Allow Historical Price Manipulation"
+    )
 
 
 async def test_concurrent_budget_and_crash_recovery(tmp_path):

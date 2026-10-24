@@ -19,6 +19,9 @@ from content_pipeline.cli import main
 from run_piece import main as piece_main
 
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_FOCUS = "oracle manipulation"
+DEFAULT_KB_ID = "SS-03738"
+DEFAULT_KB_TITLE = "Non-Canonical Price Feeds Allow Historical Price Manipulation"
 
 
 class FixturePrices:
@@ -36,6 +39,7 @@ class OfflineModels:
 
     def factory(self, name, slot_id, context):
         review_count = 0
+        research_action_index = 0
 
         async def transport(messages, schema, max_tokens):
             nonlocal review_count
@@ -52,8 +56,9 @@ class OfflineModels:
             self.calls.append((name, slot_id, schema.__name__, payload, max_tokens))
             mode = self.behavior.get(slot_id, {})
             if schema.__name__ == "ResearchAction":
+                nonlocal research_action_index
                 request = payload["request"]
-                focus = request["slot"]["focus"]
+                focus = request["slot"]["focus"] or ""
                 evidence = payload["evidence"]
                 if (
                     self.research_barrier
@@ -78,8 +83,14 @@ class OfflineModels:
                     "action": action,
                     "query": focus,
                     "source_ids": selected,
-                    "topic_id": selected[0] if selected and selected[0].startswith("KB-") else None,
+                    "topic_id": selected[0] if selected and selected[0].startswith("SS-") else None,
                 }
+                scripted_actions = mode.get("research_actions")
+                if scripted_actions:
+                    action = scripted_actions[research_action_index]
+                    research_action_index += 1
+                    parsed["action"] = action
+                    parsed["query"] = mode.get("research_query", focus)
                 if mode.get("research_mismatch"):
                     parsed["slot_id"] = "other"
             elif schema.__name__ == "TopicChoices":
@@ -94,19 +105,31 @@ class OfflineModels:
                 source_id = payload["research"]["sources"][0]["source_id"]
                 text = (
                     "State before calls."
-                    if source_id.startswith("KB-")
+                    if source_id.startswith("SS-")
                     else "Sentinel Grove is a smart contract audit firm."
                     if source_id.startswith("STAT-")
-                    else "Source evidence supports this topic."
+                    else (
+                        f"Read {payload['research']['sources'][0]['url']} for source evidence."
+                        if payload["research"]["sources"][0].get("url")
+                        and (
+                            payload["post_type"]["name"] == "tech-thread"
+                            or (payload.get("format") or {}).get("link_rule") == "required"
+                        )
+                        else "Source evidence supports this topic."
+                    )
                 )
+                text = mode.get("writer_text", text)
                 if attempt in mode.get("invalid_attempts", []):
-                    source_id = "KB-99"
+                    source_id = "SS-99"
+                source_ids = mode.get("writer_source_ids", [source_id])
                 parsed = {
                     "slot_id": "other" if mode.get("writer_mismatch") else slot_id,
                     "attempt": attempt,
                     "tweets": [
-                        {"text": text, "source_ids": [source_id]}
-                        for _ in range(payload["post_type"]["units"]["min"])
+                        {"text": text, "source_ids": source_ids}
+                        for _ in range(
+                            (payload.get("format") or payload["post_type"])["units"]["min"]
+                        )
                     ],
                 }
             elif schema.__name__ == "ReviewAssessment":
@@ -198,7 +221,7 @@ class OfflineSearch:
         return {
             "results": [
                 {
-                    "url": "https://example.com/evidence",
+                    "url": "https://github.com/evidence",
                     "title": "Public fixture source",
                     "raw_content": "Source evidence supports this topic.",
                 }
@@ -212,8 +235,8 @@ def search_factory(root):
 
 def plan_pair():
     return [
-        ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy"),
-        ResolvedSlot(slot_id="b", type="tech-thread", focus="recursive call"),
+        ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS),
+        ResolvedSlot(slot_id="b", type="tech-thread", focus=DEFAULT_FOCUS),
     ]
 
 
@@ -307,10 +330,10 @@ async def test_focused_research_and_write_overlap_barriers(tmp_path):
     models = OfflineModels(barriers=True)
     summary = await asyncio.wait_for(run(tmp_path, models), 15)
     assert summary.shipped == 2
-    assert summary.slots["a"].topic_id == "KB-01"
-    assert summary.slots["b"].topic_id == "KB-01"
+    assert summary.slots["a"].topic_id == DEFAULT_KB_ID
+    assert summary.slots["b"].topic_id == DEFAULT_KB_ID
     assert json.loads((tmp_path / "run/plan.resolved.json").read_text())["warnings"] == [
-        "explicit_duplicate:KB-01"
+        f"explicit_duplicate:{DEFAULT_KB_ID}"
     ]
 
 
@@ -342,7 +365,8 @@ async def test_shared_content_retry_drops_after_mixed_rejections(tmp_path, first
         call[3] for call in models.calls if call[2] == "Draft" and call[3]["attempt"] == 2
     )
     assert (
-        second["feedback"] == [f"tweet_{i}:citation:KB-99" for i in range(1, 6)]
+        second["feedback"]
+        == [f"tweet_{i}:citation:SS-99" for i in range(1, 6)] + ["thread_citation_required"]
         if first_validator
         else second["feedback"] == ["Unsupported claim must be removed."]
     )
@@ -455,7 +479,7 @@ async def test_visual_errors_fallback_to_grounded_real_png(tmp_path, mode):
     summary = await run(tmp_path, OfflineModels({"a": behavior}), [plan_pair()[0]])
     assert summary.shipped == 1
     record = json.loads((tmp_path / "run/visuals.json").read_text())[0]
-    assert record["spec"]["overlay_text"] == "Reentrancy"
+    assert record["spec"]["overlay_text"] == DEFAULT_KB_TITLE
     assert record["result"]["fallback_reason"] == "visual_fallback"
     assert Image.open(tmp_path / "run" / record["result"]["path"]).size == (1200, 675)
 
@@ -527,7 +551,7 @@ def test_public_piece_cli_uses_same_graph_and_file_only_type(tmp_path, capsys):
                 "--type",
                 "case-study",
                 "--topic",
-                "reentrancy",
+                DEFAULT_FOCUS,
                 "--output",
                 str(tmp_path / "piece"),
             ],
@@ -608,7 +632,7 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
     )
     assert first.slots["a"].topic_id != second.slots["a"].topic_id
     all_ids = [
-        entry["id"] for entry in json.loads((ROOT / "inputs/kb.json").read_text())["entries"]
+        entry["id"] for entry in json.loads((ROOT / "inputs/kb.json").read_text())["findings"]
     ]
     prior = first.model_copy(deep=True)
     prior.slots = {
@@ -633,10 +657,10 @@ async def test_topic_history_exclusion_and_exhaustion_are_code_recovery(tmp_path
 
 
 async def test_topic_pool_exhaustion_is_slot_local(tmp_path):
-    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(4)]
+    slots = [ResolvedSlot(slot_id=f"marketing_{i}", type="marketing-post") for i in range(6)]
     summary = await run(tmp_path, OfflineModels(), slots)
-    assert summary.shipped == 3
-    assert summary.slots["marketing_3"].outcome.value == "failed_research"
+    assert summary.shipped == 4
+    assert summary.slots["marketing_5"].outcome.value == "failed_research"
 
 
 @pytest.mark.parametrize("slot_id", ["../escape", "C:escape", "CON", "unsafe/name"])
@@ -703,7 +727,7 @@ async def test_budget_refusal_in_expensive_writer_leaves_other_lane_shipped(tmp_
         .replace("name: tech-thread", "name: expensive-type")
         .replace("writer: thread_writer", "writer: expensive")
     )
-    slots = [ResolvedSlot(slot_id="a", type="expensive-type", focus="reentrancy"), plan_pair()[1]]
+    slots = [ResolvedSlot(slot_id="a", type="expensive-type", focus=DEFAULT_FOCUS), plan_pair()[1]]
     models = OfflineModels()
     summary = await run_pipeline(
         root, slots, tmp_path / "run", model_factory=models.factory, search_factory=search_factory

@@ -1,4 +1,5 @@
-Decide whether the evidence you already have covers the requested focus, and what to do next.
+Decide whether the evidence you already have covers the requested focus, and what to do next. Choose only an action in `available_actions`.
+Marketing research is web-only: it must use `web_search`, never KB research.
 
 1. Check the KB records you have. They cover the focus only if their description or root cause actually explains it. A matching keyword alone is not enough.
 2. If the KB covers it, finish with that record and set topic_id to its KB id. KB first: prefer it over the web whenever it covers the focus.

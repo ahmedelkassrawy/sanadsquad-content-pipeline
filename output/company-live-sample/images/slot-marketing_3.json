@@ -1,0 +1,12 @@
+{
+  "concept": "Deployed code can drift from audited code, and unaudited code is where attackers look first.",
+  "scene": "Flat brand card with a deep navy background. A simple code block outline sits on the left with one highlighted line in orange, and a thin split line beside it suggests two versions of the same file. Large overlay text sits in the center with plenty of empty space, and no logos or other text appear.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "differed from the audited code",
+  "alt_text": "Navy card with an outlined code block, one line highlighted in orange, and the text: differed from the audited code",
+  "severity": null
+}

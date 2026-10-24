@@ -5,6 +5,7 @@ from .models import (
     Draft,
     ImageResult,
     ImageSpec,
+    MarketingFormat,
     PostType,
     ResearchPack,
     ResolvedSlot,
@@ -24,6 +25,17 @@ class Angle(Contract):
     # The approved stats this angle may use; None means all of them, [] means none. Different stats per angle
     # keep two marketing posts in one week from saying the same thing.
     stat_ids: list[StrictStr] | None = None
+    service_line: (
+        Literal["web3-security", "pentesting", "agentic-security", "agentic-payments"] | None
+    ) = None
+    # Terms used only to resolve the service line of an explicitly focused marketing slot.
+    focus_terms: list[StrictStr] = Field(default_factory=list)
+    # The short, data-loaded first web query for an open marketing angle.
+    seed_query: StrictStr | None = None
+    kb_allowed: bool = False
+    subject: StrictStr | None = None
+    # A format that best serves this angle, used if it does not break the weekly limits.
+    preferred_format: StrictStr | None = None
 
     @model_validator(mode="after")
     def nonempty_name(self):
@@ -37,6 +49,12 @@ class Angle(Contract):
 
         if self.pick_one and not self.source_ids:
             raise ValueError("pick_one needs candidate source ids")
+
+        if self.kb_allowed and self.subject != "vulnerability-class":
+            raise ValueError("kb_allowed angles must be vulnerability-class")
+
+        if self.seed_query is not None and not self.seed_query.strip():
+            raise ValueError("angle seed query must be nonempty")
 
         # An empty list is allowed: the angle uses no firm stats at all.
         if self.stat_ids is not None and len(self.stat_ids) != len(set(self.stat_ids)):
@@ -75,6 +93,10 @@ class ResearchTurn(Contract):
     request: ResearchRequest
     evidence: list[SourceRecord]
     searches_remaining: int
+    # Defaults keep research turns serialized by earlier runs loadable.
+    available_actions: list[Literal["search_kb", "web_search", "finish"]] = Field(
+        default_factory=list
+    )
 
 
 class TopicInfo(Contract):
@@ -94,7 +116,7 @@ class TopicChoiceRequest(Contract):
     choices: dict[str, list[str]]
     # Every id in `choices`, described.
     catalog: dict[str, TopicInfo] = Field(default_factory=dict)
-    # This week's focused slots that already have a topic: slot id -> "KB-01 Reentrancy".
+    # This week's focused slots that already have a topic: slot id -> "SS-01 Reentrancy".
     taken: dict[str, str] = Field(default_factory=dict)
 
 
@@ -123,6 +145,9 @@ class WriteRequest(Contract):
     previous_draft: Draft | None = None
     # The slot's assigned hook and closing, so threads of one week are written differently.
     style: WriteStyle | None = None
+    # The data-loaded marketing shape selected during planning, if this is a marketing slot.
+    format: MarketingFormat | None = None
+    cta_allowed: bool = True
 
 
 class Rubric(Contract):
@@ -180,6 +205,7 @@ class DraftAudit(Contract):
     fixes: list[str]
     violations: list[str]
     accepted: bool
+    sentence_length_stats: dict[str, float | int] | None = None
 
     def approved(self):
         if not self.accepted:
@@ -218,6 +244,8 @@ class ResearchRecord(Trace):
     evidence: list[SourceRecord]
     action: str
     query: str = ""
+    query_attempts: list[dict] = Field(default_factory=list)
+    url_events: list[dict] = Field(default_factory=list)
     failure: str | None = None
 
 
@@ -260,6 +288,7 @@ class ResolvedPlan(Trace):
     warnings: list[str]
     # slot id -> the model's one-line reason, only for picks that code accepted as proposed.
     topic_reasons: dict[str, str] = Field(default_factory=dict)
+    marketing_week: str | None = None
 
 
 class ExternalUsage(Contract):
@@ -382,3 +411,5 @@ class RunIdentity(Contract):
     thread_id: str
     run_id: str
     snapshot_files: dict[str, str]
+    # None is a run saved before weekly marketing rotation; it retains offset zero on resume.
+    marketing_week: str | None = Field(default=None, pattern=r"^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$")

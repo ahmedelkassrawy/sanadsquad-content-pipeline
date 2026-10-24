@@ -39,7 +39,7 @@ def sdk_client(
             args = {
                 "slot_id": "a",
                 "attempt": 1,
-                "tweets": [{"text": text, "source_ids": ["KB-01"]}],
+                "tweets": [{"text": text, "source_ids": ["SS-01"]}],
             }
             message["tool_calls"] = [
                 {

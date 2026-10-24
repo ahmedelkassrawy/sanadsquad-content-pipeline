@@ -136,6 +136,24 @@ def render_run_log(run_dir: Path, summary: dict) -> str:
             )
 
     lines = []
+    plan_path = run_dir / "plan.resolved.json"
+    if plan_path.exists():
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        marketing = [slot for slot in plan.get("slots", []) if slot.get("type") == "marketing-post"]
+        if marketing:
+            lines.append("marketing mix")
+            lines.extend(
+                "   "
+                + f"{slot['slot_id']}: {slot.get('format') or 'unassigned'}"
+                + (f", {slot['service_line']}" if slot.get("service_line") else "")
+                + (", CTA allowed" if slot.get("cta_allowed") else ", no CTA")
+                for slot in marketing
+            )
+            for warning in plan.get("warnings", []):
+                if warning.startswith("weekly_mix:"):
+                    _, phase, slot_id, rule, verdict = warning.split(":", 4)
+                    lines.append(f"   {phase} {slot_id}: {rule} {verdict}")
+            lines.append("")
 
     for slot_id, slot in summary["slots"].items():
         lines.append(f"== {slot_id}")

@@ -2,7 +2,7 @@
   "additionalProperties": false,
   "properties": {
     "source_id": {
-      "pattern": "^(KB-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
+      "pattern": "^(?:(?:SS|KB)-\\d+|STAT-\\d+|WEB-[a-f0-9]+)$",
       "title": "Source Id",
       "type": "string"
     },
@@ -35,6 +35,19 @@
       "format": "date-time",
       "title": "Retrieved At",
       "type": "string"
+    },
+    "published_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Published At"
     },
     "evidence_text": {
       "title": "Evidence Text",

@@ -24,34 +24,41 @@ ROOT = Path(__file__).resolve().parents[1]
 RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 
 
-def education_slot():
-    return ResolvedSlot(slot_id="marketing_3", type="marketing-post", topic_id="ANGLE-education")
+def vulnerability_slot():
+    return ResolvedSlot(
+        slot_id="marketing_3", type="marketing-post", topic_id="ANGLE-vulnerability-class"
+    )
 
 
-def test_education_angle_avoids_a_kb_topic_a_thread_already_covers():
+def test_vulnerability_class_angle_does_not_select_retired_kb_candidates():
     types = PostTypes(ROOT)
 
-    # thread_1 is about reentrancy (KB-01), so the education post takes the next candidate.
-    assert types.choose_angle_source(education_slot(), {"KB-01", "ANGLE-service"}) == "KB-04"
-    assert types.choose_angle_source(education_slot(), set()) == "KB-01"
+    # Marketing angle routing is service-line based; the one permitted KB source is declared,
+    # not selected from a legacy pick-one KB list.
+    assert (
+        types.choose_angle_source(vulnerability_slot(), {"SS-03699", "ANGLE-web3-security"}) is None
+    )
+    assert types.choose_angle_source(vulnerability_slot(), set()) is None
 
 
 def test_chosen_education_source_is_the_only_kb_record_in_its_pack():
     types = PostTypes(ROOT)
     kb = KnowledgeBase(ROOT / "inputs/kb.json")
-    slot = education_slot()
-    slot.angle_source = "KB-05"
+    slot = vulnerability_slot()
+    slot.angle_source = "SS-03699"
 
     kb_ids = [s.source_id for s in types.assigned_pack(slot, kb).sources if s.kind == "kb"]
 
-    assert kb_ids == ["KB-05"]
+    assert kb_ids == ["SS-03699"]
 
 
 def test_angle_source_choice_skips_slots_that_are_not_pick_one_angles():
     types = PostTypes(ROOT)
-    service = ResolvedSlot(slot_id="marketing_1", type="marketing-post", topic_id="ANGLE-service")
-    focused = ResolvedSlot(slot_id="x", type="marketing-post", topic_id="KB-01", focus="reentrancy")
-    thread = ResolvedSlot(slot_id="thread_1", type="tech-thread", topic_id="KB-01")
+    service = ResolvedSlot(
+        slot_id="marketing_1", type="marketing-post", topic_id="ANGLE-web3-security"
+    )
+    focused = ResolvedSlot(slot_id="x", type="marketing-post", topic_id="SS-01", focus="reentrancy")
+    thread = ResolvedSlot(slot_id="thread_1", type="tech-thread", topic_id="SS-01")
 
     assert types.choose_angle_source(service, set()) is None
     assert types.choose_angle_source(focused, set()) is None
@@ -87,11 +94,11 @@ def test_text_that_points_at_the_research_material_is_banned():
 def thread_pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text="External calls can reenter before state is updated.",
@@ -102,7 +109,7 @@ def thread_pack():
 
 def test_the_unicode_minus_sign_is_replaced_like_other_dash_look_alikes():
     texts = [f"Point {n}: call order matters x {chr(0x2212)} 1 here." for n in "ABCDE"]
-    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in texts])
+    draft = Draft(slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in texts])
 
     result = validate(draft, thread_pack(), load_type(ROOT, "tech-thread"), RULES)
 
@@ -124,7 +131,7 @@ def visual_request(post_type, tweets):
         slot_id="thread_1",
         attempt=1,
         draft=Draft(
-            slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["KB-01"]) for t in tweets]
+            slot_id="thread_1", tweets=[Tweet(text=t, source_ids=["SS-01"]) for t in tweets]
         ),
         research=thread_pack(),
         post_type=load_type(ROOT, post_type),
@@ -138,12 +145,12 @@ def test_card_style_takes_code_and_label_from_the_approved_post():
         ["1/2 Order matters.", "2/2 Clear it first: `balances[msg.sender] = 0;` then call."],
     )
 
-    style = card_style(request, "Sentinel Grove")
+    style = card_style(request, "SanadSquad")
 
     assert style.template == "technical"
     assert style.code == "balances[msg.sender] = 0;"
     assert style.label == "Reentrancy"
-    assert card_style(visual_request("marketing-post", ["A post."]), "Sentinel Grove").code is None
+    assert card_style(visual_request("marketing-post", ["A post."]), "SanadSquad").code is None
 
 
 def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
@@ -159,7 +166,7 @@ def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
     plain, styled = tmp_path / "plain.png", tmp_path / "styled.png"
 
     render_card(spec, plain)
-    render_card(spec, styled, style=card_style(request, "Sentinel Grove"))
+    render_card(spec, styled, style=card_style(request, "SanadSquad"))
 
     with Image.open(styled) as image:
         assert image.size == (1200, 675)
@@ -169,29 +176,19 @@ def test_technical_card_draws_the_code_panel_and_brand_accent(tmp_path):
     assert plain.read_bytes() != styled.read_bytes()
 
 
-def test_week_selection_records_angle_source_and_warns_on_a_forced_repeat():
+def test_vulnerability_class_angle_needs_no_runtime_kb_source_selection():
     from types import SimpleNamespace
     from content_pipeline.contracts import SlotState
     from content_pipeline.pipeline import Pipeline
 
     types = PostTypes(ROOT)
-    candidates = next(a for a in types.angles("marketing-post") if a.pick_one).source_ids
-    threads = [
-        SlotState(slot=ResolvedSlot(slot_id=f"t{i}", type="tech-thread", topic_id=kb_id))
-        for i, kb_id in enumerate(candidates)
-    ]
-    education = SlotState(slot=education_slot())
+    threads = [SlotState(slot=ResolvedSlot(slot_id="t0", type="tech-thread", topic_id="SS-03699"))]
+    education = SlotState(slot=vulnerability_slot())
     host = SimpleNamespace(types=types)
 
-    warnings = Pipeline._choose_angle_sources(host, threads[:1] + [education])
-
-    assert education.slot.angle_source == candidates[1] and warnings == []
-
-    education = SlotState(slot=education_slot())
     warnings = Pipeline._choose_angle_sources(host, threads + [education])
 
-    assert education.slot.angle_source == candidates[0]
-    assert warnings == [f"duplicate_topic:marketing_3:{candidates[0]}"]
+    assert education.slot.angle_source is None and warnings == []
 
 
 def test_redaction_covers_key_values_of_any_shape():

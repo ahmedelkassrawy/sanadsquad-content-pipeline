@@ -1,7 +1,8 @@
 ---
-brand_name: Sentinel Grove
+brand_name: SanadSquad
 banned_words:
 - guaranteed
+- guarantee
 - unhackable
 - 100% secure
 - source_ids
@@ -32,10 +33,7 @@ banned_characters:
 - ‒
 - ―
 - −
-allowed_links:
-- example.com
-- scs.owasp.org
-- swcregistry.io
+allowed_links: []
 safe_fixes:
 - banned_characters
 - whitespace
@@ -43,16 +41,16 @@ safe_fixes:
 - trailing_hashtags
 - markdown
 approved_stats:
-  STAT-01: 'Sentinel Grove has completed 12 smart contract audits.'
-  STAT-02: 'Sentinel Grove has 3 auditors.'
-  STAT-03: 'Sentinel Grove is a smart contract audit firm.'
-  STAT-04: 'A Sentinel Grove review reports each finding with its severity, its root cause and a recommended fix.'
-  STAT-05: 'Teams can request a review of their smart contract code.'
+  STAT-01: 'SanadSquad provides smart contract audits across EVM and Solana/SVM.'
+  STAT-02: 'SanadSquad provides Web2 pentesting for the infrastructure around a protocol: APIs, cloud, CI/CD, dependencies, internal access, and frontend.'
+  STAT-03: 'SanadSquad provides agentic security and red teaming for AI agent systems, including prompt injection, tool abuse, unauthorized action, agent wallets, and spending policy.'
+  STAT-04: 'SanadSquad provides agentic payment protocol review for x402 and MPP, including integration review, facilitator trust, and payment policy design.'
+  STAT-05: 'Teams can request a review.'
 palette:
 - '#14213d'
 - '#fca311'
 - '#ffffff'
 ---
-Use a calm, precise engineering voice. Explain root causes before mitigations. Avoid hype and unsupported certainty.
+Use a calm, precise engineering voice. Explain root causes before mitigations. SanadSquad covers the whole attack surface, not just the contract: a clean contract can still be undermined by the infrastructure and agent systems around it. Criticise the contract-only model, never a named firm. We reduce risk; we do not eliminate it. Avoid hype and unsupported certainty.
 
 Each approved stat supports exactly what it says. The stats do not establish review methods, rigor, speed, outcomes, clients, expertise or effectiveness. An approved_stats entry is usable evidence only when its STAT ID and text are supplied in the current ResearchPack; its presence in this shared brand file does not authorize citing it from another pack.

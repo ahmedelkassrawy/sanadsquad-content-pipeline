@@ -1,0 +1,103 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "company-fixture-week-3",
+  "slots": {
+    "thread_1": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "SS-03738",
+      "reasons": [],
+      "error": null
+    },
+    "thread_2": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "SS-03793",
+      "reasons": [
+        "ai_text:rule_of_three"
+      ],
+      "error": null
+    },
+    "thread_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "SS-03926",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_1": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-pentesting",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_2": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-agentic-security",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_3": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "ANGLE-web3-security",
+      "reasons": [],
+      "error": null
+    }
+  },
+  "shipped": 5,
+  "confirmed_tokens": 155182,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.528906,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": false,
+  "external_usage": {
+    "search_calls": 6,
+    "tavily_calls": 0,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 0.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 5,
+    "cloudflare_images": 5,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 0
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "not_enabled",
+  "advisor_reason": null,
+  "agents": {
+    "research": {
+      "calls": 8,
+      "tokens": 27707,
+      "cost_usd": 0.062206,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "writer": {
+      "calls": 10,
+      "tokens": 61384,
+      "cost_usd": 0.15423199999999998,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "reviewer": {
+      "calls": 6,
+      "tokens": 48495,
+      "cost_usd": 0.26713200000000004,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "visual": {
+      "calls": 5,
+      "tokens": 17596,
+      "cost_usd": 0.045336,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    }
+  }
+}

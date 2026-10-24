@@ -17,7 +17,7 @@ async def test_public_writer_receives_effective_limit_and_attempt_feedback(tmp_p
     assert len(writer_payloads) == 2
     assert writer_payloads[0]["max_tweet_chars"] == 140
     assert writer_payloads[0]["previous_draft"] is None
-    assert "tweet_1:citation:KB-99" in writer_payloads[1]["feedback"]
+    assert "tweet_1:citation:SS-99" in writer_payloads[1]["feedback"]
     assert writer_payloads[1]["max_tweet_chars"] == 140
     assert writer_payloads[1]["previous_draft"]["tweets"][0]["text"] == "State before calls."
     reviewer_payloads = [

@@ -1,26 +1,46 @@
-# Each angle gets its own approved stats, so two marketing posts in one week cannot say the
-# same thing. Only the credibility angle states a firm fact; service and credibility invite a review.
-# The education angle picks the first KB topic no thread covers that week.
+# Each service line has one angle. The vulnerability-class angle is the sole marketing
+# exception that may use the KB, and it must cite its listed finding.
 angles:
-- id: ANGLE-service
-  name: service
-  stat_ids:
-  - STAT-04
-  - STAT-05
-- id: ANGLE-credibility
-  name: credibility
-  # Two stats only, matching the post type's max_approved_stats: the audit count and the offer.
+- id: ANGLE-web3-security
+  name: web3-security
+  service_line: web3-security
+  seed_query: web3 security audits deployed-code drift
+  focus_terms: [web3, smart contract, evm, solana, svm, protocol design]
   stat_ids:
   - STAT-01
   - STAT-05
-- id: ANGLE-education
-  name: education-to-cta
-  pick_one: true
+- id: ANGLE-pentesting
+  name: web2-pentesting
+  service_line: pentesting
+  seed_query: supply chain key compromise losses
+  focus_terms: [web2, pentest, api, cloud, ci/cd, dependency, frontend, infrastructure]
+  stat_ids:
+  - STAT-02
+  - STAT-05
+- id: ANGLE-agentic-security
+  name: agentic-security-and-red-teaming
+  service_line: agentic-security
+  seed_query: prompt injection agent signing tools
+  focus_terms: [agent, ai, prompt injection, tool abuse, red team, wallet, spending policy]
+  stat_ids:
+  - STAT-03
+  - STAT-05
+- id: ANGLE-agentic-payments
+  name: agentic-payments-x402-vs-mpp
+  service_line: agentic-payments
+  seed_query: x402 MPP volume facilitators
+  focus_terms: [x402, mpp, payment, facilitator, payment policy]
+  stat_ids:
+  - STAT-04
+  - STAT-05
+  preferred_format: thread
+- id: ANGLE-vulnerability-class
+  name: vulnerability-class
+  subject: vulnerability-class
+  kb_allowed: true
+  service_line: agentic-security
+  seed_query: agent tool authorization vulnerability class
+  focus_terms: [vulnerability, exploit, weakness, incident]
   source_ids:
-  - KB-01
-  - KB-04
-  - KB-05
-  - KB-07
-  - KB-03
-  # No firm stats: the education post ends on its engagement question, not the review offer.
+  - SS-03699
   stat_ids: []

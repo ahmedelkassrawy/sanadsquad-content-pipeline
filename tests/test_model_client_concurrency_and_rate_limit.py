@@ -31,7 +31,7 @@ def response(slot="a"):
             usage_metadata={"input_tokens": 2, "output_tokens": 3},
             response_metadata={},
         ),
-        "parsed": {"slot_id": slot, "tweets": [{"text": "Supported.", "source_ids": ["KB-01"]}]},
+        "parsed": {"slot_id": slot, "tweets": [{"text": "Supported.", "source_ids": ["SS-01"]}]},
     }
 
 
@@ -246,13 +246,14 @@ async def test_resume_preserves_saved_concurrency(tmp_path, monkeypatch, legacy)
     from content_pipeline.models import ResolvedSlot
     from content_pipeline.pipeline import RunInterrupted, run_pipeline
     from test_pipeline_resume_and_advisor_delivery import DeliveryModels, search_factory
+    from test_pipeline_end_to_end import DEFAULT_FOCUS
 
     models = DeliveryModels()
     output = tmp_path / "run"
     with pytest.raises(RunInterrupted):
         await run_pipeline(
             ROOT,
-            [ResolvedSlot(slot_id="a", type="tech-thread", focus="reentrancy")],
+            [ResolvedSlot(slot_id="a", type="tech-thread", focus=DEFAULT_FOCUS)],
             output,
             Settings(max_concurrency=2),
             model_factory=models.factory,

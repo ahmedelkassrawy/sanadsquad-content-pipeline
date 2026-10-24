@@ -1,0 +1,41 @@
+# AI-text construction patterns loaded by content_pipeline/ai_text.py
+# regex patterns are matched case-insensitively against the full piece text (NFKC-folded)
+
+negative_parallelism:
+  # "not just X, but Y" / "not only ... but also"
+  patterns:
+    - 'not\s+just\b.{0,60}\bbut\b'
+    - 'not\s+only\b.{0,80}\bbut\s+also\b'
+
+copula_avoidance:
+  # "serves as" / "stands as" / "boasts"
+  phrases:
+    - serves as
+    - stands as
+    - boasts
+
+filler_openers:
+  # Matched against the START of each tweet/piece (after stripping numbering prefix)
+  patterns:
+    - "in today's fast-paced world"
+    - "it is important to note"
+    - "it's important to note"
+
+rule_of_three:
+  # Three-item parallel lists are only a signal when this pattern repeats.
+  # Each item is a short noun/adjective phrase. Two commas keep introductory clauses and
+  # two-verb predicates ("In x402, a facilitator verifies and settles") out of the match.
+  pattern: '\b\w+(?:\s+\w+){0,3}\s*,\s*\w+(?:\s+\w+){0,3}\s*,?\s+and\s+\w+(?:\s+\w+){0,3}\b'
+  introductory_prefixes:
+    - '^(?:in|for|on)\s+\w+(?:\s+\w+){0,2}\s*,'
+  minimum_matches: 2
+
+hedge_words:
+  - may
+  - might
+  - could
+  - generally
+  - typically
+
+# Maximum hedge words per 100 content words before flagging hedging_density
+hedging_threshold: 3.0

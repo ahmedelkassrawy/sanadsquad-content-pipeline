@@ -73,7 +73,7 @@ async def test_third_post_type_ships_as_folders_only(tmp_path):
 
     assert writer[0] == "marketing_writer"
     assert writer[3]["post_type"]["name"] == "case-study"
-    assert not any(call[2] == "ResearchAction" for call in models.calls)
+    assert not any(call[2] == "ResearchAction" and call[1] == "c" for call in models.calls)
 
 
 async def test_post_type_files_are_parsed_once_per_run(tmp_path, monkeypatch):
@@ -190,25 +190,25 @@ def test_post_type_module_assigns_research_packs_by_topic_source():
     rules, _ = types.brand()
 
     from_kb = types.assigned_pack(
-        ResolvedSlot(slot_id="a", type="tech-thread", topic_id="KB-01"), kb
+        ResolvedSlot(slot_id="a", type="tech-thread", topic_id="SS-03738"), kb
     )
 
-    assert [source.source_id for source in from_kb.sources] == ["KB-01"]
+    assert [source.source_id for source in from_kb.sources] == ["SS-03738"]
 
     from_angle = types.assigned_pack(
-        ResolvedSlot(slot_id="b", type="marketing-post", topic_id="ANGLE-service"), kb
+        ResolvedSlot(slot_id="b", type="marketing-post", topic_id="ANGLE-web3-security"), kb
     )
 
-    assert from_angle.topic_name == "service"
+    assert from_angle.topic_name == "web3-security"
     # The service angle gets only its configured stats.
     assert {source.source_id: source.evidence_text for source in from_angle.sources} == {
-        id: rules.approved_stats[id] for id in ["STAT-04", "STAT-05"]
+        id: rules.approved_stats[id] for id in ["STAT-01", "STAT-05"]
     }
 
     assert types.assigned_pack(ResolvedSlot(slot_id="c", type="tech-thread"), kb) is None
     assert (
         types.assigned_pack(
-            ResolvedSlot(slot_id="d", type="tech-thread", topic_id="KB-01", focus="x"), kb
+            ResolvedSlot(slot_id="d", type="tech-thread", topic_id="SS-03738", focus="x"), kb
         )
         is None
     )

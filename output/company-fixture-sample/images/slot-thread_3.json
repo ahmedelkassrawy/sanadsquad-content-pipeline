@@ -1,0 +1,12 @@
+{
+  "concept": "Missing deposit and withdraw fees let an attacker collect yield on funds that were never staked",
+  "scene": "Technical diagram on a deep navy background: a staking pool box holding a block labeled unprocessed yield, with an arrow entering as a deposit and an arrow leaving as a withdrawal, and an amber highlight on the in and out path to show it costs nothing.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "lack of deposit/withdraw fees",
+  "alt_text": "Diagram of a staking pool with unprocessed yield, where an attacker deposit enters and exits with no fee, highlighted in amber on a navy background.",
+  "severity": "HIGH"
+}

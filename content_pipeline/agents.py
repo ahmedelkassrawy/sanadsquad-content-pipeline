@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from pydantic import ValidationError
 from . import record_ids
-from .config import local_file
+from .config import load_sources, local_file
 from .contracts import (
     ResearchAction,
     ResearchRecord,
@@ -68,11 +68,18 @@ def _label_words(entry: dict) -> set[str]:
     """Words of a KB entry's name, category and aliases, with "front running" also joined."""
     words = set()
 
-    for part in [entry["name"], entry.get("category", ""), *entry.get("aliases", [])]:
+    category = entry.get("category", "")
+    categories = category if isinstance(category, list) else [category]
+    for part in [entry["name"], *categories, *entry.get("aliases", [])]:
+        if not isinstance(part, str):
+            continue
         joined = re.sub(r"(?<=[a-z0-9])-(?=[a-z0-9])", "", part.casefold())
         pieces = re.findall(r"[a-z0-9]+", joined)
 
         words.update(_focus_words(part))
+        # Preserve both forms of a hyphenated KB tag: "front-running" must
+        # match a focus written as either "front-running" or "front running".
+        words.update(_focus_words(part.replace("-", " ")))
         words.update(_stem(a + b) for a, b in zip(pieces, pieces[1:]))
 
     return words
@@ -93,7 +100,9 @@ def focus_matches(focus: str, kb, topic_id: str) -> bool:
     if not wanted:
         return True
 
-    entry = next(e for e in kb.entries if e["id"] == topic_id)
+    entry = next((e for e in kb.entries if e["id"] == topic_id), None)
+    if entry is None:
+        return False
     overlap = wanted & _label_words(entry)
 
     return len(overlap) / len(wanted) >= FOCUS_MIN_OVERLAP and bool(overlap - _FOCUS_GENERIC)
@@ -140,21 +149,118 @@ class Agent:
 
 
 class ResearchAgent(Agent):
-    def __init__(self, root, client, kb, searcher, usage_callback=None, types=None):
+    def __init__(
+        self, root, client, kb, searcher, usage_callback=None, types=None, evidence_limit=3000
+    ):
         super().__init__(root, "research", client, types=types)
 
         self.kb = kb
         self.searcher = searcher
-        self.tools = {tool.name: tool for tool in research_tools(root, kb, searcher)}
+        self.tools = {}
         self.records = []
         self.usage_callback = usage_callback
+        self.evidence_limit = evidence_limit
+
+    def _turn_evidence(self, sources: list[SourceRecord]) -> list[SourceRecord]:
+        """Keep each source in a model turn within the configured evidence budget."""
+        return [
+            source.model_copy(update={"evidence_text": source.evidence_text[: self.evidence_limit]})
+            for source in sources
+        ]
 
     async def __call__(self, request: ResearchRequest) -> ResearchPack:
         slot = request.slot
-        assigned = self.types.assigned_pack(slot, self.kb)
+        marketing = slot.type == "marketing-post"
+        angle = None
+        if self.types.spec(slot.type).research.topic_source == "angles" and slot.topic_id:
+            angle = next((a for a in self.types.angles(slot.type) if a.id == slot.topic_id), None)
+        kb_allowed = bool(angle and (angle.kb_allowed or angle.subject == "vulnerability-class"))
+        # Marketing always grounds its point in allowlisted web research. A vulnerability-class
+        # angle receives its configured KB finding only after a web source has been selected.
+        self.tools = {
+            tool.name: tool
+            for tool in research_tools(
+                self.root,
+                self.kb,
+                self.searcher,
+                include_kb=not marketing,
+            )
+        }
+        if marketing:
+            if not slot.service_line:
+                raise ModelFailure("failed_research", "marketing_service_line_missing")
+            if self.searcher.registry is None:
+                sources = self.root / "inputs/sources.json"
+                if sources.is_file():
+                    self.searcher.registry = load_sources(sources)
+            if self.searcher.registry is not None:
+                self.searcher.allowed_domains = self.searcher.registry.domains_for(
+                    slot.service_line
+                )
+            self.searcher.service_line = slot.service_line
+
+        assigned = None if marketing else self.types.assigned_pack(slot, self.kb)
 
         if assigned is not None:
-            return assigned
+            if (
+                slot.type == "marketing-post"
+                and any(source.kind == "kb" for source in assigned.sources)
+                and not kb_allowed
+            ):
+                raise ModelFailure("failed_research", "marketing_kb_forbidden")
+            return assigned.model_copy(update={"kb_allowed": kb_allowed})
+
+        if (
+            slot.type == "tech-thread"
+            and slot.focus
+            and slot.focus.startswith(("http://", "https://"))
+        ):
+            url = slot.focus
+            url_start = len(self.searcher.url_log)
+            evidence, final_url, status = self.searcher.fetch_url(url)
+            if status != "ok":
+                self.records.append(
+                    ResearchRecord(
+                        record_id=record_ids.record_id(
+                            slot.slot_id, "research_search", request.attempt, 1
+                        ),
+                        slot_id=slot.slot_id,
+                        attempt=request.attempt,
+                        evidence=[],
+                        action="web_fetch",
+                        query=url,
+                        url_events=self.searcher.url_log[url_start:],
+                        failure="external_fetch_failed",
+                    )
+                )
+                raise ModelFailure("failed_research", "external_fetch_failed")
+            record = SourceRecord(
+                source_id="WEB-"
+                + __import__("hashlib").sha256(final_url.encode()).hexdigest()[:16],
+                kind="web",
+                url=final_url,
+                title=final_url,
+                evidence_text=evidence,
+            )
+            self.records.append(
+                ResearchRecord(
+                    record_id=record_ids.record_id(
+                        slot.slot_id, "research_search", request.attempt, 1
+                    ),
+                    slot_id=slot.slot_id,
+                    attempt=request.attempt,
+                    evidence=[record],
+                    action="web_fetch",
+                    query=url,
+                    url_events=self.searcher.url_log[url_start:],
+                )
+            )
+            return ResearchPack(
+                slot_id=slot.slot_id,
+                topic_id=record.source_id,
+                topic_name=record.title,
+                sources=[record],
+            )
 
         evidence = {}
         searches = 0
@@ -166,6 +272,26 @@ class ResearchAgent(Agent):
                 raise ModelFailure("failed_research", "search_limit_reached:4_searches")
 
             searches += 1
+            query_start = len(self.searcher.query_log)
+            url_start = len(self.searcher.url_log)
+
+            if name not in self.tools:
+                self.records.append(
+                    ResearchRecord(
+                        record_id=record_ids.record_id(
+                            slot.slot_id, "research_search", request.attempt, searches
+                        ),
+                        slot_id=slot.slot_id,
+                        attempt=request.attempt,
+                        evidence=[],
+                        action=name,
+                        query=query,
+                        query_attempts=self.searcher.query_log[query_start:],
+                        url_events=self.searcher.url_log[url_start:],
+                        failure=f"tool_unavailable:{name}",
+                    )
+                )
+                return
 
             try:
                 data = await asyncio.to_thread(self.tools[name].invoke, {"query": query})
@@ -191,10 +317,29 @@ class ResearchAgent(Agent):
                     evidence=records,
                     action=name,
                     query=query,
+                    query_attempts=self.searcher.query_log[query_start:],
+                    url_events=self.searcher.url_log[url_start:],
                 )
             )
 
-        await search("search_kb", slot.focus or request.hints)
+        if marketing:
+            initial_query = slot.focus or (angle.seed_query if angle and angle.seed_query else "")
+            initial_query = initial_query or (
+                f"{angle.name} {slot.service_line}"
+                if angle
+                else slot.service_line or "security research"
+            )
+            initial_tool = "web_search"
+        else:
+            topic_name = (
+                self.kb.source(slot.topic_id).title
+                if slot.topic_id and any(entry["id"] == slot.topic_id for entry in self.kb.entries)
+                else slot.topic_id
+            )
+            initial_query = slot.focus or topic_name or "technical security research"
+            initial_tool = "search_kb" if "search_kb" in self.tools else "web_search"
+
+        await search(initial_tool, initial_query)
 
         instructions = local_file(self.root / "agents/research", "loop.md").read_text(
             encoding="utf-8"
@@ -205,8 +350,9 @@ class ResearchAgent(Agent):
                 ResearchAction,
                 ResearchTurn(
                     request=request,
-                    evidence=list(evidence.values()),
+                    evidence=self._turn_evidence(list(evidence.values())),
                     searches_remaining=4 - searches,
+                    available_actions=[*self.tools, "finish"],
                 ),
                 slot.slot_id,
                 request.attempt,
@@ -230,7 +376,7 @@ class ResearchAgent(Agent):
 
                 if (
                     slot.focus
-                    and topic.startswith("KB-")
+                    and topic.startswith("SS-")
                     and not focus_matches(slot.focus, self.kb, topic)
                 ):
                     # The operator asked for one topic; shipping the nearest other one is a
@@ -239,12 +385,36 @@ class ResearchAgent(Agent):
 
                 title = (
                     self.kb.source(topic).title
-                    if topic.startswith("KB-")
+                    if topic.startswith("SS-")
                     else slot.focus or selected[0].title
                 )
 
+                if marketing:
+                    if not any(
+                        source.kind == "web" and source.status == "ok" for source in selected
+                    ):
+                        raise ModelFailure("failed_research", "marketing_web_source_required")
+
+                    additions = self.types.assigned_pack(
+                        slot.model_copy(update={"focus": None}), self.kb
+                    )
+                    if additions is not None:
+                        selected = list(
+                            {
+                                source.source_id: source
+                                for source in [*selected, *additions.sources]
+                            }.values()
+                        )
+                    if angle is not None:
+                        topic = angle.id
+                        title = angle.name
+
                 return ResearchPack(
-                    slot_id=slot.slot_id, topic_id=topic, topic_name=title, sources=selected
+                    slot_id=slot.slot_id,
+                    topic_id=topic,
+                    topic_name=title,
+                    sources=selected,
+                    kb_allowed=kb_allowed,
                 )
 
             if not action.query.strip():

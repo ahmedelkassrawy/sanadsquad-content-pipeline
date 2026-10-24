@@ -23,10 +23,10 @@ RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 def kb_pack(title, url):
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-04",
+        topic_id="SS-04",
         topic_name="x",
         sources=[
-            SourceRecord(source_id="KB-04", kind="kb", title=title, url=url, evidence_text="x")
+            SourceRecord(source_id="SS-04", kind="kb", title=title, url=url, evidence_text="x")
         ],
     )
 
@@ -56,6 +56,30 @@ def test_solidity_as_the_language_is_not_a_credit(texts):
     assert check_repeated_credits(texts, SOLIDITY) == []
 
 
+def test_fixture_cpi_calls_are_technical_terms_not_repeated_credits():
+    """The week-2 thread_2 retry uses CPI as Solana terminology, not attribution."""
+    texts = [
+        "1/8 In `sub_account_sign_v1` and `sign_v1`, a session authority can end up as a "
+        "signer in a downstream CPI call, which can unintentionally hand that account authority "
+        "in the called program.",
+        "2/8 Both functions build a `restricted_keys` list. It names accounts that must be kept "
+        "from being passed as signers when the program makes CPI calls.",
+        "3/8 Session-based authorities are never added to that list. Since nothing restricts them, "
+        "the program passes these accounts along as signers in the CPI calls it makes.",
+        "8/8 Grep your signing paths for where `restricted_keys` is filled, then confirm that every "
+        "authority type except `Secp256k1` puts both the payer and the session authority in it "
+        "before any CPI call.",
+    ]
+
+    assert check_repeated_credits(texts, OWASP) == []
+
+
+def test_owasp_remains_a_repeated_credit():
+    assert check_repeated_credits(["OWASP lists x.", "OWASP suggests y."], OWASP) == [
+        "repeated_credit:owasp"
+    ]
+
+
 @pytest.mark.parametrize(
     "texts,name",
     [
@@ -73,18 +97,21 @@ def test_publishers_beyond_the_pack_are_credits_too(texts, name):
 
 
 def stat_pack():
-    ids = ("STAT-01", "STAT-02", "STAT-03", "STAT-05")
+    ids = ("STAT-01", "STAT-02")
 
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm completed 2 reviews.",
+                }[id],
             )
             for id in ids
         ],
@@ -94,17 +121,17 @@ def stat_pack():
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has 12 engineers.",
-        "Our 12 security researchers review your code.",
-        "Sentinel Grove has 3 reviewers.",
-        "Our auditors number 12.",
-        "We have completed 12.",
-        "Up to 12 smart contract audits completed.",
-        "About 12 smart contract audits completed.",
-        "Roughly 12 smart contract audits completed.",
-        "Sentinel Grove has completed 12+ smart contract audits.",
-        "All 12 audits uncovered critical bugs.",
-        "Every one of our 12 audits found critical bugs.",
+        "Example Firm has 4 engineers.",
+        "Our 4 security researchers review your code.",
+        "Example Firm has 2 auditors.",
+        "Our auditors number 4.",
+        "We have completed 4.",
+        "Up to 4 assessments completed.",
+        "About 4 assessments completed.",
+        "Roughly 4 assessments completed.",
+        "Example Firm has completed 4+ assessments.",
+        "All 4 assessments uncovered critical bugs.",
+        "Every one of our 4 assessments found critical bugs.",
     ],
 )
 def test_a_stat_number_on_another_firm_noun_or_qualified_is_flagged(text):
@@ -114,11 +141,11 @@ def test_a_stat_number_on_another_firm_noun_or_qualified_is_flagged(text):
 @pytest.mark.parametrize(
     "text",
     [
-        "12 smart contract audits per our records.",
+        "4 assessments per our records.",
         "Requires Solidity 0.8.12 or later.",
         "The vault has 3 functions.",
         "Step 3 of the audit.",
-        "Sentinel Grove has completed 12 smart contract audits.",
+        "Example Firm completed 4 assessments.",
     ],
 )
 def test_attribution_versions_and_technical_counts_pass(text):
@@ -190,16 +217,16 @@ def test_post_limit_notes_use_the_configured_limits_and_brand():
 
 
 def test_stat_note_does_not_mention_a_stat_no_pack_carries():
-    [note] = stat_feedback(result_with(["tweet_1:stat_misbound:12 engineers"]))
+    [note] = stat_feedback(result_with(["tweet_1:stat_misbound:4 engineers"]))
 
     assert "team size" not in note
 
 
-def test_kb_09_describes_post_merge_ethereum():
-    kb = {e["id"]: e for e in json.loads((ROOT / "inputs/kb.json").read_text("utf-8"))["entries"]}
-    text = kb["KB-09"]["description"]
+def test_company_kb_price_feed_entry_describes_historical_price_manipulation():
+    kb = {e["id"]: e for e in json.loads((ROOT / "inputs/kb.json").read_text("utf-8"))["findings"]}
+    text = kb["SS-03738"]["content"]["description"]
 
-    assert "12-second slots" in text and "historical" in text
+    assert "historical prices" in text and "canonical accounts" in text
 
 
 # Round-6 review, second pass.
@@ -265,11 +292,11 @@ def test_plural_labels_with_any_preposition_are_flagged(label):
 @pytest.mark.parametrize(
     "text",
     [
-        "Book a review before March 12.",
+        "Book a review before March 4.",
         "Book a call at 3 pm.",
         "Pick three.",
         "A 3 minute read.",
-        "Runs on Node 12+ only.",
+        "Runs on Node 4+ only.",
     ],
 )
 def test_dates_times_and_bare_picks_are_not_firm_claims(text):
@@ -299,9 +326,9 @@ def test_labels_ending_in_a_verb_like_noun_stay_flagged(label):
 @pytest.mark.parametrize(
     "text",
     [
-        "Sentinel Grove has done 12 so far.",
-        "We have conducted 12.",
-        "Sentinel Grove: 12 and counting.",
+        "Example Firm has done 4 so far.",
+        "We have conducted 4.",
+        "Example Firm: 4 and counting.",
     ],
 )
 def test_a_bare_number_in_a_sentence_about_the_firm_is_a_firm_claim(text):

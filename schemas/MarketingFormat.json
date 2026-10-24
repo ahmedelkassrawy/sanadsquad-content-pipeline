@@ -1,0 +1,64 @@
+{
+  "$defs": {
+    "Units": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "minimum": 1,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "minimum": 1,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "Units",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One data-loaded shape a marketing slot may use.",
+  "properties": {
+    "id": {
+      "minLength": 1,
+      "title": "Id",
+      "type": "string"
+    },
+    "units": {
+      "$ref": "#/$defs/Units"
+    },
+    "link_rule": {
+      "enum": [
+        "required",
+        "forbidden",
+        "optional"
+      ],
+      "title": "Link Rule",
+      "type": "string"
+    },
+    "length_hint": {
+      "minLength": 1,
+      "title": "Length Hint",
+      "type": "string"
+    },
+    "numbering": {
+      "default": false,
+      "title": "Numbering",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "units",
+    "link_rule",
+    "length_hint"
+  ],
+  "title": "MarketingFormat",
+  "type": "object"
+}

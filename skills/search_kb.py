@@ -7,6 +7,7 @@ from pathlib import Path
 from rank_bm25 import BM25Okapi
 
 from content_pipeline.models import SourceRecord
+from content_pipeline.redaction import load_redacted_names, load_sensitive_kb_values, redact_kb_text
 
 
 def words(text):
@@ -15,36 +16,76 @@ def words(text):
 
 
 class KnowledgeBase:
-    """One KB file, ranked by BM25 over names, aliases and text."""
+    """One SanadSquad finding file, ranked by title, tags and evidence text."""
 
     def __init__(self, path: Path):
+        self.path = path
+        self.redacted_names = load_redacted_names(path, path.with_name("redacted-names.txt"))
+        self.sensitive_values = load_sensitive_kb_values(path)
         data = json.loads(path.read_text(encoding="utf-8"))
-
-        self.entries = data["entries"]
+        legacy = "findings" not in data
+        self.entries = data["entries"] if legacy else data["findings"]
         ids = [e["id"] for e in self.entries]
 
         if len(set(ids)) != len(ids):
             raise ValueError("duplicate KB ids")
 
         for entry in self.entries:
-            for field in (
-                "id",
-                "name",
-                "severity",
-                "category",
-                "description",
-                "root_cause",
-                "aliases",
-                "references",
-            ):
-                if not entry.get(field):
+            if legacy:
+                self._normalize_legacy_entry(entry)
+
+            for field in ("id", "title", "impact", "tags", "protocol", "language", "content"):
+                if entry.get(field) in (None, "", []):
                     raise ValueError("incomplete KB entry: " + field)
+            for field in ("description", "location", "recommendation", "status"):
+                if not entry["content"].get(field):
+                    raise ValueError("incomplete KB entry content: " + field)
+            if not re.fullmatch(r"(?:SS|KB)-\d+", entry["id"]):
+                raise ValueError("invalid KB id")
+            # Compatibility aliases keep topic-selection code independent of the source schema.
+            entry["name"] = entry["title"]
+            entry["severity"] = entry["impact"]
+            entry["aliases"] = entry["tags"]
+            entry["description"] = entry["content"]["description"]
 
         self.index = BM25Okapi(
             [
-                words(" ".join([e["name"], e["category"], e["description"], *e["aliases"]]))
+                words(
+                    " ".join(
+                        [
+                            e["title"],
+                            *e["tags"],
+                            *e["category"],
+                            e["content"]["description"],
+                            e["content"]["recommendation"],
+                        ]
+                    )
+                )
                 for e in self.entries
             ]
+        )
+
+    @staticmethod
+    def _normalize_legacy_entry(entry):
+        """Adapt the retired KB format only while resuming an old run snapshot."""
+        required = ("name", "severity", "category", "description", "root_cause", "aliases")
+        if any(entry.get(field) in (None, "", []) for field in required):
+            raise ValueError("incomplete legacy KB entry")
+
+        entry.update(
+            {
+                "title": entry["name"],
+                "impact": entry["severity"],
+                "tags": entry["aliases"],
+                "protocol": "legacy",
+                "language": "legacy",
+                "content": {
+                    "description": entry["description"],
+                    "location": (entry.get("references") or ["legacy"])[0],
+                    "recommendation": entry["root_cause"],
+                    "status": entry.get("review_status", "legacy"),
+                },
+            }
         )
 
     def search(self, query: str, top_k: int = 5):
@@ -61,9 +102,18 @@ class KnowledgeBase:
         return SourceRecord(
             source_id=entry["id"],
             kind="kb",
-            title=entry["name"],
-            url=entry["references"][0],
-            evidence_text=entry["description"] + "\nRoot cause: " + entry["root_cause"],
+            title=redact_kb_text(entry["title"], self.redacted_names, self.sensitive_values),
+            # Locations commonly include the audited project's GitHub org/repository. They are
+            # not needed as writer evidence, so omit them rather than expose another name path.
+            url=None,
+            evidence_text="\n".join(
+                redact_kb_text(value, self.redacted_names, self.sensitive_values)
+                for value in (
+                    entry["title"],
+                    entry["content"]["description"],
+                    entry["content"]["recommendation"],
+                )
+            ),
         )
 
 

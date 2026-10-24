@@ -46,6 +46,72 @@
           ],
           "default": null,
           "title": "Stat Ids"
+        },
+        "service_line": {
+          "anyOf": [
+            {
+              "enum": [
+                "web3-security",
+                "pentesting",
+                "agentic-security",
+                "agentic-payments"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Line"
+        },
+        "focus_terms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Focus Terms",
+          "type": "array"
+        },
+        "seed_query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed Query"
+        },
+        "kb_allowed": {
+          "default": false,
+          "title": "Kb Allowed",
+          "type": "boolean"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        },
+        "preferred_format": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preferred Format"
         }
       },
       "required": [

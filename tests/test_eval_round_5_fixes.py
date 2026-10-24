@@ -32,16 +32,20 @@ RULES = load_brand(ROOT / "inputs/brand-voice.md")[0]
 def stat_pack():
     return ResearchPack(
         slot_id="marketing_2",
-        topic_id="ANGLE-credibility",
-        topic_name="credibility",
+        topic_id="ANGLE-web3-security",
+        topic_name="web3-security",
         sources=[
             SourceRecord(
                 source_id=source_id,
                 kind="stat",
-                title="Sentinel Grove",
-                evidence_text=RULES.approved_stats[source_id],
+                title="Example Firm",
+                evidence_text={
+                    "STAT-01": "Example Firm completed 4 assessments.",
+                    "STAT-02": "Example Firm has 2 reviewers.",
+                    "STAT-03": "Example Firm completed 6 reviews.",
+                }[source_id],
             )
-            for source_id in ("STAT-01", "STAT-02", "STAT-03", "STAT-05")
+            for source_id in ("STAT-01", "STAT-02", "STAT-03")
         ],
     )
 
@@ -49,11 +53,11 @@ def stat_pack():
 def owasp_pack():
     return ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-18",
+        topic_id="SS-18",
         topic_name="Price oracle manipulation",
         sources=[
             SourceRecord(
-                source_id="KB-18",
+                source_id="SS-18",
                 kind="kb",
                 title="Price oracle manipulation",
                 url="https://scs.owasp.org/sctop10/SC03-PriceOracleManipulation/",
@@ -119,10 +123,10 @@ def test_a_name_absent_from_the_pack_is_not_treated_as_a_credit():
 @pytest.mark.parametrize(
     "text",
     [
-        "12 audits per auditor.",
-        "Over 12 audits.",
-        "More than 12 smart contract audits.",
-        "All 12 audits found critical bugs.",
+        "4 assessments per reviewer.",
+        "Over 4 assessments.",
+        "More than 4 assessments.",
+        "All 4 assessments found critical bugs.",
     ],
 )
 def test_a_qualified_approved_count_is_flagged(text):
@@ -137,7 +141,7 @@ def test_a_qualified_approved_count_is_flagged(text):
         "Step 3 of the audit.",
         "Three steps prevent reentrancy.",
         "Solidity 0.8.12 checks overflow.",
-        "12 completed smart contract security audits.",
+        "4 completed assessments.",
     ],
 )
 def test_ordinary_technical_counts_and_an_approved_audit_count_pass(text):
@@ -145,7 +149,7 @@ def test_ordinary_technical_counts_and_an_approved_audit_count_pass(text):
 
 
 def test_cross_sentence_stat_relationships_stay_with_the_reviewer():
-    text = "Sentinel Grove completed 12 smart contract audits. All 3 auditors worked on each one."
+    text = "Example Firm completed 4 assessments. All 2 reviewers worked on each one."
 
     assert check_stat_claims(text, stat_pack()) == []
 
@@ -155,9 +159,9 @@ def test_cross_sentence_stat_relationships_stay_with_the_reviewer():
 
 def test_marketing_posts_limit_approved_facts_and_brand_mentions():
     text = (
-        "Sentinel Grove has completed 12 smart contract audits. "
-        "Our team has 3 auditors. Teams can request a review of their smart contract code "
-        "from Sentinel Grove."
+        "Example Firm completed 4 assessments. Example Firm has 2 reviewers. "
+        "Example Firm completed 6 reviews. SanadSquad offers whole-attack-surface review. "
+        "SanadSquad can be contacted for a review."
     )
     draft = Draft(
         slot_id="marketing_2",
@@ -176,11 +180,11 @@ def test_other_post_types_do_not_enable_marketing_fact_limits():
     assert spec.max_brand_mentions is None
 
 
-def test_the_credibility_brief_requires_one_fact_then_value_then_invitation():
+def test_marketing_writer_carries_the_sanadsquad_positioning_and_format_rules():
     text = (ROOT / "post_types/marketing-post/writer.md").read_text(encoding="utf-8").casefold()
 
-    assert "open with one concrete firm fact" in text
-    assert "never list facts back to back" in text
+    assert "assigned format" in text
+    assert "contract-only" in text
 
 
 # Fix 4: repeated points and examples inside a thread.
@@ -208,11 +212,11 @@ def test_the_credibility_brief_requires_one_fact_then_value_then_invitation():
 def test_a_thread_that_repeats_an_example_or_point_is_rejected(tweets):
     pack = ResearchPack(
         slot_id="thread_1",
-        topic_id="KB-01",
+        topic_id="SS-01",
         topic_name="Reentrancy",
         sources=[
             SourceRecord(
-                source_id="KB-01",
+                source_id="SS-01",
                 kind="kb",
                 title="Reentrancy",
                 evidence_text=" ".join(tweets),
@@ -221,7 +225,7 @@ def test_a_thread_that_repeats_an_example_or_point_is_rejected(tweets):
     )
     draft = Draft(
         slot_id="thread_1",
-        tweets=[Tweet(text=text, source_ids=["KB-01"]) for text in tweets],
+        tweets=[Tweet(text=text, source_ids=["SS-01"]) for text in tweets],
     )
     result = validate(draft, pack, load_type(ROOT, "tech-thread"), RULES)
 
@@ -265,7 +269,7 @@ def test_every_writer_only_note_uses_the_writer_note_prefix():
     notes += colon_feedback(result_with("tweet_1:dangling_colon"))
     notes += claim_feedback(result_with("tweet_1:unsupported_claim_word:precise"))
     notes += link_feedback(result_with("tweet_1:link_domain:target.call"))
-    notes += stat_feedback(result_with("tweet_1:stat_misbound:12 auditor"))
+    notes += stat_feedback(result_with("tweet_1:stat_misbound:4 reviewer"))
     notes += credit_feedback(result_with("repeated_credit:owasp"))
     notes += label_feedback(result_with("tweet_1:section_label:code pattern"))
     notes += length_feedback(result_with("tweet_1:length", text="x" * 281))
@@ -306,19 +310,17 @@ def test_run_log_hides_writer_notes_from_terminal_reasons(tmp_path):
     assert "approved_stat_limit:3/2" in log
 
 
-# Fix 7: post-Merge weak-randomness guidance.
+# Fix 7: current company-KB guidance (rewritten from the retired weak-randomness entry).
 
 
-def test_weak_randomness_entry_uses_current_ethereum_terms():
+def test_company_kb_price_feed_entry_keeps_the_canonical_account_guidance():
     data = json.loads((ROOT / "inputs/kb.json").read_text(encoding="utf-8"))
-    entry = next(item for item in data["entries"] if item["id"] == "KB-10")
-    text = (entry["description"] + " " + entry["root_cause"]).casefold()
+    entry = next(item for item in data["findings"] if item["id"] == "SS-03738")
+    text = (entry["content"]["description"] + " " + entry["content"]["recommendation"]).casefold()
 
-    assert "since the merge" in text
-    assert "validators" in text or "proposers" in text
-    assert "block.prevrandao" in text
-    assert "not safe randomness" in text
-    assert "no longer actively maintained" in text
+    assert "canonical accounts" in text
+    assert "historical prices" in text
+    assert "canonical feed account" in text
 
 
 # Fix 8: token headroom.

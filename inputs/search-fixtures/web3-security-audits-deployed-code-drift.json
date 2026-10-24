@@ -1,0 +1,7 @@
+[
+  {
+    "url": "https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable",
+    "title": "OpenZeppelin: Writing upgradeable contracts",
+    "raw_content": "OpenZeppelin documentation explains that deployed contract code has constraints that differ from development code. Security review should account for initialization and upgrade paths before deployment."
+  }
+]
