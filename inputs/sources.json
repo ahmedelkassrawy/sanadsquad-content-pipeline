@@ -25,7 +25,6 @@
     "blogs": [
       "circle.com",
       "coinbase.com",
-      "mirror.xyz",
       "stripe.com"
     ],
     "docs": [
@@ -38,7 +37,6 @@
     "figures": [
       "balajis.com",
       "cdixon.org",
-      "mirror.xyz",
       "vitalik.eth.limo"
     ],
     "production": [
@@ -147,8 +145,6 @@
     ],
     "figures": [
       "danrobinson.xyz",
-      "mirror.xyz",
-      "paradigm.xyz",
       "samczsun.com",
       "vitalik.eth.limo"
     ],

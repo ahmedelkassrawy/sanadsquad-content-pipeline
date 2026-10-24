@@ -22,8 +22,9 @@ are the firm's facts (no figures yet: the company's audits are private); the 20 
   (both for a shared domain) and each query records both searched lines, a URL outside both lists is still rejected, and the post counts toward
   both lines in the weekly mix. A marketing post may be a thread (3 to 7 posts); its format
   comes from the table in `post_types/marketing-post/type.yaml`.
-- **[inputs/sources.json](inputs/sources.json)** maps each service line to allowed domains (a
-  draft, see [docs/sources.md](docs/sources.md)), plus a global `_deny` list. Every query (empty
+- **[inputs/sources.json](inputs/sources.json)** maps each service line to the domains the guide
+  allows it to search (five groups per line, see [docs/sources.md](docs/sources.md)), plus a global
+  `_deny` list. Every query (empty
   ones too) and every URL is logged in `research_log.json`; a post may link only a page fetched
   in that run; a failed source fails only its slot.
 - **No web search key?** Research uses live DDGS. `SEARCH_BACKEND=fixture` answers searches from
@@ -183,7 +184,7 @@ even if the average passes.
 | Marketing variety: each angle is one service line (or, for a cross-service angle, two) with its own stats and seed query, and the weekly mix compares topics by word overlap. Nothing compares the wording of two finished posts. | Add a cross-slot text similarity check if two posts still read alike. |
 | The rule-of-three check counts any two three-item lists in a piece, including a plain list of account names in a technical thread, so it can drop a sound thread (`thread_2` in the company sample). | Measure it over more runs; exempt lists of code identifiers if it keeps firing on them. |
 | The marketing guide's claims rules (no client names, named competitors or active engagements) are enforced by the writer prompt and the reviewer, not by code. | Turn a recurring reviewer catch into a code check. |
-| The domain lists in `inputs/sources.json` and the search fixtures are drafts written for this change, not lists the company approved. A fixture run quotes hand-written page summaries. | Have the company review `sources.json`; run with Tavily for real page text. |
+| The domain lists in `inputs/sources.json` are this repo's implementation of the guide's source section, and the search fixtures are internal test data. A fixture run quotes hand-written page summaries rather than live pages. | Edit the lists in `inputs/sources.json`; run with Tavily for real page text. |
 | Weaker writer models vary from run to run. On the free setup, while the checks and prompt changes went in one at a time, four runs shipped 4, 2, 6 and 6 of 6; the last two used the checks and prompts as of those runs; the claim-word list was narrowed after them. That is a small sample. | Run a week and read `run.log` whenever you change a writer model. |
 | The reviewer is an LLM and not fully consistent: it rejected "12 smart contract audits completed by a team of 3 auditors" in one run and passed it in the next. That case is now a code check (`check_stat_claims`: a stat's number keeps its noun, and two stats may not share a sentence), but other judgement calls still vary run to run. | Turn a recurring reviewer disagreement into a code check when it can be stated as a rule. |
 | Protocol names are found from the knowledge base's `protocol` field and `inputs/redacted-names.txt`; a project named only in another way (a nickname, a token ticker) is not caught. | Add such names to `inputs/redacted-names.txt`. |

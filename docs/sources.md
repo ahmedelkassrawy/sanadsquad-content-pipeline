@@ -1,19 +1,21 @@
-# Marketing Research Sources (Draft)
+# Marketing Research Sources
 
 > [!NOTE]
-> This document describes the draft sources configuration defined in `inputs/sources.json`.
-> Domain lists represent an initial reputable baseline and remain subject to calibration based on search retrieval performance.
+> This document describes `inputs/sources.json`, which implements section 2 of the marketing
+> guide: one allowlist per service line, five groups inside each line, and a global `_deny` list.
+> The pipeline enforces it before research starts. Change a domain in `inputs/sources.json`;
+> nothing else needs to change.
 
 ## Overview
 
 The marketing research agent draws exclusively from allowlisted domains specified per service line in `inputs/sources.json`. A global `_deny` list prevents indexing or citation of content farms, low-quality aggregators, and paywalled spam.
 
-Sources within each service line are categorized into five groups:
-- **`blogs`**: Research writeups, vulnerability disclosures, and technical engineering blogs.
-- **`docs`**: Official documentation, technical standards, and framework specifications.
-- **`production`**: Real-world deployment artifacts, release announcements, changelogs, and registry updates.
-- **`analysis`**: Quantitative metrics, breach post-mortems, financial figures, and adoption curves.
-- **`figures`**: Domain specialists and security researchers whose public commentary reflects current technical discourse.
+Sources within each service line are categorized into five groups, matching the guide:
+- **`blogs`**: Publications focused on the niche: research writeups, disclosure posts, vendor engineering blogs.
+- **`docs`**: Official documentation for the service area and the major projects inside it.
+- **`production`**: What has newly shipped: release notes, changelogs, standards trackers, launch announcements.
+- **`analysis`**: Numbers: TVL movements, hack post-mortems and loss totals, x402 and MPP volume, facilitator counts and share, adoption curves.
+- **`figures`**: People worth following in each area, and what they are currently arguing about.
 
 ---
 
