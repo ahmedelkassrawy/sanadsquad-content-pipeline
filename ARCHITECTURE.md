@@ -238,7 +238,7 @@ research agent sets the searcher's allowlist to the union of both lines' domains
 redirect-hop checks apply as before, and a URL outside both lists is rejected and logged. The searcher
 records `service_lines` on each query-log entry (both searched lines) and on each fetch-log, URL-log
 entry and web `SourceRecord` (the lines whose allowlist contains that domain, primary first, so a domain
-on both lists records both). Plan-supplied `service_lines` are ignored: they are re-derived from the angle.
+on both lists records both). Plan-supplied `service_lines` are re-derived from the angle; a malformed value is rejected when the plan loads.
 `check_research_separation` then accepts a marketing web source only if its recorded lines intersect
 the post's lines. Single-service posts are unchanged: one allowlist, no `service_lines` keys.
 Focus-term resolution (`marketing_service_line`) is single-service: cross-service angles have no
