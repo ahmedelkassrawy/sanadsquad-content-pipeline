@@ -304,6 +304,20 @@ def test_a_focused_angle_id_resolves_both_service_lines():
     assert PostTypes(ROOT).marketing_service_line(slot) == CROSS[0]
 
 
+def test_a_single_service_angle_named_in_focus_keeps_its_planned_format():
+    # The format change from naming an angle in focus belongs to cross-service angles only.
+    def assigned(focus):
+        state = SlotState(slot=ResolvedSlot(slot_id="m1", type="marketing-post", focus=focus))
+        mix_pipeline()._assign_marketing_mix([state])
+        return state.slot
+
+    focused = assigned("ANGLE-agentic-payments")
+    plain = assigned(None)
+
+    assert focused.format == plain.format
+    assert focused.service_line is None and focused.service_lines is None
+
+
 def test_mix_keeps_both_lines_when_focus_names_the_angle_after_research():
     # `run_piece --topic ANGLE-...` puts the angle in focus, and research then replaces the
     # topic id with the chosen source. The angle must still supply both lines for the mix.

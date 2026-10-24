@@ -1,5 +1,6 @@
 # Each service line has one angle, plus cross-service angles that list two `service_lines`
-# (reached by topic_id only; they have no focus_terms, so a focus never resolves to them). The vulnerability-class angle is the sole marketing
+# (reached by `topic_id`, or by naming the angle's id or name in `focus`; they have no
+# `focus_terms`). The vulnerability-class angle is the sole marketing
 # exception that may use the KB, and it must cite its listed finding.
 angles:
 - id: ANGLE-web3-security

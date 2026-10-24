@@ -14,6 +14,7 @@ from pathlib import Path
 
 import pytest
 
+from content_pipeline import ai_text
 from content_pipeline.models import Draft, ResearchPack, ResolvedSlot
 from content_pipeline.post_types import PostTypes
 from content_pipeline.validation import validate
@@ -43,6 +44,7 @@ def resolved(item):
         slot_id=item["slot_id"],
         type=item["type"],
         focus=item["focus"],
+        topic_id=item["topic_id"],
         format=item["format"],
         service_line=item["service_line"],
         service_lines=item["service_lines"],
@@ -83,9 +85,12 @@ def test_a_recorded_draft_gets_exactly_the_audit_it_got_in_the_live_run(record_i
     assert result.accepted is audit["accepted"], record_id
     assert result.violations == audit["violations"], record_id
     assert result.fixes == audit["fixes"], record_id
-    assert [tweet.text for tweet in result.normalized.tweets] == [
-        tweet["text"] for tweet in audit["normalized"]
+    assert [(tweet.text, tweet.source_ids) for tweet in result.normalized.tweets] == [
+        (tweet["text"], tweet["source_ids"]) for tweet in audit["normalized"]
     ], record_id
+
+    original = "\n".join(tweet["text"] for tweet in audit["original"]["tweets"])
+    assert ai_text.sentence_length_stats(original) == audit["sentence_length_stats"], record_id
 
 
 def test_every_recorded_shipped_post_still_passes_every_code_check():
@@ -94,6 +99,7 @@ def test_every_recorded_shipped_post_still_passes_every_code_check():
 
     for slot_id in shipped:
         attempts = [record for record in DRAFTS.values() if record["slot_id"] == slot_id]
+        assert attempts, f"{slot_id} shipped but has no recorded draft"
         last = max(attempts, key=lambda record: record["attempt"])
 
         assert run_checks(last).accepted, (
@@ -122,9 +128,10 @@ def test_each_writer_prompt_states_its_tweet_budget(prompt):
     assert "budget" in text, f"{prompt} lost its length budget"
 
 
-def test_the_recorded_week_was_written_by_the_committed_models():
+def test_the_recording_names_the_models_that_wrote_it():
     models = week()["models"]
 
-    assert models["thread_writer"] == models["marketing_writer"]
-    assert models["reviewer"] != models["thread_writer"]
+    assert models["writer"] == models["research"]
+    assert models["reviewer"] != models["writer"]
     assert week()["settings"]["max_tweet_chars"] == 280
+    assert week()["snapshot_sha256"]["post_types/marketing-post/writer.md"]

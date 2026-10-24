@@ -114,9 +114,14 @@ def states(*topic_ids):
 
 def stub_types(real, angles):
     """A PostTypes stand-in whose angle table has extra test angles."""
-    stub = SimpleNamespace(spec=real.spec, angles=lambda _: angles)
-    stub.marketing_angle = lambda slot: PostTypes.marketing_angle(stub, slot)
-    return stub
+
+    class Stub(PostTypes):
+        spec = real.spec
+
+        def angles(self, _):
+            return angles
+
+    return Stub.__new__(Stub)
 
 
 def mix_pipeline(types=None, week="2024-W02"):

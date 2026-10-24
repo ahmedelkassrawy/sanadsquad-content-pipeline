@@ -249,7 +249,11 @@ class PostTypes:
         return selected
 
     def marketing_angle(self, slot: ResolvedSlot) -> Angle | None:
-        """The angle a marketing slot names by topic id, or by an angle id or name in focus."""
+        """The angle a marketing slot names by topic id, or by a cross-service id or name in focus.
+
+        Only cross-service angles resolve from focus: for a single-service angle the planned format
+        still comes from the weekly mix, exactly as before this helper existed.
+        """
         if slot.type != "marketing-post":
             return None
 
@@ -263,7 +267,11 @@ class PostTypes:
             return None
 
         return next(
-            (angle for angle in angles if focus in {angle.id.casefold(), angle.name.casefold()}),
+            (
+                angle
+                for angle in angles
+                if angle.service_lines and focus in {angle.id.casefold(), angle.name.casefold()}
+            ),
             None,
         )
 

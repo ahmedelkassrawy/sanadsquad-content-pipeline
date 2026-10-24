@@ -2,8 +2,8 @@
 
 The replay test re-runs the current code checks over these real drafts and
 research packs, so a check that would now reject (or accept) a real post fails
-the suite in seconds without spending money. Record a fresh week after a
-deliberate prompt, model, policy or check change:
+the suite in seconds without spending money. Record a fresh week only when a
+replay failure showed the recording was wrong, not the check:
 
     python run_week.py --plan inputs/plan.json --output output/live-replay-week
     python scripts/record_live_week.py output/live-replay-week
@@ -11,23 +11,40 @@ deliberate prompt, model, policy or check change:
 Only the parts the replay needs are kept: the resolved plan, every recorded
 draft and its audit, and each slot's research pack. Image paths, error strings
 and usage files stay out. The script refuses to write a fixture that still
-contains a key-like string or a local absolute path.
+contains a key-like string, a value from the local `.env`, or a local
+absolute path. `recorded_at` and `cost_usd` change on every recording;
+everything else should not.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEST = ROOT / "tests" / "fixtures" / "live_week"
-AGENTS = ("research", "thread_writer", "marketing_writer", "reviewer", "visual")
-SECRET = re.compile(r"(?:sk-ant[-_A-Za-z0-9]{8,}|sk-[A-Za-z0-9]{16,}|tvly-[A-Za-z0-9]{8,})")
-LOCAL_PATH = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]|/home/|/Users/|AppData")
+# The prompt and policy files, as they were inside the run folder, that shaped the drafts.
+SNAPSHOT = (
+    "agents/research/system.md",
+    "agents/thread_writer/system.md",
+    "agents/marketing_writer/system.md",
+    "agents/reviewer/system.md",
+    "post_types/tech-thread/writer.md",
+    "post_types/tech-thread/rubric.md",
+    "post_types/marketing-post/writer.md",
+    "post_types/marketing-post/rubric.md",
+    "inputs/ai-constructions.yaml",
+    "inputs/ai-vocabulary.txt",
+)
+# The pipeline's own redaction treats any 28-character token as suspicious, which is right for
+# an error string but would reject page text and content hashes here. Match credential prefixes,
+# then check every value configured in the local .env.
+SECRET = re.compile(r"(?:sk|nvapi|gsk|AIza|tvly)[-_A-Za-z0-9]{8,}")
+LOCAL_PATH = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/]|/home/|/Users/|/root/|AppData")
 
 
 def read(folder: Path, name: str):
@@ -35,32 +52,30 @@ def read(folder: Path, name: str):
     return json.loads((folder / name).read_text(encoding="utf-8"))
 
 
-def commit():
-    """Return the checked-out commit, or None outside a git checkout."""
-    try:
-        return subprocess.run(
-            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return None
+def snapshot_digests(folder):
+    """Return the sha256 of each prompt and policy file the run actually used."""
+    return {
+        name: hashlib.sha256((folder / "snapshot" / name).read_bytes()).hexdigest()
+        for name in SNAPSHOT
+        if (folder / "snapshot" / name).exists()
+    }
 
 
-def model_names():
-    """Return the model each agent was configured with."""
-    models = {}
+def model_names(folder):
+    """Return the model each agent used, read from the run's own usage log."""
+    names = {}
 
-    for agent in AGENTS:
-        path = ROOT / "agents" / agent / "agent.yaml"
+    for line in (folder / "usage.jsonl").read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        node = row.get("node") or ""
+        names.setdefault("research" if node.startswith("research") else node, row.get("model"))
 
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if line.startswith("model:"):
-                models[agent] = line.split(":", 1)[1].strip()
-                break
+    if not names:
+        raise SystemExit("the run folder has no usage records; cannot record model provenance")
 
-    return models
+    return {name: names[name] for name in sorted(names)}
 
 
 def research_packs(states):
@@ -118,8 +133,33 @@ def drafts(records):
     return kept
 
 
+def configured_secrets():
+    """Return the values in the local .env, so a leak of any of them is caught."""
+    path = ROOT / ".env"
+    if not path.exists():
+        return set()
+
+    values = set()
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        name, separator, value = line.partition("=")
+        value = value.strip().strip("'\"")
+        if separator and not name.strip().startswith("#") and len(value) >= 12:
+            values.add(value)
+
+    return values
+
+
+def plan_week(folder):
+    """Return the week the marketing mix used, when the plan pinned one."""
+    path = folder / "snapshot" / "inputs" / "plan.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8-sig")).get("week")
+
+
 def check_clean(payload):
-    """Refuse to commit a key-like string or a local path in the fixture."""
+    """Refuse to write a key, a configured secret value or a local path into the fixture."""
     text = json.dumps(payload, ensure_ascii=False)
 
     for pattern, what in ((SECRET, "a key-like string"), (LOCAL_PATH, "a local absolute path")):
@@ -127,6 +167,9 @@ def check_clean(payload):
 
         if match:
             raise SystemExit(f"refusing to record: {what} ({match.group(0)!r})")
+
+    if any(value in text for value in configured_secrets()):
+        raise SystemExit("refusing to record: a value from .env appears in the run")
 
 
 def main(argv=None):
@@ -143,9 +186,10 @@ def main(argv=None):
 
     week = {
         "recorded_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "commit": commit(),
+        "snapshot_sha256": snapshot_digests(folder),
         "run_id": summary["run_id"],
-        "models": model_names(),
+        "models": model_names(folder),
+        "marketing_week": plan_week(folder),
         "settings": {
             "max_tweet_chars": settings["max_tweet_chars"],
         },
@@ -172,7 +216,11 @@ def main(argv=None):
 
     for name, value in payload.items():
         (DEST / (name + ".json")).write_text(
-            json.dumps(value, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            json.dumps(value, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            # .gitattributes keeps this folder byte-for-byte, so pin the line ending here
+            # rather than depending on the platform that re-records the week.
+            newline="\r\n",
         )
 
     print(

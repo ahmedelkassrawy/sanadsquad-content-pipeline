@@ -1,14 +1,25 @@
 {
-  "recorded_at": "2026-10-24T13:58:43+00:00",
-  "commit": "1367edd8133c389ad9897b19fd916b338b6bb50b",
+  "recorded_at": "2026-10-24T14:29:27+00:00",
+  "snapshot_sha256": {
+    "agents/research/system.md": "1f8cae6f6b70e3cb528d949935131fcce77161cf6430571ae58759c0c889f2c6",
+    "agents/thread_writer/system.md": "dc95eacd0d049b30288933c689a54a2dba19d796627b1d93c42a0fe087e91cd8",
+    "agents/marketing_writer/system.md": "d95493c24fa5fa5c4bfc51e1e3c7172f8e3a616951eb1ba2f70d3a656e5e4945",
+    "agents/reviewer/system.md": "1e775c6f481043ed3721bd35d1bdfbc4d4456c659e693bc6208fc8ffa71f5642",
+    "post_types/tech-thread/writer.md": "efd8d9a2087a81a4929c3172d8d1ed9d49b30ba704f2425e9ad56230aff25128",
+    "post_types/tech-thread/rubric.md": "d374c8dfbb55d8c2e7fe416ad0e9c7517badf0541110af974ce1e14b695acff6",
+    "post_types/marketing-post/writer.md": "5903011779aa055b313032240af262a6a5e76c6608b3f06b37a94d07b111500d",
+    "post_types/marketing-post/rubric.md": "0b027fe4a297e9b47df8d2656e3b541ec38d67fbd597cb8bc17f8ca03b74e017",
+    "inputs/ai-constructions.yaml": "4d490abeb9a9b13bca5977430880e654c7b7209c63bd7b5afb8f67b1f3d40aa5",
+    "inputs/ai-vocabulary.txt": "67606e8ae91defb1a68e767350b9b70014e014a80e06a06797e6c2fe88b3cc3d"
+  },
   "run_id": "live-replay-week",
   "models": {
     "research": "anthropic:claude-sonnet-5-5",
-    "thread_writer": "anthropic:claude-sonnet-5-5",
-    "marketing_writer": "anthropic:claude-sonnet-5-5",
     "reviewer": "anthropic:claude-opus-5-5",
-    "visual": "anthropic:claude-sonnet-5-5"
+    "visual": "anthropic:claude-sonnet-5-5",
+    "writer": "anthropic:claude-sonnet-5-5"
   },
+  "marketing_week": null,
   "settings": {
     "max_tweet_chars": 280
   },

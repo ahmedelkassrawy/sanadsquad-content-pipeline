@@ -42,22 +42,29 @@ model will make sound editorial or grounding judgments.
 ## Recorded live week replay
 
 `tests/fixtures/live_week/` holds one real week: the research packs, every draft the writers
-returned and the audit each draft got from the code checks. `tests/test_live_week_replay.py`
-re-runs the current checks over that content, offline, and fails if a check would now reject a
-post that shipped or pass one that was rejected. This is the check that would have caught the
-gates that misfired only on real model output (the rule-of-three false positive, a false
-repeat-credit, an approved post dropped by the weekly mix, two stats sharing a brand name).
+returned and the audit each draft got from the hard checks. `tests/test_live_week_replay.py`
+re-runs `validate()` over that content, offline, and fails if a verdict, violation, fix,
+citation or length statistic changes. A check that would now reject a post that shipped, or pass
+one that was rejected, fails the suite in seconds.
 
-Record a fresh week after a deliberate change to the checks, the prompts or the models:
+The replay covers the hard gates only. Topic assignment, research, the weekly mix and the
+reviewer's judgement are not replayed; the recorded audit is what the gates said at recording
+time.
+
+When the replay fails, decide which side is wrong. Fix the check when the new verdict is wrong.
+Re-record only when the new verdict is right, because re-recording turns whatever the current
+code says into the expectation. A recording needs a real week (about $0.80), so keep the run
+folder until the new fixture is reviewed.
 
 ```powershell
 & .\.venv\Scripts\python.exe run_week.py --plan inputs/plan.json --output output/live-replay-week
 & .\.venv\Scripts\python.exe scripts\record_live_week.py output/live-replay-week
 ```
 
-The recorder keeps only the resolved slots, the research packs and the drafts with their audits.
-It refuses to write a fixture that contains a key-like string or a local path. Read the new
-`week.json` (models, commit, cost, recorded date) and the diff before committing it.
+The recorder keeps only the resolved slots, the research packs and the drafts with their audits,
+plus the model names it reads from the run's usage log and the prompt digests from the run's
+snapshot. It refuses to write a fixture that contains a key-like string or a local path. Read the
+new `week.json` and the diff before committing it.
 
 ## Live sample evidence
 
