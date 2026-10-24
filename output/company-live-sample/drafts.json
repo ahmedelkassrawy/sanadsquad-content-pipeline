@@ -1,0 +1,881 @@
+[
+  {
+    "record_id": "marketing_1/validator/1/1",
+    "slot_id": "marketing_1",
+    "attempt": 1,
+    "input_sha256": "c2a5d8427a1274f26c875cd0ead85898615775b6138dad7fe6d380816d76a97e",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "x402 and MPP both let software pay over HTTP 402. Dune tracks x402 on Base, Polygon and Solana, and MPP on Tempo. An agent that pays needs more than a clean contract: facilitator trust and payment policy matter too. Teams can request a review.",
+            "source_ids": [
+              "WEB-2869b4da65b9ba10",
+              "STAT-04",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/1 x402 and MPP both let software pay over HTTP 402. Dune tracks x402 on Base, Polygon and Solana, and MPP on Tempo. An agent that pays needs more than a clean contract: facilitator trust and payment policy matter too. Teams can request a review.",
+          "source_ids": [
+            "WEB-2869b4da65b9ba10",
+            "STAT-04",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_count",
+        "format_units:thread:1/3-7"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 11.0,
+        "stdev": 4.97
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "input_sha256": "35dc1d63d3e8a9738aa38aacc720aad143b1e70599217293b8950a599aa1f7fb",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Many agent risks are not novel bugs. They come from over-privileged tools and ambient authority inherited from the environment the agent runs in. Fix the root cause first: scope what each tool can do, then add checks. A clean contract does not cover that surface.",
+            "source_ids": [
+              "WEB-db7293c51b9d49f6",
+              "WEB-c6314847413b045d"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Many agent risks are not novel bugs. They come from over-privileged tools and ambient authority inherited from the environment the agent runs in. Fix the root cause first: scope what each tool can do, then add checks. A clean contract does not cover that surface.",
+          "source_ids": [
+            "WEB-db7293c51b9d49f6",
+            "WEB-c6314847413b045d"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "marketing_kb_citation_required"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 11.25,
+        "stdev": 4.43
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_3/validator/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "1db1a734b9b0b88dbbf9ac87be428d3dde83c35660a5c17b898f327c7635a966",
+    "audit": {
+      "original": {
+        "slot_id": "thread_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "The `unstake` function trusts that a vault holds only what `StakeAccount` recorded. An attacker can break that assumption by sending a single base unit of the pool mint to the vault, and withdrawals then fail for the victim.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "Here is what `unstake` does. It transfers only the principal recorded in `StakeAccount`, then closes the vault unconditionally, with no check on what else the vault holds.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "The vault can still receive unsolicited token transfers. Anyone who holds the pool mint can send tokens to it, and the vault address of a victim can be derived publicly, so no inside knowledge is needed to target it.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "After one base unit lands there, the vault holds a nonzero remainder once the principal is paid out. `CloseAccount` fails on a nonzero balance, which is the step the unconditional close depends on.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "The failure is atomic, so the whole transaction rolls back, transfer included. Every withdrawal attempt by that staker reverts, and the block is permanent because no instruction exists that can sweep the excess out.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "The fix is in the transfer step of `unstake`. Send the staker the full token account balance of the vault, not the balance recorded in `StakeAccount`, so nothing is left over when the close runs.",
+            "source_ids": [
+              "SS-03897"
+            ]
+          },
+          {
+            "text": "Before you ship, check two things: does your `unstake` transfer the vault's actual token balance rather than the recorded principal, and can anything stop the vault close from succeeding when someone has sent it extra tokens?",
+            "source_ids": [
+              "SS-03897"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/7 The `unstake` function trusts that a vault holds only what `StakeAccount` recorded. An attacker can break that assumption by sending a single base unit of the pool mint to the vault, and withdrawals then fail for the victim.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "2/7 Here is what `unstake` does. It transfers only the principal recorded in `StakeAccount`, then closes the vault unconditionally, with no check on what else the vault holds.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "3/7 The vault can still receive unsolicited token transfers. Anyone who holds the pool mint can send tokens to it, and the vault address of a victim can be derived publicly, so no inside knowledge is needed to target it.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "4/7 After one base unit lands there, the vault holds a nonzero remainder once the principal is paid out. `CloseAccount` fails on a nonzero balance, which is the step the unconditional close depends on.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "5/7 The failure is atomic, so the whole transaction rolls back, transfer included. Every withdrawal attempt by that staker reverts, and the block is permanent because no instruction exists that can sweep the excess out.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "6/7 The fix is in the transfer step of `unstake`. Send the staker the full token account balance of the vault, not the balance recorded in `StakeAccount`, so nothing is left over when the close runs.",
+          "source_ids": [
+            "SS-03897"
+          ]
+        },
+        {
+          "text": "7/7 Before you ship, check two things: does your `unstake` transfer the vault's actual token balance rather than the recorded principal, and can anything stop the vault close from succeeding when someone has sent it extra tokens?",
+          "source_ids": [
+            "SS-03897"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 13,
+        "mean": 18.62,
+        "stdev": 9.48
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_2/validator/2/1",
+    "slot_id": "marketing_2",
+    "attempt": 2,
+    "input_sha256": "dd43465175c0f5ce55124ee762d4f7a07f56d504d487026cd055125502cc6379",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A Solana permissions program checked limits only when a token balance changed. A user with a small TokenLimit could still submit SetAuthority and take ownership of the token account. Root cause: unrestricted instruction types. Fix: allow only approved actions per role.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "A Solana permissions program checked limits only when a token balance changed. A user with a small TokenLimit could still submit SetAuthority and take ownership of the token account. Root cause: unrestricted instruction types. Fix: allow only approved actions per role.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "marketing_web_citation_required"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 10.25,
+        "stdev": 5.38
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_1/validator/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "input_sha256": "14da5a329d72df4700a1d3a39818821f5b092721c31dcf09248048fe14887be4",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "x402 and MPP both let software pay over HTTP 402, but they are not the same thing. Here is a short comparison of how they differ and why it matters for anyone building agents that hold a wallet.",
+            "source_ids": [
+              "WEB-2869b4da65b9ba10",
+              "WEB-6336a84ca33f90b3"
+            ]
+          },
+          {
+            "text": "x402 is an onchain-native standard. Per Dune, settlement is trackable onchain through facilitator infrastructure, on Base, Polygon and Solana.",
+            "source_ids": [
+              "WEB-2869b4da65b9ba10"
+            ]
+          },
+          {
+            "text": "MPP supports onchain and offchain payment methods. Dune tracks only its onchain Tempo rails: Tempo Charge for one-time payments, and Tempo Session for escrow and settlement.",
+            "source_ids": [
+              "WEB-2869b4da65b9ba10"
+            ]
+          },
+          {
+            "text": "Root cause first: an agent that pays on its own depends on facilitator trust and payment policy, not only on contract code. SanadSquad provides agentic payment protocol review for x402 and MPP. Teams can request a review.",
+            "source_ids": [
+              "STAT-04",
+              "STAT-05"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/4 x402 and MPP both let software pay over HTTP 402, but they are not the same thing. Here is a short comparison of how they differ and why it matters for anyone building agents that hold a wallet.",
+          "source_ids": [
+            "WEB-2869b4da65b9ba10",
+            "WEB-6336a84ca33f90b3"
+          ]
+        },
+        {
+          "text": "2/4 x402 is an onchain-native standard. Per Dune, settlement is trackable onchain through facilitator infrastructure, on Base, Polygon and Solana.",
+          "source_ids": [
+            "WEB-2869b4da65b9ba10"
+          ]
+        },
+        {
+          "text": "3/4 MPP supports onchain and offchain payment methods. Dune tracks only its onchain Tempo rails: Tempo Charge for one-time payments, and Tempo Session for escrow and settlement.",
+          "source_ids": [
+            "WEB-2869b4da65b9ba10"
+          ]
+        },
+        {
+          "text": "4/4 Root cause first: an agent that pays on its own depends on facilitator trust and payment policy, not only on contract code. SanadSquad provides agentic payment protocol review for x402 and MPP. Teams can request a review.",
+          "source_ids": [
+            "STAT-04",
+            "STAT-05"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [
+        "tweet_4:section_label:root cause first"
+      ],
+      "accepted": false,
+      "sentence_length_stats": {
+        "count": 9,
+        "mean": 13.33,
+        "stdev": 6.8
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "76d87769769aca501a3aab9f83e0c5a4c6f5a6e0b4cd01ced75774d7a298bdb8",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A protocol that reads a Pyth price from any account matching a feed ID, instead of one canonical account, lets a user choose which valid price the program sees.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "The gap sits in how the sol_usd_pyth_feed account is checked. The protocol does not require a canonical account there. Any account carrying the same feed ID is accepted.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "That means anyone can create their own PriceUpdateV2 account and publish historical prices into it. The program then reads it as if it were the real feed.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "The protocol does validate publish and update times correctly, so the old price is not stale by its own rules. It is simply still inside the allowed age window, which is the problem.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Take a 5-minute age window as an example. Transaction 1 uses the latest price t2. Transaction 2 uses an older price t1, where t1 is less than t2, from a custom account.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Both prices pass the time check, yet the user picked the older one. In this protocol the window was configured to 60s, and picking among valid historical prices within it can potentially manipulate outcomes.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "One fix is to use a canonical feed account that Pyth manages and sponsors. The program then has a single account whose contents the user cannot replace.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Another option is a personal, persistent account that you control and update yourself. Control over who writes to the account is what closes the gap.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Does your program accept a PriceUpdateV2 account that only matches the feed ID, without requiring a canonical Pyth account or one you control?",
+            "source_ids": [
+              "SS-03738"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A protocol that reads a Pyth price from any account matching a feed ID, instead of one canonical account, lets a user choose which valid price the program sees.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "2/9 The gap sits in how the sol_usd_pyth_feed account is checked. The protocol does not require a canonical account there. Any account carrying the same feed ID is accepted.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "3/9 That means anyone can create their own PriceUpdateV2 account and publish historical prices into it. The program then reads it as if it were the real feed.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "4/9 The protocol does validate publish and update times correctly, so the old price is not stale by its own rules. It is simply still inside the allowed age window, which is the problem.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "5/9 Take a 5-minute age window as an example. Transaction 1 uses the latest price t2. Transaction 2 uses an older price t1, where t1 is less than t2, from a custom account.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "6/9 Both prices pass the time check, yet the user picked the older one. In this protocol the window was configured to 60s, and picking among valid historical prices within it can potentially manipulate outcomes.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "7/9 One fix is to use a canonical feed account that Pyth manages and sponsors. The program then has a single account whose contents the user cannot replace.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "8/9 Another option is a personal, persistent account that you control and update yourself. Control over who writes to the account is what closes the gap.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "9/9 Does your program accept a PriceUpdateV2 account that only matches the feed ID, without requiring a canonical Pyth account or one you control?",
+          "source_ids": [
+            "SS-03738"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 18,
+        "mean": 14.33,
+        "stdev": 5.75
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "2044df211e33f8023f23a3fc572ae2e467f280ff6989ed2e5cb76cca6e0c8cc4",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "A user holding only a tiny token limit can call a wallet's signing instruction and take over the protocol's token account, without moving a single token.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The `sign_v1` instruction does not restrict which instructions can run against the accounts. A user with limited permissions can submit instructions that touch accounts in ways their role never covered.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The permission check only fires when a token balance changes. An instruction that changes control instead of balance never trips it, so the check passes.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Take a user with `TokenLimit` on mint `[0; 32]` and amount `1`. They submit a `SetAuthority` instruction on the token account. The balance stays the same, the check passes, and they become the account owner.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The same gap means a user with no permission at all could do this, because the function only looks at permissions when a balance changes.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "A proof of concept confirms it. A second authority holds `TokenLimit` for token `[0;32]` with amount 1, sends `SetAuthority` through the sign instruction, and the token account owner becomes that authority. The account still holds 1000 tokens.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Token accounts are not the only target. Stake accounts could be hit too, for example by transferring authority or modifying lockups. Any account where an action leaves the balance alone but changes control or behaviour is exposed.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The fix is to restrict instruction types and actions per account type, and allow only explicitly approved, verifiable operations for the assigned role. For token accounts that means things like `Transfer` and `Burn` with limits.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Grep your signing path for permission checks gated on a balance diff, then test it by sending `SetAuthority` from a low-permission role and confirm the call is rejected.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A user holding only a tiny token limit can call a wallet's signing instruction and take over the protocol's token account, without moving a single token.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "2/9 The `sign_v1` instruction does not restrict which instructions can run against the accounts. A user with limited permissions can submit instructions that touch accounts in ways their role never covered.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "3/9 The permission check only fires when a token balance changes. An instruction that changes control instead of balance never trips it, so the check passes.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "4/9 Take a user with `TokenLimit` on mint `[0; 32]` and amount `1`. They submit a `SetAuthority` instruction on the token account. The balance stays the same, the check passes, and they become the account owner.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "5/9 The same gap means a user with no permission at all could do this, because the function only looks at permissions when a balance changes.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "6/9 A proof of concept confirms it. A second authority holds `TokenLimit` for token `[0;32]` with amount 1, sends `SetAuthority` through the sign instruction, and the token account owner becomes that authority. The account still holds 1000 tokens.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "7/9 Token accounts are not the only target. Stake accounts could be hit too, for example by transferring authority or modifying lockups. Any account where an action leaves the balance alone but changes control or behaviour is exposed.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "8/9 The fix is to restrict instruction types and actions per account type, and allow only explicitly approved, verifiable operations for the assigned role. For token accounts that means things like `Transfer` and `Burn` with limits.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "9/9 Grep your signing path for permission checks gated on a balance diff, then test it by sending `SetAuthority` from a low-permission role and confirm the call is rejected.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 18,
+        "mean": 15.44,
+        "stdev": 7.14
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "marketing_3/validator/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "739fa4c5280f1a7c1a8664b6e5a8cdbca4e53a688c6174efdd495193ed4a38b7",
+    "audit": {
+      "original": {
+        "slot_id": "marketing_3",
+        "attempt": 1,
+        "tweets": [
+          {
+            "text": "Nomad lost $190M in 2022. Zellic reports the buggy code came in after the audit began, so deployed code differed from audited code. It also finds 15 of the top 20 Rekt hacks were unaudited. https://www.zellic.io/blog/audit-drift",
+            "source_ids": [
+              "WEB-d41df0417a0182fc"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "Nomad lost $190M in 2022. Zellic reports the buggy code came in after the audit began, so deployed code differed from audited code. It also finds 15 of the top 20 Rekt hacks were unaudited. https://www.zellic.io/blog/audit-drift",
+          "source_ids": [
+            "WEB-d41df0417a0182fc"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 4,
+        "mean": 9.0,
+        "stdev": 7.53
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_1/validator/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "d02e4a54f0e22bbd379d943199ee6847190f10a43976049ae292d68dd32bb43a",
+    "audit": {
+      "original": {
+        "slot_id": "thread_1",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "A program that accepts any Pyth price account sharing the expected feed ID, instead of one canonical account, lets the caller decide which valid price it reads.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "In this audit finding, the check on the sol_usd_pyth_feed account never required a canonical account. Matching the feed ID was the only test the account had to pass.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Because of that, a user can create a PriceUpdateV2 account of their own and fill it with historical prices, then hand it to the program in place of the real feed.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Time validation was done properly. Publish and update times were checked. But an old price that still falls inside the permitted age window passes every one of those checks.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Picture a 5-minute window. One transaction reads the latest price t2. A second transaction reads the older price t1 from a custom account, with t1 below t2. Both are accepted.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "The window configured in this protocol was 60s. Within it, a user can pick among valid past prices, which can potentially manipulate outcomes.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "One mitigation is to pass in a canonical feed account that Pyth manages and sponsors, rather than an arbitrary account with a matching feed ID.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "A second mitigation is a persistent personal account that you own and keep updated yourself, so the price source is one you operate.",
+            "source_ids": [
+              "SS-03738"
+            ]
+          },
+          {
+            "text": "Does your program accept a PriceUpdateV2 account based only on its feed ID, without requiring a canonical Pyth account or one you control?",
+            "source_ids": [
+              "SS-03738"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/9 A program that accepts any Pyth price account sharing the expected feed ID, instead of one canonical account, lets the caller decide which valid price it reads.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "2/9 In this audit finding, the check on the sol_usd_pyth_feed account never required a canonical account. Matching the feed ID was the only test the account had to pass.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "3/9 Because of that, a user can create a PriceUpdateV2 account of their own and fill it with historical prices, then hand it to the program in place of the real feed.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "4/9 Time validation was done properly. Publish and update times were checked. But an old price that still falls inside the permitted age window passes every one of those checks.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "5/9 Picture a 5-minute window. One transaction reads the latest price t2. A second transaction reads the older price t1 from a custom account, with t1 below t2. Both are accepted.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "6/9 The window configured in this protocol was 60s. Within it, a user can pick among valid past prices, which can potentially manipulate outcomes.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "7/9 One mitigation is to pass in a canonical feed account that Pyth manages and sponsors, rather than an arbitrary account with a matching feed ID.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "8/9 A second mitigation is a persistent personal account that you own and keep updated yourself, so the price source is one you operate.",
+          "source_ids": [
+            "SS-03738"
+          ]
+        },
+        {
+          "text": "9/9 Does your program accept a PriceUpdateV2 account based only on its feed ID, without requiring a canonical Pyth account or one you control?",
+          "source_ids": [
+            "SS-03738"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 16,
+        "mean": 14.94,
+        "stdev": 8.95
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  },
+  {
+    "record_id": "thread_2/validator/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "63c6ac8ef0dfef0bab0e1aeaa39fb6713aa563bda3a28d57882af61fb58fe3c8",
+    "audit": {
+      "original": {
+        "slot_id": "thread_2",
+        "attempt": 2,
+        "tweets": [
+          {
+            "text": "An attacker holding only a tiny token limit can send a `SetAuthority` instruction through a wallet's `sign_v1` and become owner of the protocol's token account without moving any tokens.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The problem is that `sign_v1` accepts any instruction type against any account. A role scoped to one mint can still submit calls its permissions were never written to cover.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Permissions are only evaluated when the token balance changes. Control-changing actions leave the balance untouched, so they skip the check, and even a user with no permission at all could use this path.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Take a user with `TokenLimit` on mint `[0; 32]` and amount `1`. They wrap `SetAuthority` for the token account in a sign call, the balance stays flat, and ownership moves to them.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The proof of concept confirms it: the second authority ends up as the token account owner, and the account still shows 1000 tokens afterward, so nothing looks drained.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Stake accounts are exposed the same way, for instance through authority transfers or lockup changes. Any account type where an action alters who controls it, rather than its balance, can be hit.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "The fix is an allowlist per account type, tied to the caller's role. Token accounts would accept things like `Transfer` and `Burn` under limits, and everything else gets refused by default.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          },
+          {
+            "text": "Test your signing path by sending `SetAuthority` from a role with a small `TokenLimit` and from a role with no permission, then grep for any permission check gated on a balance difference.",
+            "source_ids": [
+              "SS-03699"
+            ]
+          }
+        ]
+      },
+      "normalized": [
+        {
+          "text": "1/8 An attacker holding only a tiny token limit can send a `SetAuthority` instruction through a wallet's `sign_v1` and become owner of the protocol's token account without moving any tokens.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "2/8 The problem is that `sign_v1` accepts any instruction type against any account. A role scoped to one mint can still submit calls its permissions were never written to cover.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "3/8 Permissions are only evaluated when the token balance changes. Control-changing actions leave the balance untouched, so they skip the check, and even a user with no permission at all could use this path.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "4/8 Take a user with `TokenLimit` on mint `[0; 32]` and amount `1`. They wrap `SetAuthority` for the token account in a sign call, the balance stays flat, and ownership moves to them.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "5/8 The proof of concept confirms it: the second authority ends up as the token account owner, and the account still shows 1000 tokens afterward, so nothing looks drained.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "6/8 Stake accounts are exposed the same way, for instance through authority transfers or lockup changes. Any account type where an action alters who controls it, rather than its balance, can be hit.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "7/8 The fix is an allowlist per account type, tied to the caller's role. Token accounts would accept things like `Transfer` and `Burn` under limits, and everything else gets refused by default.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        },
+        {
+          "text": "8/8 Test your signing path by sending `SetAuthority` from a role with a small `TokenLimit` and from a role with no permission, then grep for any permission check gated on a balance difference.",
+          "source_ids": [
+            "SS-03699"
+          ]
+        }
+      ],
+      "fixes": [],
+      "violations": [],
+      "accepted": true,
+      "sentence_length_stats": {
+        "count": 13,
+        "mean": 18.92,
+        "stdev": 7.27
+      }
+    },
+    "failure": null,
+    "failure_detail": null
+  }
+]

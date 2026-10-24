@@ -1,0 +1,12 @@
+{
+  "concept": "A stake vault blocked by a single unsolicited token transfer, so unstaking fails",
+  "scene": "Technical brand card on a deep navy background: a vault box connected to a stake account, with one small amber token dropping into the vault and a broken close-account link beside it. Clean engineering diagram style with simple lines and no extra text beyond the overlay.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "permanently block unstaking",
+  "alt_text": "Diagram of a stake vault receiving one small unsolicited token, which stops the vault from closing and blocks unstaking.",
+  "severity": "HIGH"
+}

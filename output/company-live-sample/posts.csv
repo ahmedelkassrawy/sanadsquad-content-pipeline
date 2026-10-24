@@ -1,0 +1,17 @@
+Post Text,Image
+"1/8 An attacker holding only a tiny token limit can send a `SetAuthority` instruction through a wallet's `sign_v1` and become owner of the protocol's token account without moving any tokens.
+2/8 The problem is that `sign_v1` accepts any instruction type against any account. A role scoped to one mint can still submit calls its permissions were never written to cover.
+3/8 Permissions are only evaluated when the token balance changes. Control-changing actions leave the balance untouched, so they skip the check, and even a user with no permission at all could use this path.
+4/8 Take a user with `TokenLimit` on mint `[0; 32]` and amount `1`. They wrap `SetAuthority` for the token account in a sign call, the balance stays flat, and ownership moves to them.
+5/8 The proof of concept confirms it: the second authority ends up as the token account owner, and the account still shows 1000 tokens afterward, so nothing looks drained.
+6/8 Stake accounts are exposed the same way, for instance through authority transfers or lockup changes. Any account type where an action alters who controls it, rather than its balance, can be hit.
+7/8 The fix is an allowlist per account type, tied to the caller's role. Token accounts would accept things like `Transfer` and `Burn` under limits, and everything else gets refused by default.
+8/8 Test your signing path by sending `SetAuthority` from a role with a small `TokenLimit` and from a role with no permission, then grep for any permission check gated on a balance difference.",images/slot-thread_2.png
+"1/7 The `unstake` function trusts that a vault holds only what `StakeAccount` recorded. An attacker can break that assumption by sending a single base unit of the pool mint to the vault, and withdrawals then fail for the victim.
+2/7 Here is what `unstake` does. It transfers only the principal recorded in `StakeAccount`, then closes the vault unconditionally, with no check on what else the vault holds.
+3/7 The vault can still receive unsolicited token transfers. Anyone who holds the pool mint can send tokens to it, and the vault address of a victim can be derived publicly, so no inside knowledge is needed to target it.
+4/7 After one base unit lands there, the vault holds a nonzero remainder once the principal is paid out. `CloseAccount` fails on a nonzero balance, which is the step the unconditional close depends on.
+5/7 The failure is atomic, so the whole transaction rolls back, transfer included. Every withdrawal attempt by that staker reverts, and the block is permanent because no instruction exists that can sweep the excess out.
+6/7 The fix is in the transfer step of `unstake`. Send the staker the full token account balance of the vault, not the balance recorded in `StakeAccount`, so nothing is left over when the close runs.
+7/7 Before you ship, check two things: does your `unstake` transfer the vault's actual token balance rather than the recorded principal, and can anything stop the vault close from succeeding when someone has sent it extra tokens?",images/slot-thread_3.png
+"Nomad lost $190M in 2022. Zellic reports the buggy code came in after the audit began, so deployed code differed from audited code. It also finds 15 of the top 20 Rekt hacks were unaudited. https://www.zellic.io/blog/audit-drift",images/slot-marketing_3.png

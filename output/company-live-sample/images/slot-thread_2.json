@@ -1,0 +1,12 @@
+{
+  "concept": "A signing path that accepts any instruction type lets a role with a small token limit change who controls an account without touching its balance.",
+  "scene": "Dark navy technical card. A simple diagram of a wallet signing call passing a SetAuthority instruction through a balance-only permission check, with ownership of a token account shifting to a second key while the balance stays flat. Clean lines, amber highlight on the bypassed check, white labels.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "SetAuthority",
+  "alt_text": "Technical diagram on a navy background showing a SetAuthority instruction passing a balance-only permission check and moving token account ownership to a second key while the balance stays the same.",
+  "severity": "HIGH"
+}

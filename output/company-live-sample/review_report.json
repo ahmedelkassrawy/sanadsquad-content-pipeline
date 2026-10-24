@@ -1,0 +1,145 @@
+[
+  {
+    "record_id": "thread_3/reviewer/1/1",
+    "slot_id": "thread_3",
+    "attempt": 1,
+    "input_sha256": "005f86ab2177134311b6297c5d30e13754d2a18188a6f2e26a3054e96102ffe9",
+    "review": {
+      "slot_id": "thread_3",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 5.0,
+        "grounding": 4.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/1/1",
+    "slot_id": "thread_2",
+    "attempt": 1,
+    "input_sha256": "ee2617625f1c73add672f57355a3fb935a7de6b5e263c3f4fc2a55d3cd33c3df",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 3.0,
+        "clarity": 2.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The tone is calm and precise, but several tweets closely track evidence sentences rather than explaining in the thread's own words. Tweet 2 mirrors \"does not restrict which instructions can be executed\". Tweet 7 mirrors \"Any account where the action doesn't affect the balance but modifies control or behaviour\". Tweet 8 mirrors \"Only allow explicitly approved and verifiable operations based on the assigned role\".",
+        "The thread restates earlier points. Tweet 6 repeats the tweet 4 example almost step for step: TokenLimit on [0;32] amount 1, then SetAuthority, then the owner changes. Tweet 5 restates tweet 3's point that the check only runs on balance changes. Merging tweets 4 and 6 and folding 5 into 3 would tighten the thread."
+      ],
+      "hard_fail": [],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "marketing_3/reviewer/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "input_sha256": "7cc8fc0d5588b19d1d3fee0ed4a1ad79216e702cf2c64c41e930495c7f1d2ea9",
+    "review": {
+      "slot_id": "marketing_3",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 3.0,
+        "grounding": 4.0,
+        "voice": 3.0,
+        "clarity": 4.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The facts are broadly right, but two conditions are blurred. The evidence says the after-audit-began claim is Quantstamp's, relayed by Zellic, while the tweet attributes it to Zellic. The 15 of 20 figure applies to the Rekt leaderboard 'currently' at the time of Zellic's post, and the tweet drops that time qualifier.",
+        "Calm and factual, with no hype or banned words. However, it is purely a contract-audit framing. It does not connect to SanadSquad's whole-attack-surface position or offer an opinion on what audit drift means. It also places a link while allowed_links is empty, which code may reject."
+      ],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/1/1",
+    "slot_id": "thread_1",
+    "attempt": 1,
+    "input_sha256": "aeb68416b2657c344a67d1db922b5fbc705572d472b273828ca835a307bf89e0",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 3.0,
+        "grounding": 2.0,
+        "voice": 2.0,
+        "clarity": 3.0,
+        "cta": 4.0
+      },
+      "reasons": [
+        "The core mechanism, the PriceUpdateV2 account, the 5-minute example and the configured 60s window match the evidence. Tweets 7 and 8 add mechanism claims the evidence never states: that the user cannot replace the canonical account's contents, and that write control is what closes the gap.",
+        "Tweets 1 through 6 trace to SS-03738. Tweet 7's 'a single account whose contents the user cannot replace' and tweet 8's 'Control over who writes to the account is what closes the gap' are causal and mechanism claims with no support in evidence_text, which only lists the two fixes.",
+        "The tone is calm, but several tweets closely reuse evidence sentences: tweet 2 ('Any account carrying the same feed ID is accepted'), tweet 3 ('create their own PriceUpdateV2 account and publish historical prices'), tweet 5 (the transaction example), tweet 7 ('managed and sponsored by Pyth') and tweet 8 ('personal, persistent account that you control and update yourself'). It reads as reordered source text rather than explanation.",
+        "The thread flows from hook to mechanism, example, fixes and a closing check. It is repetitive, though: tweets 2 and 3 restate tweet 1's point that any matching account is accepted, and tweet 6 repeats tweet 4's point that old prices pass the window check.",
+        "Tweet 7 claims the canonical account's contents cannot be replaced by the user, and tweet 8 claims write control is what closes the gap. Neither mechanism nor causal claim appears in SS-03738, which only recommends the two account options."
+      ],
+      "hard_fail": [
+        "unsupported_claim"
+      ],
+      "accepted": false
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_2/reviewer/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "input_sha256": "2217dc7f12cd5e3751f24266aff6b2fba7892be1fc4eef638cf69297141839b4",
+    "review": {
+      "slot_id": "thread_2",
+      "scores": {
+        "hook": 5.0,
+        "technical_accuracy": 4.0,
+        "grounding": 4.0,
+        "voice": 4.0,
+        "clarity": 4.0,
+        "cta": 5.0
+      },
+      "reasons": [],
+      "hard_fail": [],
+      "accepted": true
+    },
+    "failure": null
+  },
+  {
+    "record_id": "thread_1/reviewer/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "input_sha256": "89555198b84d7c6b572527194093b00d6f998b09df2895b556a95929d9f8d3b2",
+    "review": {
+      "slot_id": "thread_1",
+      "scores": {
+        "hook": 4.0,
+        "technical_accuracy": 4.0,
+        "grounding": 5.0,
+        "voice": 2.0,
+        "clarity": 3.0,
+        "cta": 5.0
+      },
+      "reasons": [
+        "Tweet 2's 'In this audit finding' and tweet 6's 'configured in this protocol' point at the research material instead of explaining the pattern in the thread's own words. Tweets 4 through 8 also closely track evidence sentences ('historical valid prices within the allowed time window... potentially manipulating outcomes', 'managed and sponsored by Pyth', 'personal, persistent account that you control and update yourself'), which reads as reordered source text.",
+        "The thread builds from hook to mechanism, example and mitigation. But tweet 3 repeats tweet 1's point that the caller supplies the price, and tweet 6's 'pick among valid past prices' restates tweet 4. The switch from the 5-minute example to the 60s real window is left unexplained and can confuse readers."
+      ],
+      "hard_fail": [],
+      "accepted": false
+    },
+    "failure": null
+  }
+]

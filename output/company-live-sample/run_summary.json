@@ -1,0 +1,108 @@
+{
+  "record_id": "_run/summary/1/1",
+  "slot_id": "_run",
+  "attempt": 1,
+  "run_id": "company-live-week",
+  "slots": {
+    "thread_1": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "SS-03738",
+      "reasons": [
+        "Tweet 2's 'In this audit finding' and tweet 6's 'configured in this protocol' point at the research material instead of explaining the pattern in the thread's own words. Tweets 4 through 8 also closely track evidence sentences ('historical valid prices within the allowed time window... potentially manipulating outcomes', 'managed and sponsored by Pyth', 'personal, persistent account that you control and update yourself'), which reads as reordered source text.",
+        "The thread builds from hook to mechanism, example and mitigation. But tweet 3 repeats tweet 1's point that the caller supplies the price, and tweet 6's 'pick among valid past prices' restates tweet 4. The switch from the 5-minute example to the 60s real window is left unexplained and can confuse readers."
+      ],
+      "error": null
+    },
+    "thread_2": {
+      "outcome": "shipped",
+      "attempts": 2,
+      "topic_id": "SS-03699",
+      "reasons": [],
+      "error": null
+    },
+    "thread_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "SS-03897",
+      "reasons": [],
+      "error": null
+    },
+    "marketing_1": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "ANGLE-agentic-payments",
+      "reasons": [
+        "tweet_4:section_label:root cause first"
+      ],
+      "error": null
+    },
+    "marketing_2": {
+      "outcome": "dropped_quality",
+      "attempts": 2,
+      "topic_id": "ANGLE-vulnerability-class",
+      "reasons": [
+        "marketing_web_citation_required"
+      ],
+      "error": null
+    },
+    "marketing_3": {
+      "outcome": "shipped",
+      "attempts": 1,
+      "topic_id": "ANGLE-web3-security",
+      "reasons": [],
+      "error": null
+    }
+  },
+  "shipped": 3,
+  "confirmed_tokens": 203844,
+  "uncertain_tokens": 0,
+  "confirmed_cost_usd": 0.675262,
+  "uncertain_cost_usd": 0.0,
+  "unpriced": false,
+  "external_usage": {
+    "search_calls": 4,
+    "tavily_calls": 4,
+    "ddgs_calls": 0,
+    "fetch_calls": 0,
+    "tavily_credits": 4.0,
+    "tavily_credits_estimated": false,
+    "image_calls": 3,
+    "cloudflare_images": 3,
+    "cloudflare_neurons": 0,
+    "pillow_cards": 0
+  },
+  "cost_scope": "LLM USD only; search/image calls counted but not priced. Pre-call token estimates can overshoot; uncertain dispatched charges retained.",
+  "advisor": "not_enabled",
+  "advisor_reason": null,
+  "agents": {
+    "research": {
+      "calls": 6,
+      "tokens": 55115,
+      "cost_usd": 0.115494,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "writer": {
+      "calls": 10,
+      "tokens": 82469,
+      "cost_usd": 0.202938,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "reviewer": {
+      "calls": 6,
+      "tokens": 52435,
+      "cost_usd": 0.323196,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    },
+    "visual": {
+      "calls": 3,
+      "tokens": 13825,
+      "cost_usd": 0.033634,
+      "uncertain_tokens": 0,
+      "uncertain_cost_usd": 0.0
+    }
+  }
+}
