@@ -1,0 +1,96 @@
+[
+  {
+    "record_id": "thread_1/export/2/1",
+    "slot_id": "thread_1",
+    "attempt": 2,
+    "type": "tech-thread",
+    "topic_id": "SS-03738",
+    "topic_name": "Non-Canonical Price Feeds Allow Historical Price Manipulation",
+    "tweets": [
+      "1/9 A price check that accepts any account carrying the right Pyth feed ID, instead of one canonical account, lets the caller pick which valid historical price the protocol reads.",
+      "2/9 In this audited protocol, the `sol_usd_pyth_feed` account was never pinned to a canonical account. Only the feed ID had to match, so a matching account from any source was accepted.",
+      "3/9 That means anyone can create their own `PriceUpdateV2` account and fill it with historical prices that were once genuine.",
+      "4/9 Timestamp checks on publish and update times still work as written here. They only confirm the price is recent enough, and they cannot tell whether it is the newest one.",
+      "5/9 Picture two transactions sent close together. The first reads the latest price t2 from the real feed. The second reads an older price t1 from a custom account, with t1 earlier than t2.",
+      "6/9 Both prices fall inside the allowed age window, which was set to 60 seconds in this protocol. A user can therefore choose the older price whenever it suits them, which can skew outcomes.",
+      "7/9 One mitigation is to read from a canonical feed account that Pyth manages and sponsors.",
+      "8/9 An alternative is a personal, persistent account that you control and update yourself.",
+      "9/9 Does your price-reading instruction accept any account whose feed ID matches, instead of one fixed canonical or self-maintained feed account?"
+    ],
+    "image": "images/slot-thread_1.png"
+  },
+  {
+    "record_id": "thread_2/export/2/1",
+    "slot_id": "thread_2",
+    "attempt": 2,
+    "type": "tech-thread",
+    "topic_id": "SS-03756",
+    "topic_name": "Missing ownership check for RegisteredProgram accounts when inserting into queues",
+    "tweets": [
+      "1/8 One attacker program can push arbitrary nullifiers, leaves and addresses into every queue of a victim Group by handing a fake registration account to a single instruction, `insert_into_queues`.",
+      "2/8 The instruction has a bool for calls made by a program. When it is set, the first account after the authority is read as a `RegisteredProgram` account, which a Group authority creates and the Program also signs, to place a Program inside a Group.",
+      "3/8 From that account the instruction derives the program's signer PDA and reads the group authority PDA. Nothing verifies who owns the `RegisteredProgram` account, so both values can be forged by supplying a fake registration.",
+      "4/8 Later checks only compare against those forged values. Merkle Trees and Queues must be owned by the provided `group_authority_pda`, and the derived signer must match the given signer. Both pass when the attacker chose the inputs.",
+      "5/8 An unregistered Program can call the instruction with a valid `PDA_AUTHORITY_PDA_SEED` signature, a fake `RegisteredProgram` that lists itself as the registered program, and the victim Group's `group_authority_pda`.",
+      "6/8 That call lets the attacker insert arbitrary elements into all queues of the victim Group. In practice this most likely means complete loss of funds for all program Groups registered with the protocol.",
+      "7/8 The fix is to check the account's owner before checking the Discriminator of `RegisteredProgram`. A fake account created by another program then fails at the first step, before any PDA is derived from it.",
+      "8/8 Grep for every place a `RegisteredProgram` Discriminator is checked, confirm an owner check comes first, and write a test that passes an account owned by a different program and expects rejection."
+    ],
+    "image": "images/slot-thread_2.png"
+  },
+  {
+    "record_id": "piece_1/export/2/1",
+    "slot_id": "thread_3",
+    "attempt": 2,
+    "type": "tech-thread",
+    "topic_id": "SS-03804",
+    "topic_name": "The Permissionless Account can Partially DoS a Multisig",
+    "tweets": [
+      "1/8 Anyone can deploy a program at a multisig's permissionless account address, and once that happens the account is executable. That is enough to make one required proposal step impossible to call.",
+      "2/8 The step is the `ProposalActivate` instruction. It needs the member who initiated the proposal to be passed in as a mutable account, and in this design that member is the permissionless account.",
+      "3/8 Solana's runtime does not let an executable account be passed as mutable. So after a program lands at that address, every call to `ProposalActivate` fails.",
+      "4/8 Activation is how a draft proposal gets executed through the protocol, so any proposal that goes through the drafting stage can no longer move forward.",
+      "5/8 The outage is partial. `ProposalCreate` still works when its params tell it to skip the drafting stage, and that path never touches `ProposalActivate`.",
+      "6/8 Features that depend on drafting are fully bricked. Batched transactions are one example, so the multisig stays usable in a reduced form.",
+      "7/8 The permissionless account model itself needs a replacement design. A smaller fix is to set the account's program owner to the autocrat program, which stops it from being turned into a program.",
+      "8/8 Does any instruction in your program require an account at a permissionlessly deployable address to be mutable, so that a program deployed there would block the call?"
+    ],
+    "image": "images/slot-thread_3.png"
+  },
+  {
+    "record_id": "marketing_1/export/2/1",
+    "slot_id": "marketing_1",
+    "attempt": 2,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-web3-security",
+    "topic_name": "web3-security",
+    "tweets": [
+      "Zellic notes 15 of the top 20 hacks on the Rekt Leaderboard involved unaudited code. At Nomad, deployed code differed from the audited code. SanadSquad provides smart contract audits across EVM and Solana/SVM. Teams can request a review."
+    ],
+    "image": "images/slot-marketing_1.png"
+  },
+  {
+    "record_id": "marketing_2/export/1/1",
+    "slot_id": "marketing_2",
+    "attempt": 1,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-agentic-payments",
+    "topic_name": "agentic-payments-x402-vs-mpp",
+    "tweets": [
+      "An x402 agent can pay at machine speed, retry failed settlements, and chain payments across other agents. Open issues in the x402 ecosystem note there are no built-in per-agent spending limits. Policy limits are the control that matters, not just the signing key."
+    ],
+    "image": "images/slot-marketing_2.png"
+  },
+  {
+    "record_id": "marketing_3/export/1/1",
+    "slot_id": "marketing_3",
+    "attempt": 1,
+    "type": "marketing-post",
+    "topic_id": "ANGLE-vulnerability-class",
+    "topic_name": "vulnerability-class",
+    "tweets": [
+      "OWASP lists tool abuse and privilege escalation as key AI agent risks. We found the same root cause in a Solana permission system: limits were checked only when a balance changed, so a SetAuthority call passed. Restrict actions, not just amounts. https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html"
+    ],
+    "image": "images/slot-marketing_3.png"
+  }
+]

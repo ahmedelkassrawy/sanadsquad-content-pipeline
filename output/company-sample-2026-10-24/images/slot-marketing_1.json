@@ -1,0 +1,12 @@
+{
+  "concept": "Deployed code that differs from audited code leaves a gap that attackers look for",
+  "scene": "Two stacked code blocks on a deep navy background, one labelled as audited and one as deployed, with a small amber gap drawn between them to show drift",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "unaudited code",
+  "alt_text": "Two stacked code blocks on a navy background with an amber gap between them, with the words unaudited code in white.",
+  "severity": null
+}

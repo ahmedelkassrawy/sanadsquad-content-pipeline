@@ -1,0 +1,12 @@
+{
+  "concept": "A permission check that only fires on balance changes lets control-changing actions slip through; restrict actions, not just amounts.",
+  "scene": "Dark navy background with a simple diagram: a gate labelled by amount limits being bypassed by a key-shaped arrow heading to a token account, drawn in flat amber line art with clean white text space.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Restrict actions, not just amounts",
+  "alt_text": "Navy brand card with amber line art of a permission gate bypassed by a key arrow, with the text Restrict actions, not just amounts.",
+  "severity": null
+}

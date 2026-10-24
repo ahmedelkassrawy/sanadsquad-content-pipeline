@@ -1,0 +1,12 @@
+{
+  "concept": "A price feed account that is not pinned to a canonical account lets a caller choose which valid historical price the protocol reads.",
+  "scene": "Dark navy card with a technical look: two parallel transaction lines, one reading the latest price from a real feed account and one reading an older price from a custom account, both inside the same age window band, with the amber highlight on the custom account.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "canonical accounts",
+  "alt_text": "Technical diagram on a navy background showing two transactions reading different prices, one latest and one older, with the older price coming from a custom account highlighted in amber.",
+  "severity": "HIGH"
+}

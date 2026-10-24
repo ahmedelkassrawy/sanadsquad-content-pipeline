@@ -1,0 +1,12 @@
+{
+  "concept": "A fake registration account lets an attacker program write into a victim Group's queues because the account owner is never checked.",
+  "scene": "Dark navy technical card. A simple diagram on the left shows an attacker program box passing a fake registration account into an instruction box, with an arrow continuing to a stack of queue accounts. A bold amber accent line underlines the key phrase. Clean engineering style, generous spacing, no logos.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Missing ownership check",
+  "alt_text": "Technical card with a diagram of an attacker program handing a fake registration account to an instruction that writes into a victim Group's queues, headed by the text Missing ownership check.",
+  "severity": "HIGH"
+}

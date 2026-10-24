@@ -1,0 +1,22 @@
+== piece_1
+   research   search_kb 'The Permissionless Account can Partially DoS a Multisig' -> SS-03804:ok, SS-03897:ok, SS-03812:ok, SS-03928:ok, SS-03859:ok
+   research   topic SS-03804 (The Permissionless Account can Partially DoS a Multisig) from SS-03804
+   draft 1    8 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=2 grounding=2 voice=3 clarity=3 cta=4
+              hard fail: unsupported_claim
+              reason: Tweet 1 says the executable account 'breaks any instruction that needs the account to be writable'. The evidence covers only `ProposalActivate`, which requires the initiator to be mutable. Tweet 1 also adds that the account is derived 'at a fixed address', which the evidence does not state. Tweets 2 to 6 match the mechanism and the partial-DoS scope.
+              reason: Most clauses in tweets 2 to 7 trace to SS-03804. Tweet 1's 'derives a permissionless account at a fixed address' and 'breaks any instruction that needs the account to be writable' are not in the evidence_text.
+              reason: The tone is calm and engineering-focused with no hype. Several tweets (2, 3, 5, 7) closely re-sequence evidence sentences rather than explaining them in the thread's own words.
+              reason: The thread mostly builds from mechanism to impact to fix. Tweet 7 opens with 'A simpler fix' before any primary fix has been introduced, so the comparison has no reference point. Tweet 6 partly restates tweet 4's point about drafting-dependent flows breaking.
+              reason: Tweet 1 claims an executable account 'breaks any instruction that needs the account to be writable' on Solana. It also says the account is derived 'at a fixed address'. The evidence supports only that `ProposalActivate` becomes uncallable because it requires the initiator account to be mutable.
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+
+shipped 1, dropped or failed 0
+tokens 35881, LLM cost $0.1497
+  research  1 call(s), 4202 tokens, $0.0088
+  writer    2 call(s), 12927 tokens, $0.0353
+  reviewer  2 call(s), 15122 tokens, $0.0960
+  visual    1 call(s), 3630 tokens, $0.0095
+advisor not_enabled

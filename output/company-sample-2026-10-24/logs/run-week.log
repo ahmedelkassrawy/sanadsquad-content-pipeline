@@ -1,0 +1,84 @@
+marketing mix
+   marketing_1: service-overview, web3-security, CTA allowed
+   marketing_2: short-tip, agentic-payments, no CTA
+   marketing_3: news-reaction, agentic-security, no CTA
+   planning marketing_2: link_diversity_adjusted short-tip
+   viable marketing_1: similar_topic pass
+   viable marketing_1: service_repeat pass
+   viable marketing_1: format_repeat pass
+   viable marketing_2: similar_topic pass
+   viable marketing_2: service_repeat pass
+   viable marketing_2: format_repeat pass
+   viable marketing_3: similar_topic pass
+   viable marketing_3: service_repeat pass
+   viable marketing_3: format_repeat pass
+   viable marketing_1: cta_limit pass
+   viable marketing_2: cta_limit pass
+   viable marketing_3: cta_limit pass
+   shipped marketing_1: similar_topic pass
+   shipped marketing_1: service_repeat pass
+   shipped marketing_1: format_repeat pass
+   shipped marketing_2: similar_topic pass
+   shipped marketing_2: service_repeat pass
+   shipped marketing_2: format_repeat pass
+   shipped marketing_3: similar_topic pass
+   shipped marketing_3: service_repeat pass
+   shipped marketing_3: format_repeat pass
+   shipped marketing_1: cta_limit pass
+   shipped marketing_2: cta_limit pass
+   shipped marketing_3: cta_limit pass
+
+== thread_1
+   research   search_kb 'oracle manipulation' -> SS-03738:ok, SS-03740:ok, SS-03706:ok, SS-03699:ok, SS-03703:ok
+   research   topic SS-03738 (Non-Canonical Price Feeds Allow Historical Price Manipulation) from SS-03738
+   draft 1    9 tweets, rules ok
+   review 1   REJECTED  hook=4 technical_accuracy=2 grounding=2 voice=2 clarity=2 cta=4
+              hard fail: unsupported_claim
+              reason: Tweets 5 and 6 contradict each other. Tweet 5 sets up a 5-minute age window, then tweet 6 says 'the window was configured to 60s'. A reader cannot tell which window applies. The worked example also never shows what the older price t1 achieves. Tweets 7 and 8 add mechanisms the evidence does not state.
+              reason: Tweets 1 to 6 trace to SS-03738. Two added claims do not. Tweet 7's 'the account address itself pins down which feed the protocol trusts' is an explanatory mechanism absent from the evidence. Tweet 8's 'You own the update path, so nobody else can substitute their own account' is an effectiveness claim the evidence does not make. The evidence only lists these two options as mitigations.
+              reason: The tone is calm, but several tweets copy evidence sentences nearly verbatim instead of explaining them. Tweet 5 reproduces the Transaction 1 and Transaction 2 lines. Tweet 6 reuses 'configured to 60s' and 'potentially manipulating outcomes'. Tweet 4 reuses 'correctly validates publish and update times'. The phrase 'In this case' in tweet 6 also points back at the source scenario.
+              reason: The 5-minute versus 60s conflict between tweets 5 and 6 makes the example confusing. Tweet 3 partly restates tweet 2's point that any matching account passes. The example never resolves into a concrete impact, so the step from mechanism to consequence is weak.
+              reason: Tweet 7: 'the account address itself pins down which feed the protocol trusts' is not stated in SS-03738. Tweet 8: 'You own the update path, so nobody else can substitute their own account' asserts an effectiveness guarantee the evidence does not support. The evidence only lists the personal, persistent account as an alternative mitigation.
+   draft 2    9 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== thread_2
+   research   topic SS-03756 (Missing ownership check for RegisteredProgram accounts when inserting into queues) from SS-03756
+   draft 1    8 tweets, rules FAILED: ai_text:rule_of_three, tweet_5:section_label:the attack
+   draft 2    8 tweets, rules ok
+   review 2   accepted  hook=5 technical_accuracy=5 grounding=4 voice=3 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== thread_3
+   research   topic SS-03804 (The Permissionless Account can Partially DoS a Multisig) from SS-03804
+   draft 1    7 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+== marketing_1
+   research   web_search 'web3 security audits deployed-code drift' -> WEB-d41df0417a0182fc:ok, WEB-b2745df2adc9d32e:ok, WEB-cc2a7610a7c21f25:ok, WEB-a6d2082bbe815b5f:ok, WEB-77a12824b1bd25da:ok
+   research   web_search 'smart contract access control vulnerability root cause mitigation SWC-105 SWC-106 OWASP Smart Contract Top 10' -> WEB-5abfb0db07028f7b:ok, WEB-949be95aa34d986e:ok, WEB-a607ffb86b3ee95c:ok, WEB-1d7fd213492761b9:ok, WEB-b13f8139f5db8a16:ok
+   research   topic ANGLE-web3-security (web3-security) from WEB-5abfb0db07028f7b, WEB-a607ffb86b3ee95c, WEB-d41df0417a0182fc, STAT-01, STAT-05
+   draft 1    1 tweets, rules FAILED: tweet_1:invalid_text, tweet_1:length
+   draft 2    1 tweets, rules ok
+   review 2   accepted  hook=4 technical_accuracy=4 grounding=5 voice=3 clarity=4 cta=4
+   outcome    shipped after 2 attempt(s)
+== marketing_2
+   research   web_search 'x402 MPP volume facilitators' -> WEB-6336a84ca33f90b3:ok, WEB-ada97018f1630869:ok, WEB-d2fb184d3b544a63:ok, WEB-49d37ef3780f981a:ok, WEB-2869b4da65b9ba10:ok
+   research   web_search 'x402 facilitator trust risks payment verification replay agent spending limits security' -> WEB-fb7c54cd7e7d5033:ok, WEB-fa469f6d6d4d837a:ok, WEB-d057aeec1fdfb2c6:ok, WEB-83bed4fa5000a464:ok, WEB-3e1766e7272f467b:ok
+   research   topic ANGLE-agentic-payments (agentic-payments-x402-vs-mpp) from WEB-fb7c54cd7e7d5033, WEB-d057aeec1fdfb2c6, WEB-fa469f6d6d4d837a, STAT-04, STAT-05
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=4 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+== marketing_3
+   research   web_search 'agent tool authorization vulnerability class' -> WEB-6c0d2a5e284ccdf4:ok, WEB-b5fa19b661eb9e1b:ok, WEB-0dfda36973150b79:ok, WEB-db7293c51b9d49f6:ok, WEB-c6314847413b045d:ok
+   research   topic ANGLE-vulnerability-class (vulnerability-class) from WEB-c6314847413b045d, WEB-db7293c51b9d49f6, SS-03699
+   draft 1    1 tweets, rules ok
+   review 1   accepted  hook=4 technical_accuracy=4 grounding=4 voice=5 clarity=4 cta=4
+   outcome    shipped after 1 attempt(s)
+
+shipped 6, dropped or failed 0
+tokens 262263, LLM cost $0.8406
+  research  7 call(s), 77586 tokens, $0.1619
+  writer    9 call(s), 75606 tokens, $0.1873
+  reviewer  7 call(s), 70392 tokens, $0.4005
+  visual    7 call(s), 38679 tokens, $0.0909
+advisor not_enabled

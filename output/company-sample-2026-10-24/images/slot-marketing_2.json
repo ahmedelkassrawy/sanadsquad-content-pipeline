@@ -1,0 +1,12 @@
+{
+  "concept": "Agent payments need policy limits, not just a signing key",
+  "scene": "A minimal navy card with a single amber line showing a payment path passing through a gate marked as a limit before reaching a wallet, drawn in a calm, precise engineering style with generous empty space",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "Policy limits are the control that matters",
+  "alt_text": "Navy brand card with an amber line of a payment path passing through a gate before reaching a wallet, with the text Policy limits are the control that matters.",
+  "severity": null
+}

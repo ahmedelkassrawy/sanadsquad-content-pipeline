@@ -1,0 +1,12 @@
+{
+  "concept": "A program deployed at a permissionless account address makes the account executable, which blocks a required mutable-account step and partially stops a multisig.",
+  "scene": "Technical diagram on a dark navy background: a multisig box on the left connected by an arrow to a ProposalActivate step. A blocked amber marker sits on the arrow where an executable account is passed as mutable. A second path labeled skip drafting bypasses the block, drawn as a thinner line.",
+  "palette": [
+    "#14213d",
+    "#fca311",
+    "#ffffff"
+  ],
+  "overlay_text": "impossible to call `ProposalActivate`",
+  "alt_text": "Diagram of a multisig whose ProposalActivate step is blocked by an executable permissionless account, while a skip-drafting path still works.",
+  "severity": "HIGH"
+}
