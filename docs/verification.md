@@ -39,6 +39,26 @@ generated file with the committed `schemas/` directory. A difference exits nonze
 These are behavior and contract checks. Scripted model responses do not prove that every live
 model will make sound editorial or grounding judgments.
 
+## Recorded live week replay
+
+`tests/fixtures/live_week/` holds one real week: the research packs, every draft the writers
+returned and the audit each draft got from the code checks. `tests/test_live_week_replay.py`
+re-runs the current checks over that content, offline, and fails if a check would now reject a
+post that shipped or pass one that was rejected. This is the check that would have caught the
+gates that misfired only on real model output (the rule-of-three false positive, a false
+repeat-credit, an approved post dropped by the weekly mix, two stats sharing a brand name).
+
+Record a fresh week after a deliberate change to the checks, the prompts or the models:
+
+```powershell
+& .\.venv\Scripts\python.exe run_week.py --plan inputs/plan.json --output output/live-replay-week
+& .\.venv\Scripts\python.exe scripts\record_live_week.py output/live-replay-week
+```
+
+The recorder keeps only the resolved slots, the research packs and the drafts with their audits.
+It refuses to write a fixture that contains a key-like string or a local path. Read the new
+`week.json` (models, commit, cost, recorded date) and the diff before committing it.
+
 ## Live sample evidence
 
 `output/sample-week/` is a complete six-piece run made with real Anthropic calls (Opus 5.5

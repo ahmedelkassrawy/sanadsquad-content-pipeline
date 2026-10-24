@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-10-24T13:58:43+00:00",
+  "commit": "1367edd8133c389ad9897b19fd916b338b6bb50b",
+  "run_id": "live-replay-week",
+  "models": {
+    "research": "anthropic:claude-sonnet-5-5",
+    "thread_writer": "anthropic:claude-sonnet-5-5",
+    "marketing_writer": "anthropic:claude-sonnet-5-5",
+    "reviewer": "anthropic:claude-opus-5-5",
+    "visual": "anthropic:claude-sonnet-5-5"
+  },
+  "settings": {
+    "max_tweet_chars": 280
+  },
+  "shipped": [
+    "thread_1",
+    "thread_2",
+    "thread_3",
+    "marketing_1",
+    "marketing_2"
+  ],
+  "cost_usd": 0.782514,
+  "slots": [
+    {
+      "slot_id": "thread_1",
+      "type": "tech-thread",
+      "focus": "oracle manipulation",
+      "format": null,
+      "service_line": null,
+      "service_lines": null,
+      "cta_allowed": true,
+      "attempt": 1,
+      "outcome": "shipped",
+      "topic_id": "SS-03738"
+    },
+    {
+      "slot_id": "thread_2",
+      "type": "tech-thread",
+      "focus": null,
+      "format": null,
+      "service_line": null,
+      "service_lines": null,
+      "cta_allowed": true,
+      "attempt": 2,
+      "outcome": "shipped",
+      "topic_id": "SS-03699"
+    },
+    {
+      "slot_id": "thread_3",
+      "type": "tech-thread",
+      "focus": null,
+      "format": null,
+      "service_line": null,
+      "service_lines": null,
+      "cta_allowed": true,
+      "attempt": 2,
+      "outcome": "shipped",
+      "topic_id": "SS-03897"
+    },
+    {
+      "slot_id": "marketing_1",
+      "type": "marketing-post",
+      "focus": null,
+      "format": "service-overview",
+      "service_line": "agentic-security",
+      "service_lines": null,
+      "cta_allowed": true,
+      "attempt": 2,
+      "outcome": "shipped",
+      "topic_id": "ANGLE-agentic-security"
+    },
+    {
+      "slot_id": "marketing_2",
+      "type": "marketing-post",
+      "focus": null,
+      "format": "short-tip",
+      "service_line": "pentesting",
+      "service_lines": null,
+      "cta_allowed": false,
+      "attempt": 2,
+      "outcome": "shipped",
+      "topic_id": "ANGLE-pentesting"
+    },
+    {
+      "slot_id": "marketing_3",
+      "type": "marketing-post",
+      "focus": null,
+      "format": "news-reaction",
+      "service_line": "agentic-payments",
+      "service_lines": null,
+      "cta_allowed": false,
+      "attempt": 2,
+      "outcome": "dropped_quality",
+      "topic_id": "ANGLE-agentic-payments"
+    }
+  ]
+}
