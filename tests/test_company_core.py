@@ -238,3 +238,33 @@ def test_configured_search_without_key_uses_live_ddgs_not_fixtures(monkeypatch, 
     monkeypatch.setattr(tools, "load_sources", lambda _: type("R", (), {"deny": []})())
     search = configured_web_search(tmp_path)
     assert search.tavily is None and search.ddgs is not None and search.fixture is None
+
+
+def test_vulnerability_marketing_reports_both_missing_citations_at_once():
+    """Live run: the writer fixed one missing citation per retry and dropped the other."""
+    from skills.brand_rules import check_research_separation
+
+    kb = KnowledgeBase(ROOT / "inputs/kb.json")
+    web = SourceRecord(
+        source_id="WEB-abcdef12",
+        kind="web",
+        url="https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html",
+        title="OWASP AI agent security",
+        evidence_text="Enforce tool authorization outside the model.",
+    )
+    pack = ResearchPack(
+        slot_id="m",
+        topic_id="ANGLE-vulnerability-class",
+        topic_name="vulnerability-class",
+        sources=[web, kb.source(kb.entries[0]["id"])],
+        kb_allowed=True,
+    )
+    spec = __import__("content_pipeline.config", fromlist=["load_type"]).load_type(
+        ROOT, "marketing-post"
+    )
+    draft = Draft(slot_id="m", tweets=[Tweet(text="Fact", source_ids=[])])
+
+    assert check_research_separation(draft, pack, spec) == [
+        "marketing_kb_citation_required",
+        "marketing_web_citation_required",
+    ]

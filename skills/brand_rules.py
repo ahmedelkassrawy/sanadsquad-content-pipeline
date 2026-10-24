@@ -62,16 +62,21 @@ def check_research_separation(draft, pack, spec, *, enforce_marketing_web=True) 
         kb_ids = {source.source_id for source in pack.sources if source.kind == "kb"}
         if kb_ids and not pack.kb_allowed:
             return ["marketing_kb_forbidden"]
+        # Report every missing source and citation together: naming only the first lets a
+        # revision fix that one and drop the other.
+        missing = []
         if pack.kb_allowed:
             if not usable_kb:
-                return ["marketing_kb_source_required"]
-            if not cited.intersection(usable_kb):
-                return ["marketing_kb_citation_required"]
+                missing.append("marketing_kb_source_required")
+            elif not cited.intersection(usable_kb):
+                missing.append("marketing_kb_citation_required")
         if enforce_marketing_web:
             if not usable_web:
-                return ["marketing_web_source_required"]
-            if not cited.intersection(usable_web):
-                return ["marketing_web_citation_required"]
+                missing.append("marketing_web_source_required")
+            elif not cited.intersection(usable_web):
+                missing.append("marketing_web_citation_required")
+        if missing:
+            return missing
     if spec.name == "tech-thread":
         if cited.intersection(usable_kb):
             return []
